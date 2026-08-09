@@ -176,11 +176,12 @@
   - Click en un segmento → fija esa escala en la biblioteca (selector + teclado resaltado) y la toca como preview ascendente
   - `test/circulo.test.js` (8 casos, incl. la propiedad "cada paso del círculo es una quinta")
 
-- [ ] **Ear training** `[L]`
-  - Modo: el sistema toca un intervalo / acorde / escala
-  - Usuario lo identifica tocándolo en el teclado
-  - Niveles: intervalos simples → acordes triada → 7ths → modos
-  - Persiste progreso
+- [x] **Ear training** `[L]` — **HECHO 2026-08-09** · P2 COMPLETO
+  - Panel "Oído" (toolbar): la app toca SOLO audio (sin pistas visuales) y el usuario lo repite en el teclado
+  - 4 niveles: intervalos (7 tipos) → tríadas (may/min/dim) → séptimas (7/maj7/m7/dim7) → escalas (5 formas + octava)
+  - Acordes en cualquier orden; melódico exige la secuencia exacta; fallo = reintento del mismo ejercicio; Revelar cuenta como fallo y dice qué era
+  - Racha/mejor/precisión persistidas (`pianopro:ear`); prioridad sobre el wait mode (no contamina stats de lección)
+  - `test/oido.test.js` (9 casos) · smoke condicionado a hardware en `smoke/yamaha.spec.js` (se omite sin teclado; `YAMAHA_LIVE=1 npm run smoke:yamaha` para el interactivo)
 
 - [x] **Análisis armónico (Roman numerals)** `[L]` — **HECHO 2026-08-09**
   - `romanNumeralFor`: mayúsc/minúsc por calidad, ° y ø, cromáticos con bemol (bVII, bVI…); chip violeta bajo el de acordes con la progresión rodante (últimos 4 grados)

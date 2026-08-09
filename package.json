@@ -5,7 +5,8 @@
   "description": "Tests unitarios de piano_pro.html (harness vm, cero dependencias, el HTML permanece como archivo único)",
   "scripts": {
     "test": "node --test test/",
-    "smoke": "playwright test --config=smoke/playwright.config.js"
+    "smoke": "playwright test --config=smoke/playwright.config.js",
+    "smoke:yamaha": "playwright test --config=smoke/playwright.config.js smoke/yamaha.spec.js --headed"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1"
