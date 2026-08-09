@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auditoría técnica — Pianoforte Aurora Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0814; --surface:rgba(255,255,255,0.045); --surface2:rgba(255,255,255,0.08);
+  --border:rgba(255,255,255,0.11); --text:#f5f5f7; --dim:rgba(245,245,247,0.68); --mute:rgba(245,245,247,0.45);
+  --cyan:#06b6d4; --gold:#fbbf24;
+  --g-pro:#22c55e; --g-solida:#2dd4bf; --g-consumo:#fbbf24; --g-edu:#fb923c; --g-no:#ef4444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
+  font-size:15px;line-height:1.65;padding:2.2rem 1.2rem 3rem;
+}
+body::before{content:'';position:fixed;inset:-30%;z-index:-1;
+  background:radial-gradient(45% 55% at 15% 25%, rgba(139,92,246,0.35) 0%, transparent 60%),
+             radial-gradient(40% 50% at 85% 15%, rgba(6,182,212,0.25) 0%, transparent 60%),
+             radial-gradient(50% 45% at 75% 80%, rgba(236,72,153,0.22) 0%, transparent 60%);
+  filter:blur(60px);}
+.doc{max-width:900px;margin:0 auto}
+header h1{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:clamp(1.7rem,4vw,2.4rem);
+  letter-spacing:-0.02em;text-wrap:balance;
+  background:linear-gradient(135deg,#fff,var(--cyan) 55%,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent}
+header .meta{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;color:var(--mute);margin-top:0.5rem}
+header p.lede{color:var(--dim);margin-top:0.8rem;max-width:64ch}
+section{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.4rem 1.6rem;margin-top:1.2rem}
+h2{font-family:'Fraunces',Georgia,serif;font-weight:400;font-size:1.35rem;letter-spacing:-0.01em;margin-bottom:0.7rem;text-wrap:balance}
+h3{font-size:0.95rem;font-weight:600;color:var(--cyan);margin:1rem 0 0.35rem}
+p,li{color:var(--dim)}
+p{margin-bottom:0.55rem;max-width:72ch}
+ul,ol{padding-left:1.3rem;margin-bottom:0.55rem}
+li{margin-bottom:0.3rem}
+strong{color:var(--text)}
+code{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px;color:#7ff3df;background:var(--surface2);border-radius:5px;padding:0.05rem 0.35rem}
+.grade{display:inline-block;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;font-weight:700;
+  letter-spacing:0.06em;border-radius:999px;padding:0.18rem 0.7rem;white-space:nowrap}
+.grade.pro{background:rgba(34,197,94,0.14);color:var(--g-pro);border:1px solid rgba(34,197,94,0.45)}
+.grade.solida{background:rgba(45,212,191,0.13);color:var(--g-solida);border:1px solid rgba(45,212,191,0.45)}
+.grade.consumo{background:rgba(251,191,36,0.12);color:var(--g-consumo);border:1px solid rgba(251,191,36,0.45)}
+.grade.edu{background:rgba(251,146,60,0.12);color:var(--g-edu);border:1px solid rgba(251,146,60,0.45)}
+.grade.no{background:rgba(239,68,68,0.12);color:#fca5a5;border:1px solid rgba(239,68,68,0.45)}
+.verdict{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0.9rem;margin-top:0.4rem}
+.verdict .tile{background:var(--surface2);border:1px solid var(--border);border-radius:13px;padding:0.9rem 1rem}
+.verdict .tile .esc{font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--mute);font-weight:600}
+.verdict .tile .q{font-family:'Fraunces',Georgia,serif;font-size:1.25rem;margin:0.3rem 0 0.4rem}
+.verdict .tile .why{font-size:12.5px;color:var(--dim)}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;margin:0.5rem 0;font-size:13.5px}
+th,td{text-align:left;padding:0.5rem 0.7rem;border-bottom:1px solid var(--border);color:var(--dim);vertical-align:top}
+th{color:var(--mute);font-size:10.5px;letter-spacing:0.12em;text-transform:uppercase;font-weight:600}
+td:first-child{color:var(--text)}
+td.num,th.num{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+.delta{color:var(--g-pro);font-weight:700}
+.reserva{border-left:3px solid var(--gold);background:rgba(251,191,36,0.06);border-radius:0 10px 10px 0;
+  padding:0.6rem 0.9rem;margin:0.7rem 0;font-size:13.5px;color:var(--dim)}
+.reserva b{color:var(--gold)}
+.gate{display:flex;gap:0.6rem;align-items:baseline;margin-bottom:0.45rem}
+.gate .st{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px;font-weight:700;min-width:88px}
+.gate .st.ok{color:var(--g-pro)}
+.gate .st.pend{color:var(--g-consumo)}
+.gate .st.parcial{color:var(--g-edu)}
+.gate div{color:var(--dim);font-size:13.5px}
+footer{margin-top:1.6rem;text-align:center;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px;color:var(--mute)}
+@media (max-width:640px){section{padding:1.1rem 1rem}}
+</style>
+</head>
+<body>
+<div class="doc">
+
+<header>
+  <h1>Auditoría técnica de precisión y calidad<br>Pianoforte Aurora Pro</h1>
+  <div class="meta">2026-08-09 · commit 73a77b0 · instrumentación en Chromium real (Playwright) · script reproducible: <code>node smoke/auditoria.js</code></div>
+  <p class="lede">Evaluación estricta de la aplicación de piano en navegador frente a estándares de uso pedagógico y profesional. Incluye los criterios de calificación, las mediciones crudas, un hallazgo corregido durante la propia auditoría, y una propuesta de criterios de publicación.</p>
+</header>
+
+<section>
+  <h2>Veredicto por escenario de uso</h2>
+  <div class="verdict">
+    <div class="tile">
+      <div class="esc">Aprendizaje con teclado MIDI (modo Yamaha)</div>
+      <div class="q"><span class="grade pro">APTA · NOTABLE</span></div>
+      <div class="why">El sonido y la latencia son los del instrumento físico (techo de calidad posible). La app aporta visuales, evaluación y teoría sin interferir en la cadena de audio.</div>
+    </div>
+    <div class="tile">
+      <div class="esc">Práctica con sonido del navegador (modo PC)</div>
+      <div class="q"><span class="grade consumo">APTA CON RESERVAS</span></div>
+      <div class="why">Latencia y jitter perceptibles para oído entrenado; suficientes para estudio amateur. Samples de calidad educativa.</div>
+    </div>
+    <div class="tile">
+      <div class="esc">Uso escénico / producción profesional</div>
+      <div class="q"><span class="grade no">NO CALIFICA HOY</span></div>
+      <div class="why">El autoplay se cuantiza al frame de render y los samples son mp3 de una capa. Camino de mejora identificado y priorizado (§ Recomendaciones).</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Criterios de calificación</h2>
+  <p>Escala aplicada a cada dimensión, con umbrales medibles:</p>
+  <div class="tablewrap"><table>
+    <tr><th>Grado</th><th>Definición</th><th>Umbral orientativo</th></tr>
+    <tr><td><span class="grade pro">PROFESIONAL</span></td><td>Indistinguible de una herramienta de escenario/estudio; sin degradación bajo estrés</td><td class="num">jitter ≤ 3ms · latencia ≤ 10ms · 0 fallos</td></tr>
+    <tr><td><span class="grade solida">SÓLIDA</span></td><td>Sin pérdida de eventos ni estados corruptos bajo estrés; margen amplio</td><td class="num">0 notas perdidas/colgadas</td></tr>
+    <tr><td><span class="grade consumo">CONSUMO</span></td><td>Perceptible por oído entrenado; no bloquea el uso amateur</td><td class="num">10–60ms</td></tr>
+    <tr><td><span class="grade edu">EDUCATIVA</span></td><td>Cumple el propósito didáctico con calidad reducida y documentada</td><td>—</td></tr>
+    <tr><td><span class="grade no">INSUFICIENTE</span></td><td>Falla su función o corrompe estado</td><td>—</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2>Metodología</h2>
+  <ul>
+    <li><strong>Instrumentación sin tocar el código</strong>: la app real corre en Chromium (Playwright); las funciones globales se envuelven en runtime para registrar tiempos (<code>audioNoteOn</code>, <code>scheduleMetroClick</code>, <code>renderFallingFrame</code>).</li>
+    <li><strong>Carga de estrés</strong>: pieza sintética de 525 notas (melodía a 10 notas/s + acorde de 4 notas cada 400ms), notas cayendo visibles y metrónomo a 180 bpm, simultáneos durante 30s.</li>
+    <li><strong>Jitter</strong> = diferencia entre el tiempo teórico de cada nota y el instante real de su disparo, por cola de tiempos esperados por tecla (525/525 disparos emparejados).</li>
+    <li><strong>Ráfaga MIDI</strong>: 200 eventos note-on + 200 note-off por el mismo camino de código que usa Web MIDI.</li>
+  </ul>
+  <div class="reserva"><b>Reservas metodológicas:</b> (1) Chromium headless usa render por software (sin GPU) — los fps y el jitter medidos son el <em>peor caso</em>; en escritorio real con GPU serán mejores. Queda pendiente re-medir con GPU. (2) Sin hardware MIDI conectado no se puede medir la latencia física tecla→sonido ni el jitter de entrega de eventos USB; existen tests condicionados (<code>smoke/yamaha.spec.js</code>) que despiertan al conectar el teclado. (3) La <code>outputLatency</code> del contexto de audio no se reporta en headless.</div>
+</section>
+
+<section>
+  <h2>Resultados y calificación por dimensión</h2>
+  <div class="tablewrap"><table>
+    <tr><th>#</th><th>Dimensión</th><th class="num">Medido</th><th class="num">Objetivo edu / pro</th><th>Calificación</th></tr>
+    <tr><td>3</td><td>Metrónomo bajo estrés (90 clicks @180bpm)</td><td class="num">0 clicks tarde · margen mín 50ms</td><td class="num">— / ≤1ms desvío</td><td><span class="grade pro">PROFESIONAL</span></td></tr>
+    <tr><td>4</td><td>Exactitud de captura de la grabadora (40 notas)</td><td class="num">overhead máx 0.9ms</td><td class="num">≤5ms / ≤1ms</td><td><span class="grade pro">PROFESIONAL</span></td></tr>
+    <tr><td>6</td><td>Fiabilidad de eventos (ráfaga 200+200)</td><td class="num">152ms total (0.76ms/evento) · 0 colgadas · 0 residuo</td><td class="num">0 pérdidas</td><td><span class="grade solida">SÓLIDA</span></td></tr>
+    <tr><td>1</td><td>Latencia del contexto de audio (modo PC)</td><td class="num">48kHz · base 10.67ms (+ salida real 10–30ms estimada)</td><td class="num">≤25ms / ≤10ms</td><td><span class="grade consumo">CONSUMO</span></td></tr>
+    <tr><td>2</td><td>Jitter del autoplay bajo estrés (525 disparos)</td><td class="num">media 25.9ms · p95 52.4ms · máx 91.2ms</td><td class="num">≤25ms / ≤3ms</td><td><span class="grade consumo">CONSUMO*</span></td></tr>
+    <tr><td>5</td><td>Frames bajo carga (falling + acordes + metrónomo)</td><td class="num">17.9 fps · gap p95 62ms</td><td class="num">≥55fps</td><td><span class="grade consumo">CONSUMO*</span></td></tr>
+    <tr><td>7</td><td>Samples de piano (Salamander vía CDN)</td><td class="num">30 archivos mp3 · 1.9MB total · 1 capa de velocity</td><td class="num">— / WAV multicapa</td><td><span class="grade edu">EDUCATIVA</span></td></tr>
+    <tr><td>—</td><td>Errores de consola en toda la sesión de auditoría</td><td class="num">0</td><td class="num">0</td><td><span class="grade solida">SÓLIDA</span></td></tr>
+    <tr><td>—</td><td>Estado tras estrés (notas colgadas)</td><td class="num">0</td><td class="num">0</td><td><span class="grade solida">SÓLIDA</span></td></tr>
+  </table></div>
+  <p><strong>*</strong> Medido en render por software (peor caso). El techo del jitter del autoplay está estructuralmente atado al frame de render (<code>requestAnimationFrame</code>); el grado PRO exige migrar el disparo al reloj de audio (misma técnica que ya usa el metrónomo, que por eso califica PROFESIONAL).</p>
+</section>
+
+<section>
+  <h2>Hallazgo corregido durante la auditoría</h2>
+  <p>La primera pasada reveló que <code>draw()</code> repintaba <strong>las 88 teclas de forma síncrona en cada evento de nota</strong> — en ráfagas y acordes el costo se multiplicaba. Se aplicó repintado coalescido (los eventos marcan "sucio"; se pinta máximo una vez por frame) y se re-midió:</p>
+  <div class="tablewrap"><table>
+    <tr><th>Métrica</th><th class="num">Antes</th><th class="num">Después</th><th class="num">Mejora</th></tr>
+    <tr><td>Ráfaga de 200 eventos MIDI</td><td class="num">501.3ms</td><td class="num">152.1ms</td><td class="num delta">3.3× más rápido</td></tr>
+    <tr><td>Jitter medio del autoplay</td><td class="num">29.5ms</td><td class="num">25.9ms</td><td class="num delta">−12%</td></tr>
+  </table></div>
+  <p>La primera pasada también reportó "4 notas colgadas tras el estrés"; el análisis demostró que era un <strong>artefacto de medición</strong> (se leía el estado antes de que las últimas notas terminaran su duración natural). Corregido el instrumento, el valor real es 0.</p>
+  <p>Antecedente de la misma campaña de calidad: las pruebas de humo en navegador habían encontrado una <strong>zona muerta de 1px entre teclas blancas</strong> donde el click no sonaba (corregida con test de regresión que escanea todo el ancho del teclado).</p>
+</section>
+
+<section>
+  <h2>Recomendaciones priorizadas (camino a grado profesional)</h2>
+  <ol>
+    <li><strong>Autoplay en el reloj de audio</strong> — programar los disparos como el metrónomo (lookahead + tiempo absoluto de audio) elimina la cuantización de frame. Es la única vía al objetivo pro de ≤3ms. <em>Impacto alto, esfuerzo M.</em></li>
+    <li><strong>Optimizar el render de notas cayendo</strong> — el <code>shadowBlur</code> por nota cerca del playhead es notoriamente caro en canvas; sustituir por gradiente pre-renderizado. <em>Impacto alto en fps, esfuerzo S.</em></li>
+    <li><strong>Samples Salamander completos en local</strong> — WAV 48kHz multicapa sin CDN (el original tiene 16 capas de velocity; la versión actual es mp3 de 1 capa y 1.9MB totales). <em>Sube la calidad sonora de Educativa a Profesional; esfuerzo M + ~1GB de assets.</em></li>
+    <li><strong>Grabadora sobre <code>e.timeStamp</code></strong> — usar el reloj del evento MIDI en vez del instante del handler. <em>Esfuerzo S.</em></li>
+    <li><strong>Reverb por convolución con IRs reales</strong> (ya en backlog P1). <em>Esfuerzo M.</em></li>
+    <li><strong>Re-medición con GPU y con hardware</strong> — repetir esta auditoría en Chromium con GPU y correr los tests condicionados con el teclado conectado (<code>YAMAHA_LIVE=1 npm run smoke:yamaha</code>).</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Criterios de publicación propuestos</h2>
+  <p>Umbrales sugeridos como "gate" para publicar la herramienta en su ámbito (uso pedagógico). Estado actual de cada uno:</p>
+  <div class="gate"><span class="st ok">CUMPLE</span><div>Suite de 3 capas en verde: 125 unitarias + humo HTML↔JS + 5 escenarios en navegador real.</div></div>
+  <div class="gate"><span class="st ok">CUMPLE</span><div>0 errores de consola en boot, carga de archivos y estrés de 30s.</div></div>
+  <div class="gate"><span class="st ok">CUMPLE</span><div>0 notas colgadas y 0 residuo del sampler tras ráfagas y estrés.</div></div>
+  <div class="gate"><span class="st ok">CUMPLE</span><div>Las limitaciones audibles están documentadas al usuario (manual: modo PC vs modo Yamaha, requisitos, problemas frecuentes).</div></div>
+  <div class="gate"><span class="st ok">CUMPLE</span><div>Degradación elegante sin red: en modo Yamaha se puede tocar y usar el metrónomo aunque el CDN no cargue.</div></div>
+  <div class="gate"><span class="st pend">PENDIENTE</span><div>Jitter de autoplay p95 ≤ 25ms y ≥ 55fps <em>medidos con GPU real</em> (la medición headless es peor-caso y no concluyente).</div></div>
+  <div class="gate"><span class="st pend">PENDIENTE</span><div>Validación con hardware: los 3 tests condicionados en verde con el teclado conectado, incluido el interactivo.</div></div>
+  <div class="gate"><span class="st parcial">PARCIAL</span><div>Accesibilidad y responsive: hay base (títulos en botones, layout adaptable) pero sin auditoría formal (contraste, foco visible, teclado-solo).</div></div>
+</section>
+
+<section>
+  <h2>Datos crudos de la corrida</h2>
+  <div class="tablewrap"><table>
+    <tr><th>Clave</th><th class="num">Valor</th></tr>
+    <tr><td>sampleRate / baseLatency</td><td class="num">48000 Hz / 10.67ms</td></tr>
+    <tr><td>Jitter autoplay (525 disparos)</td><td class="num">media 25.88ms · p95 52.40ms · máx 91.20ms</td></tr>
+    <tr><td>Metrónomo</td><td class="num">90 clicks · 0 tarde · margen mín 50.00ms</td></tr>
+    <tr><td>Grabadora</td><td class="num">40 notas · overhead máx 0.9ms</td></tr>
+    <tr><td>Frames</td><td class="num">549 · 17.9fps · gap p95 62.2ms · máx 119.4ms</td></tr>
+    <tr><td>Ráfaga MIDI</td><td class="num">200+200 eventos · 152.1ms · 88/88 teclas · 0 colgadas</td></tr>
+    <tr><td>Samples CDN</td><td class="num">30 × audio/mp3 · 1.9MB · 1 capa velocity</td></tr>
+    <tr><td>Errores de consola</td><td class="num">0</td></tr>
+  </table></div>
+</section>
+
+<footer>— auditoría reproducible: <code>node smoke/auditoria.js</code> · pianoforte aurora pro · 2026-08-09 —</footer>
+</div>
+</body>
+</html>
