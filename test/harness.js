@@ -37,6 +37,7 @@ const EXPORTS = [
   'onCircleClick',
   // análisis armónico
   'romanNumeralFor', 'currentKeyPc',
+  'markLessonWithoutScore',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   // integración Yamaha

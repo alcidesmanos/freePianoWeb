@@ -98,3 +98,23 @@ test('sin lección cargada no hay nada que guardar (null)', () => {
   const p = loadPiano();
   assert.equal(p.buildSessionSnapshot(), null);
 });
+
+test('lecciones sin partitura propia no activan score-following', () => {
+  const p = loadPiano();
+  // una sesión restaurada solo trae notas (nunca la partitura renderizada)
+  p.applySessionSnapshot(SNAP);
+  assert.equal(p.songState.hasScore, false,
+    'el cursor OSMD no debe avanzar sobre una partitura que no corresponde');
+});
+
+test('markLessonWithoutScore limpia el visor y lo explica', () => {
+  const p = loadPiano();
+  p.songState.hasScore = true; // simula que había un XML anterior
+  p.markLessonWithoutScore('Cancion.mid');
+  assert.equal(p.songState.hasScore, false);
+  const sl = p.__getElement('score-loading');
+  assert.match(sl.textContent, /no incluye partitura/);
+  assert.equal(sl.style.display, 'block');
+  const st = p.__getElement('score-title');
+  assert.equal(st.textContent, 'Cancion.mid · sin partitura');
+});

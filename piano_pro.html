@@ -3326,6 +3326,9 @@ function hideOsmdCursor(){
   try{osmd.cursor.hide()}catch(e){}
 }
 function advanceOsmdCursor(){
+  // Sin partitura propia (lección MIDI o sesión restaurada), el cursor no debe
+  // avanzar sobre una partitura vieja que no corresponde a lo que suena.
+  if(!songState.hasScore)return;
   if(!osmdHasCursor())return;
   try{
     if(osmd.cursor.iterator && osmd.cursor.iterator.endReached)return;
@@ -3540,6 +3543,7 @@ function loadLessonFromOsmd(title){
   }
   console.log('[lección] extracción OK, llamando loadSong con', result.notes.length, 'notas');
   loadSong(result.notes, title || 'Lección', result.bpm);
+  songState.hasScore = true; // esta lección SÍ tiene partitura sincronizada
   showToast({type:'success',title:'Lección lista',body:`${result.notes.length} notas · ${Math.round(result.bpm)} bpm. Pulsa ▶.`});
   return true;
 }
@@ -3565,6 +3569,7 @@ const songState = {
   duration:0,
   bpm:80,
   name:'',
+  hasScore:false,      // true solo si la lección vino de un XML con partitura renderizada
 };
 
 const highlightedKeys={}; // midi -> 'left' | 'right' (próxima nota a tocar)
@@ -3852,6 +3857,7 @@ function loadSong(notes, name, bpmVal){
   songState.name = name;
   songState.bpm = bpmVal||80;
   songState.loaded = true;
+  songState.hasScore = false; // el camino XML lo activa después de cargar la partitura
 
   document.getElementById('lesson-panel').classList.add('show');
   const empty=document.getElementById('lesson-empty');
@@ -4483,7 +4489,24 @@ function parseAndLoad(midi, name){
   }
   const bpm = midi.header.tempos[0]?.bpm || 80;
   loadSong(notes, name, bpm);
+  markLessonWithoutScore(name);
   return true;
+}
+
+// Un MIDI no trae notación: limpia el visor (si mostraba un XML anterior) y
+// deja claro por qué no hay partitura, para que el cursor y la hoja vieja no
+// desinformen sobre lo que está sonando.
+function markLessonWithoutScore(name){
+  songState.hasScore=false;
+  try{hideOsmdCursor()}catch(e){}
+  if(osmd){try{osmd.clear()}catch(e){}}
+  const sl=document.getElementById('score-loading');
+  if(sl){
+    sl.style.display='block';
+    sl.textContent='MIDI cargado — este formato no incluye partitura. Sigue la lección en las notas que caen.';
+  }
+  const st=document.getElementById('score-title');
+  if(st)st.textContent=(name||'MIDI')+' · sin partitura';
 }
 
 // ----- Für Elise: descarga el XML; la lección se genera automáticamente desde OSMD -----
