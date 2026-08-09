@@ -293,6 +293,25 @@ label.btn{cursor:pointer}
   z-index:5;
 }
 
+/* ---------- LESSON EMPTY STATE ---------- */
+#lesson-empty{
+  background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
+  border:1px dashed var(--border-hi);border-radius:14px;
+  padding:0.9rem 1.2rem;
+  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+  animation:rise 700ms cubic-bezier(.2,.7,.2,1) both;
+}
+#lesson-empty.hidden{display:none}
+#lesson-empty .icon{font-size:26px;opacity:0.8}
+#lesson-empty .txt{flex:1;min-width:200px}
+#lesson-empty .t{font-family:'Fraunces',serif;font-size:16px;color:var(--text)}
+#lesson-empty .s{font-size:12px;color:var(--text-mute);margin-top:0.15rem}
+
+/* Botón en estado de carga (Für Elise descargando) */
+.btn.loading{pointer-events:none;opacity:0.55}
+.btn.loading .icon{display:inline-block;animation:spin 1s linear infinite}
+.btn:disabled{pointer-events:none;opacity:0.55}
+
 /* ---------- LESSON PANEL ---------- */
 #lesson-panel{
   background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
@@ -775,7 +794,7 @@ input[type=range]:focus{outline:none}
   </header>
 
   <div id="toolbar">
-    <button class="btn featured" onclick="loadFurEliseLesson()"><span class="icon">★</span>Für Elise (lección)</button>
+    <button class="btn featured" data-furelise onclick="loadFurEliseLesson()"><span class="icon">★</span>Für Elise (lección)</button>
     <label class="btn cyan" for="midi-input"><span class="icon">↥</span>Cargar MIDI</label>
     <input type="file" id="midi-input" class="hidden-input" accept=".mid,.midi" onchange="loadMidiFile(this)">
     <label class="btn" for="xml-input"><span class="icon">↥</span>Cargar partitura</label>
@@ -843,6 +862,17 @@ input[type=range]:focus{outline:none}
     <div id="osmd-container">
       <div id="score-loading">Pulsa «Für Elise» o carga un archivo MusicXML</div>
     </div>
+  </section>
+
+  <section id="lesson-empty">
+    <div class="icon">🎹</div>
+    <div class="txt">
+      <div class="t">Sin canción cargada</div>
+      <div class="s">Carga un MIDI o una partitura, arrastra el archivo a la página, o empieza con Für Elise</div>
+    </div>
+    <button class="btn featured" data-furelise onclick="loadFurEliseLesson()"><span class="icon">★</span>Für Elise</button>
+    <label class="btn cyan" for="midi-input"><span class="icon">↥</span>Cargar MIDI</label>
+    <label class="btn" for="xml-input"><span class="icon">↥</span>Cargar partitura</label>
   </section>
 
   <section id="lesson-panel">
@@ -3295,6 +3325,8 @@ function loadSong(notes, name, bpmVal){
   songState.loaded = true;
 
   document.getElementById('lesson-panel').classList.add('show');
+  const empty=document.getElementById('lesson-empty');
+  if(empty)empty.classList.add('hidden');
   document.getElementById('lesson-name').textContent=name;
   document.getElementById('lesson-notes').textContent=songState.notes.length+' notas';
   document.getElementById('lesson-bpm').textContent=Math.round(songState.bpm)+' bpm';
@@ -3801,12 +3833,21 @@ function parseAndLoad(midi, name){
 }
 
 // ----- Für Elise: descarga el XML; la lección se genera automáticamente desde OSMD -----
+// Loading state en todos los botones Für Elise (toolbar + estado vacío):
+// deshabilitados con la estrella girando mientras descarga → sin doble clic.
+function setFurEliseLoading(on){
+  document.querySelectorAll('[data-furelise]').forEach(b=>{
+    b.disabled=on;
+    b.classList.toggle('loading',on);
+  });
+}
 async function loadFurEliseLesson(){
   // Detener reproducción anterior sin ocultar paneles (loadSong los actualizará)
   if(songState.loaded){
     cleanupCurrentLesson();
     songState.loaded=false;
   }
+  setFurEliseLoading(true);
   const ctl=new AbortController();
   const timeout=setTimeout(()=>ctl.abort(),8000);
   const loading=showToast({type:'info',title:'Descargando Für Elise',body:'Beethoven · Für Elise',id:'fur-elise',duration:null});
@@ -3823,6 +3864,7 @@ async function loadFurEliseLesson(){
     showToast({type:'error',title:'No se pudo descargar Für Elise',body:reason+'. Carga manualmente un .xml/.mxl.',duration:null});
   }finally{
     clearTimeout(timeout);
+    setFurEliseLoading(false);
   }
 }
 
