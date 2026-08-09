@@ -2885,6 +2885,7 @@ const songState = {
 
 const highlightedKeys={}; // midi -> 'left' | 'right' (próxima nota a tocar)
 const LOOK_AHEAD = 2.8; // segundos visibles cayendo
+const GROUP_TOLERANCE = 0.03; // seg — notas a ≤30ms forman el mismo grupo/acorde
 const _pendingAutoTimeouts = new Set(); // timeouts de note-off del autoplay (se cancelan al cargar otra lección)
 
 // ---------- LOOP A-B ----------
@@ -3128,16 +3129,21 @@ function getSongTime(){
 }
 
 function buildGroups(notes){
-  // agrupa notas que ocurren ~simultáneamente (≤30ms)
+  // agrupa notas que ocurren ~simultáneamente (≤GROUP_TOLERANCE).
+  // Cada grupo guarda REFERENCIAS a sus notas: los consumidores (autoplay,
+  // highlight, marcado de played) iteran esas referencias en vez de volver a
+  // buscar por tiempo — así una nota desfasada dentro de la tolerancia nunca
+  // queda huérfana.
   const groups=[];
   const sorted=notes.slice().sort((a,b)=>a.time-b.time);
   let cur=null;
   for(const n of sorted){
-    if(!cur || n.time - cur.time > 0.03){
-      cur={time:n.time, midis:new Set(), played:new Set()};
+    if(!cur || n.time - cur.time > GROUP_TOLERANCE){
+      cur={time:n.time, midis:new Set(), played:new Set(), notes:[]};
       groups.push(cur);
     }
     cur.midis.add(n.midi);
+    cur.notes.push(n);
   }
   return groups;
 }
@@ -3263,9 +3269,8 @@ function updateHighlight(){
   for(const k in highlightedKeys)delete highlightedKeys[k];
   if(songState.loaded && songState.waitMode && songState.nextGroup<songState.groups.length){
     const g=songState.groups[songState.nextGroup];
-    g.midis.forEach(m=>{
-      const note=songState.notes.find(n=>n.midi===m && Math.abs(n.time-g.time)<0.01);
-      highlightedKeys[m]= (note&&note.hand==='left')?'left':'right';
+    g.notes.forEach(note=>{
+      highlightedKeys[note.midi]= note.hand==='left'?'left':'right';
     });
   }
   draw();
@@ -3286,10 +3291,8 @@ function registerUserHit(midi, fromUser){
         songState.pausedAt=t;
         songState.startPerf=performance.now();
         songState.nextGroup++;
-        // marcar notas como played
-        songState.notes.forEach(n=>{
-          if(n.midi && Math.abs(n.time-g.time)<0.01)n.played=true;
-        });
+        // marcar como played todas las notas del grupo (referencias directas)
+        g.notes.forEach(n=>{n.played=true});
         updateHighlight();
         advanceOsmdCursor();
         // si estaba pausado por wait, asegurarse de seguir tocando
@@ -3342,9 +3345,8 @@ function playLoop(){
       while(songState.nextGroup < songState.groups.length){
         const g=songState.groups[songState.nextGroup];
         if(g.time > t)break;
-        g.midis.forEach(m=>{
-          const note=songState.notes.find(n=>n.midi===m && Math.abs(n.time-g.time)<0.01 && !n.played);
-          if(note){
+        g.notes.forEach(note=>{
+          if(!note.played){
             note.played=true;
             const v127=Math.round(note.velocity*127);
             // Si Modo Silencio: solo visual, sin sonido (autoplay deja al user tocar lo que ve)
