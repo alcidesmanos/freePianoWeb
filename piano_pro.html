@@ -3367,7 +3367,7 @@ function playLoop(){
                 }
               }
               activeKeys[note.midi]=false; draw();
-            }, Math.min(2500,dur));
+            }, dur); // duración completa: los timeouts se cancelan vía _pendingAutoTimeouts
             _pendingAutoTimeouts.add(tid);
           }
         });
