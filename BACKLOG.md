@@ -170,10 +170,11 @@
   - Chip dorado flotante en el hero (`#chord-display`), nombres EN/ES según modo nota
   - Ambigüedad C6 vs Am7 resuelta por el bajo — `test/acordes.test.js` (10 casos)
 
-- [ ] **Círculo de quintas interactivo** `[M]`
-  - SVG con 12 segmentos
-  - Detectar tonalidad de lo que tocas y resaltar el segmento (mayor + relativa menor)
-  - Click en un segmento → toca la escala correspondiente
+- [x] **Círculo de quintas interactivo** `[M]` — **HECHO 2026-08-09**
+  - SVG de 24 segmentos generado por código (anillo exterior mayores, interior relativas menores), toggle "Círculo 5ªs" en toolbar, construcción perezosa
+  - Detección de tonalidad: histograma rodante de las últimas 32 notas, puntuación por escala con bonos tónica/dominante/relativa → segmento dorado + etiqueta "C · Am"
+  - Click en un segmento → fija esa escala en la biblioteca (selector + teclado resaltado) y la toca como preview ascendente
+  - `test/circulo.test.js` (8 casos, incl. la propiedad "cada paso del círculo es una quinta")
 
 - [ ] **Ear training** `[L]`
   - Modo: el sistema toca un intervalo / acorde / escala

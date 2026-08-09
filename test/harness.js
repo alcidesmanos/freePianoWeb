@@ -32,6 +32,9 @@ const EXPORTS = [
   // biblioteca de escalas
   'SCALE_SHAPES', 'scaleState', 'getScalePitchClasses',
   'setScaleActive', 'setScaleRoot', 'setScaleType', 'currentScaleLabel',
+  // círculo de quintas
+  'detectKeyFromCounts', 'CIRCLE_ORDER', 'CIRCLE_LABELS_MAJ', 'CIRCLE_LABELS_MIN',
+  'onCircleClick',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   // integración Yamaha

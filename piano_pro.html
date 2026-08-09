@@ -598,6 +598,28 @@ label.btn{cursor:pointer}
 }
 #chord-display.show{opacity:1;transform:translateY(0)}
 
+/* ---------- CÍRCULO DE QUINTAS ---------- */
+#circle-section{
+  background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
+  border:1px solid var(--border);border-radius:16px;
+  padding:0.8rem 1.2rem;
+  display:flex;align-items:center;gap:1.4rem;flex-wrap:wrap;
+  animation:rise 600ms cubic-bezier(.2,.7,.2,1) both;
+}
+#circle-section.hidden{display:none}
+#circle-svg{width:230px;height:230px;flex-shrink:0}
+#circle-svg .cf-seg{fill:rgba(255,255,255,0.06);stroke:rgba(255,255,255,0.14);stroke-width:1;cursor:pointer;transition:fill 0.2s}
+#circle-svg .cf-seg:hover{fill:rgba(139,92,246,0.35)}
+#circle-svg .cf-seg.detected{fill:rgba(251,191,36,0.40);stroke:rgba(251,191,36,0.8)}
+#circle-svg .cf-seg.selected{fill:rgba(6,182,212,0.42);stroke:rgba(6,182,212,0.9)}
+#circle-svg .cf-label{fill:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;text-anchor:middle;dominant-baseline:middle;pointer-events:none}
+#circle-svg .cf-label.min{font-size:8.5px;fill:var(--text-dim);font-weight:400}
+#circle-svg .cf-center-label{fill:var(--gold);font-family:'Fraunces',serif;font-size:15px;text-anchor:middle;dominant-baseline:middle}
+#circle-info{flex:1;min-width:220px}
+#circle-info .t{font-family:'Fraunces',serif;font-size:17px;color:var(--text)}
+#circle-info .s{font-size:12px;color:var(--text-dim);margin-top:0.3rem;max-width:440px;line-height:1.5}
+#circle-info .d{margin-top:0.6rem;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--gold)}
+
 /* ---------- PIANO ---------- */
 #piano-frame{
   padding:0.7rem;
@@ -836,6 +858,7 @@ input[type=range]:focus{outline:none}
     <label class="btn" for="xml-input"><span class="icon">↥</span>Cargar partitura</label>
     <input type="file" id="xml-input" class="hidden-input" accept=".xml,.musicxml,.mxl" onchange="loadXmlFile(this)">
     <button class="btn" id="btn-score" onclick="toggleScore()">Ocultar partitura</button>
+    <button class="btn" id="btn-circle" onclick="toggleCircle()" title="Círculo de quintas: detecta la tonalidad de lo que tocas; click en un segmento fija y suena su escala">Círculo 5ªs</button>
     <span class="spacer"></span>
     <button class="btn active" id="btn-full" onclick="setMode('full')">Vista general</button>
     <button class="btn" id="btn-zoom" onclick="setMode('zoom')">Vista real</button>
@@ -1043,6 +1066,15 @@ input[type=range]:focus{outline:none}
     <div id="sustain-block">
       <div id="sustain-flash"></div>
       <div class="lab">Sustain</div>
+    </div>
+  </section>
+
+  <section id="circle-section" class="hidden">
+    <svg id="circle-svg" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="circle-info">
+      <div class="t">Círculo de quintas</div>
+      <div class="s">Toca en el piano y detecto la tonalidad (segmento dorado). Haz click en cualquier segmento para fijar su escala en el teclado y oírla — exterior mayores, interior relativas menores.</div>
+      <div class="d" id="circle-detected">tonalidad: —</div>
     </div>
   </section>
 
@@ -2295,6 +2327,7 @@ function noteOn(midi, vel, source='virtual'){
   _chordPressed.add(midi);
   _chordSustained.delete(midi);
   updateChordDisplay();
+  _registerKeyDetection(midi);
   if(songState.loaded && songState.waitMode) registerUserHit(midi, true);
 }
 function noteOff(midi, source='virtual'){
@@ -2440,6 +2473,174 @@ function setScaleRoot(pc){
 function setScaleType(id){
   if(SCALE_SHAPES.some(s=>s.id===id))scaleState.shapeId=id;
   applyScaleState();
+}
+
+// ============================================================
+//   CÍRCULO DE QUINTAS
+// ============================================================
+// Orden horario desde arriba (C en las 12): cada paso suma una quinta justa.
+const CIRCLE_ORDER=[0,7,2,9,4,11,6,1,8,3,10,5];
+const CIRCLE_LABELS_MAJ=['C','G','D','A','E','B','F#','Db','Ab','Eb','Bb','F'];
+const CIRCLE_LABELS_MIN=['Am','Em','Bm','F#m','C#m','G#m','Ebm','Bbm','Fm','Cm','Gm','Dm'];
+
+// Detección de tonalidad por histograma de pitch classes (últimas 32 notas).
+// Puntúa cada tonalidad mayor: +1 por nota dentro de la escala, -1.5 fuera,
+// con bonos por tónica/dominante/relativa menor para desambiguar vecinas
+// (C vs G comparten 6 de 7 notas). Devuelve {majorPc, score} o null si hay
+// muy pocas notas para opinar.
+function detectKeyFromCounts(counts){
+  const total=counts.reduce((a,b)=>a+b,0);
+  if(total<6)return null;
+  const MAJOR_IVS=[0,2,4,5,7,9,11];
+  let best=null;
+  for(let k=0;k<12;k++){
+    const scale=new Set(MAJOR_IVS.map(iv=>(iv+k)%12));
+    let s=0;
+    for(let pc=0;pc<12;pc++)s+=counts[pc]*(scale.has(pc)?1:-1.5);
+    s += counts[k]*0.5 + counts[(k+7)%12]*0.3 + counts[(k+9)%12]*0.25;
+    if(!best||s>best.score)best={score:s, majorPc:k};
+  }
+  return best;
+}
+
+const _keyHistory=[]; // pitch classes de las últimas notas tocadas por el usuario
+let _detectedMajorPc=null;
+const _cfSegs={maj:{}, min:{}}; // pc → elemento path del SVG (llenado al construir)
+let _circleBuilt=false;
+
+function _registerKeyDetection(midi){
+  _keyHistory.push(midi%12);
+  if(_keyHistory.length>32)_keyHistory.shift();
+  const counts=Array(12).fill(0);
+  _keyHistory.forEach(pc=>counts[pc]++);
+  const det=detectKeyFromCounts(counts);
+  _detectedMajorPc=det?det.majorPc:null;
+  updateCircleDetected();
+}
+
+function updateCircleDetected(){
+  ['maj','min'].forEach(ring=>{
+    Object.values(_cfSegs[ring]).forEach(el=>el.classList.remove('detected'));
+  });
+  const idx=_detectedMajorPc==null?-1:CIRCLE_ORDER.indexOf(_detectedMajorPc);
+  const label=idx<0?'—':CIRCLE_LABELS_MAJ[idx]+' · '+CIRCLE_LABELS_MIN[idx];
+  if(idx>=0){
+    if(_cfSegs.maj[_detectedMajorPc])_cfSegs.maj[_detectedMajorPc].classList.add('detected');
+    if(_cfSegs.min[_detectedMajorPc])_cfSegs.min[_detectedMajorPc].classList.add('detected');
+  }
+  const d=document.getElementById('circle-detected');
+  if(d)d.textContent='tonalidad: '+label;
+  const c=document.getElementById('cf-center-label');
+  if(c)c.textContent=label;
+}
+
+function _arcPoint(cx,cy,r,deg){
+  const rad=deg*Math.PI/180;
+  return [cx+r*Math.cos(rad), cy+r*Math.sin(rad)];
+}
+function _wedgePath(cx,cy,r0,r1,a0,a1){
+  const [x0,y0]=_arcPoint(cx,cy,r1,a0), [x1,y1]=_arcPoint(cx,cy,r1,a1);
+  const [x2,y2]=_arcPoint(cx,cy,r0,a1), [x3,y3]=_arcPoint(cx,cy,r0,a0);
+  const f=n=>n.toFixed(2);
+  return `M${f(x0)} ${f(y0)} A${r1} ${r1} 0 0 1 ${f(x1)} ${f(y1)} L${f(x2)} ${f(y2)} A${r0} ${r0} 0 0 0 ${f(x3)} ${f(y3)} Z`;
+}
+
+function buildCircleOfFifths(){
+  const svg=document.getElementById('circle-svg');
+  if(!svg)return;
+  const CX=110, CY=110;
+  for(let i=0;i<12;i++){
+    const pc=CIRCLE_ORDER[i];
+    const aMid=-90+i*30, a0=aMid-15, a1=aMid+15;
+    // anillo exterior: mayores
+    const maj=document.createElementNS(SVG_NS,'path');
+    maj.setAttribute('class','cf-seg');
+    maj.setAttribute('d',_wedgePath(CX,CY,62,100,a0,a1));
+    maj.addEventListener('click',()=>onCircleClick(pc,false));
+    svg.appendChild(maj);
+    _cfSegs.maj[pc]=maj;
+    // anillo interior: relativas menores
+    const min=document.createElementNS(SVG_NS,'path');
+    min.setAttribute('class','cf-seg');
+    min.setAttribute('d',_wedgePath(CX,CY,32,62,a0,a1));
+    min.addEventListener('click',()=>onCircleClick((pc+9)%12,true));
+    svg.appendChild(min);
+    _cfSegs.min[pc]=min;
+    // etiquetas
+    const [lx,ly]=_arcPoint(CX,CY,81,aMid);
+    const lt=document.createElementNS(SVG_NS,'text');
+    lt.setAttribute('class','cf-label');
+    lt.setAttribute('x',lx.toFixed(1)); lt.setAttribute('y',ly.toFixed(1));
+    lt.textContent=CIRCLE_LABELS_MAJ[i];
+    svg.appendChild(lt);
+    const [mx,my]=_arcPoint(CX,CY,47,aMid);
+    const mt=document.createElementNS(SVG_NS,'text');
+    mt.setAttribute('class','cf-label min');
+    mt.setAttribute('x',mx.toFixed(1)); mt.setAttribute('y',my.toFixed(1));
+    mt.textContent=CIRCLE_LABELS_MIN[i];
+    svg.appendChild(mt);
+  }
+  const center=document.createElementNS(SVG_NS,'text');
+  center.setAttribute('class','cf-center-label');
+  center.setAttribute('id','cf-center-label');
+  center.setAttribute('x',110); center.setAttribute('y',110);
+  center.textContent='—';
+  svg.appendChild(center);
+  updateCircleDetected();
+}
+
+function toggleCircle(){
+  const sec=document.getElementById('circle-section');
+  if(!sec)return;
+  const show=sec.classList.contains('hidden');
+  sec.classList.toggle('hidden',!show);
+  const btn=document.getElementById('btn-circle');
+  if(btn)btn.classList.toggle('active',show);
+  if(show && !_circleBuilt){buildCircleOfFifths();_circleBuilt=true;}
+}
+
+// Click en un segmento: fija esa escala en la biblioteca, la resalta en el
+// teclado y la toca como preview ascendente (tónica a tónica).
+function onCircleClick(rootPc, minor){
+  scaleState.rootPc=rootPc;
+  scaleState.shapeId=minor?'minor':'major';
+  scaleState.active=true;
+  const sr=document.getElementById('scale-root'); if(sr)sr.value=String(rootPc);
+  const st=document.getElementById('scale-type'); if(st)st.value=scaleState.shapeId;
+  const ck=document.getElementById('chk-scale'); if(ck)ck.checked=true;
+  applyScaleState();
+  // marca visual de selección en el círculo
+  ['maj','min'].forEach(ring=>Object.values(_cfSegs[ring]).forEach(el=>el.classList.remove('selected')));
+  const majPc=minor?(rootPc+3)%12:rootPc; // relativa mayor del segmento clickeado
+  const ring=minor?'min':'maj';
+  if(_cfSegs[ring][majPc])_cfSegs[ring][majPc].classList.add('selected');
+  playScalePreview(rootPc, scaleState.shapeId);
+  showToast({type:'info',title:'🎼 '+currentScaleLabel(),body:'Escala fijada y resaltada en el teclado.',duration:2500});
+}
+
+// Preview audible de la escala (respeta el modo de salida; cancela el anterior).
+let _scalePreviewTimeouts=[];
+function playScalePreview(rootPc, shapeId){
+  _scalePreviewTimeouts.forEach(t=>clearTimeout(t));
+  _scalePreviewTimeouts=[];
+  const shape=SCALE_SHAPES.find(s=>s.id===shapeId);
+  if(!shape)return;
+  const base=60+rootPc; // tónica en la octava C4-B4
+  const midis=[...shape.intervals.map(iv=>base+iv), base+12];
+  midis.forEach((m,i)=>{
+    const t1=setTimeout(()=>{
+      if(_playLocal())audioNoteOn(m,85);
+      if(_sendMidi()){try{midiOutput.send([0x90,m,85])}catch(e){}}
+      activeKeys[m]=true;draw();
+      const t2=setTimeout(()=>{
+        if(_playLocal())audioNoteOff(m);
+        if(_sendMidi()){try{midiOutput.send([0x80,m,0])}catch(e){}}
+        activeKeys[m]=false;draw();
+      },230);
+      _scalePreviewTimeouts.push(t2);
+    }, i*250);
+    _scalePreviewTimeouts.push(t1);
+  });
 }
 
 // ---------- Acumulador de acordes ----------
