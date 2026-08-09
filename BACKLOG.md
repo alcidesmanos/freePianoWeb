@@ -337,6 +337,50 @@
 
 ---
 
+## Front/UX — plan anti-sobrecarga (análisis 2026-08-09)
+
+> Evidencia medida @1366×768 con lección cargada: toolbar con 22 controles en 3 filas,
+> panel de lección con 15, **485px de scroll — el piano queda bajo el pliegue**.
+> Captura y análisis completo en la sesión del 2026-08-09.
+
+- [ ] **R1 — Recuperar el piano sobre el pliegue** `[M]` ← LA CRÍTICA
+  - Al cargar lección: partitura colapsada por defecto (un click la abre) + hero compactado a franja delgada
+  - Objetivo: piano + cascada visibles sin scroll en 768px de alto
+- [ ] **R4 — Modo enfocado automático** `[S]` (pareja de R1)
+  - Al dar ▶: colapsar partitura+hero solos → piano y cascada protagonistas; al pausar, vuelven
+- [ ] **R2 — Toolbar 22→~12 controles** `[M]`
+  - Escala (tónica+tipo+toggle) → al panel del Círculo (la teoría junta)
+  - Instrumento+filtro+auto-instrumento+salida → panel "Sonido" colapsable (se configura una vez)
+  - Vista general/real → un solo toggle
+- [ ] **R3 — Fila del Loop A-B plegada** `[S]` tras un botón "Loop A-B"
+
+---
+
+## Micrófono — qué se puede hacer (análisis 2026-08-09)
+
+Vía `getUserMedia` + AudioWorklet. Ordenado por viabilidad/valor:
+
+- [ ] **Afinador cromático + detección de pitch monofónica** `[M-L]` — la primitiva base
+  - Autocorrelación/YIN en AudioWorklet: nota + desviación en cents en vivo
+  - Sirve como afinador clásico y habilita todo lo de abajo
+  - Limitación honesta: SOLO monofónico (una nota a la vez); acordes requieren ML
+- [ ] **Wait mode ACÚSTICO (melodías)** `[L]` ⭐ — el premio gordo
+  - Practicar con un piano acústico o teclado sin MIDI: el mic detecta la nota y alimenta `registerUserHit`
+  - Convierte la app en útil para CUALQUIER piano del mundo, no solo con cable USB
+  - v1 solo melodías/manos separadas (monofónico); acordes quedan para la versión ML
+- [ ] **Medición de latencia física real** `[M]` — cierra la métrica #1 de la auditoría
+  - La app emite un click por los altavoces y lo captura por el mic → round-trip real en ms, automatizable
+- [ ] **Grabación de AUDIO de la toma** `[S-M]` — MediaRecorder en paralelo a la grabadora MIDI (capturar el sonido real del Yamaha)
+- [ ] **Ear training cantando** `[M]` — respondes los intervalos con la voz; el pitch monofónico evalúa
+- [ ] **Feedback rítmico acústico (Camino B sin MIDI)** `[L]` — detección de onsets contra la grilla del metrónomo
+- [ ] **Transcripción polifónica en vivo** `[XL]` → ya cubierta por P6 (Basic-Pitch ONNX); el streaming de mic sería su entrada
+
+Caveats generales: permiso de micrófono (gesto + https/file), ruido ambiente, y el
+AudioContext compartido con la salida (echo del propio sampler → usar el modo Yamaha
+o auriculares al detectar).
+
+---
+
 ## Deuda técnica / bugs conocidos
 
 - [ ] **Vista real (zoom) en piano-wrapper**: el scroll horizontal funciona, pero el `falling-canvas` puede tener `width:100%` mientras el bitmap es 1400px. Verificado fix pero validar manualmente con teclado al máximo zoom.
