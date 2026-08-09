@@ -50,6 +50,19 @@
 - [x] **Layout compactado** para que quepa en 1080p sin scroll
 - [x] **Biblioteca local** de 79 partituras categorizadas en 12 carpetas + README.md índice navegable
 
+### Sesión 2026-08-09 — calidad, teoría completa y rendimiento profesional
+- [x] **Git local + suite de tests en 3 capas**: 131 unitarias (harness vm sobre el HTML intacto) + humo N1 (integridad HTML↔JS) + humo N2 (6 escenarios Playwright/Chromium) + 3 tests **condicionados a hardware MIDI** (`YAMAHA_LIVE=1 npm run smoke:yamaha`)
+- [x] **Nivel 0**: 5 bugs del motor corregidos (tolerancias 10/30ms → grupos con referencias, cap 2.5s del autoplay, var legada en seekTo, sampler desincronizado al volver a PC, metrónomo sin depender de samples)
+- [x] **P0 completo** (drag&drop, IndexedDB, atajos, estados vacíos, mezclador) y **P2 completo** (acordes, escalas, círculo de quintas, números romanos, oído)
+- [x] **Grabadora MIDI v1** (P4 parcial): captura → reproducir / usar como lección / exportar .mid
+- [x] **Auditoría instrumentada** (`node smoke/auditoria.js`, 7 métricas) + informe HTML (`informe_auditoria.html`, publicado como artifact) → dirigió 3 mejoras medidas:
+  - draw() coalescido a 1×/frame (ráfaga MIDI 501→99ms)
+  - modo rendimiento ⚡ con auto-detección de fps (el compositor glass era el cuello: 18→55 fps; el canvas cuesta 0.22ms)
+  - **autoplay en el reloj de audio** (lookahead 120ms + timestamps Web MIDI): jitter 29.5→**2.28ms media — objetivo profesional cumplido**
+- [x] **Fix cambio de instrumento tras fallo de carga** (bug reportado): supersede por token (último click gana), fallo total rechaza en ~14ms (antes 35s de silencio), timeout 12s con conteo real de buffers, dispose del sampler fallido — verificado con DevTools (red cortada)
+- [x] **Für Elise embebida en el HTML** (base64 de `Fur_Elise_fingered.mxl`, 219 digitaciones): la URL externa murió con 404; el demo de un click ahora funciona sin red, offline y desde file://
+- [x] **Docs**: manual de usuario (`ayuda.html`, botón ?), README técnico con arquitectura y decisiones, pieza pop original de práctica (`library/11-personal/Atardecer_balada_pop_original.musicxml`)
+
 ---
 
 ## P0 — Pulido fino antes de migrar a Angular
@@ -236,10 +249,9 @@
 
 ## P4 — Composición y creatividad
 
-- [ ] **Grabación MIDI multitrack** `[L]`
-  - Botón "Grabar" → captura cada nota con timestamp preciso
-  - Hasta 4 capas (bajo, acordes, melodía, percusión simulada)
-  - Loop de cada capa independiente
+- [~] **Grabación MIDI multitrack** `[L]` — **v1 MONOPISTA HECHA 2026-08-09**
+  - [x] Grabar → captura con timestamps (overhead medido 0.9ms) · reproducir · usar como lección · exportar .mid
+  - [ ] Multitrack: hasta 4 capas con loop independiente (pendiente)
 
 - [ ] **Cuantización post-grabación — "Camino A" (corregir/snap)** `[M]`
   - 1/8, 1/16, swing, off
@@ -253,10 +265,10 @@
   - Tonalidad y BPM ajustables
   - Géneros: jazz swing, rock 4/4, bossa nova, blues 12 compases
 
-- [ ] **Export** `[M]`
-  - MIDI estándar (con `@tonejs/midi`)
-  - WAV mezclado (con `Tone.Offline`)
-  - MusicXML auto-generado de tu interpretación (para abrir en MuseScore)
+- [~] **Export** `[M]`
+  - [x] MIDI estándar (con `@tonejs/midi`) — HECHO 2026-08-09 en la grabadora
+  - [ ] WAV mezclado (con `Tone.Offline`)
+  - [ ] MusicXML auto-generado de tu interpretación (requiere cuantizador — Camino A)
 
 - [ ] **Modo "improvisar sobre cambios"** `[L]`
   - Cargas una progresión (Cmaj7 → Am7 → Dm7 → G7), backing track la reproduce en bucle

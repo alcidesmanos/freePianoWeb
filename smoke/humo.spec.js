@@ -91,6 +91,22 @@ test('recargar la página restaura la sesión desde IndexedDB', async ({ page })
   expect(restaurada.hasScore).toBe(false); // restaurada = sin partitura renderizada
 });
 
+test('Für Elise de un click: pieza embebida carga sin red externa', async ({ page }) => {
+  await bootApp(page);
+  // bloquear TODO lo externo salvo el localhost: la pieza va embebida en el HTML
+  await page.route(/^https?:\/\/(?!localhost)/, r => r.abort());
+  await page.click('#toolbar [data-furelise]');
+  await expect(page.locator('#lesson-panel')).toHaveClass(/show/, { timeout: 30000 });
+  const estado = await page.evaluate(() => ({
+    nombre: songState.name,
+    notas: songState.allNotes.length,
+    conDedo: songState.allNotes.filter(n => n.finger).length,
+  }));
+  expect(estado.nombre).toContain('Für Elise');
+  expect(estado.notas).toBeGreaterThan(100);
+  expect(estado.conDedo).toBeGreaterThan(150); // la versión embebida es la digitada
+});
+
 test('teoría en vivo: acorde, tonalidad y número romano aparecen', async ({ page }) => {
   await bootApp(page);
   // Fijar C mayor desde el círculo (construcción perezosa incluida)

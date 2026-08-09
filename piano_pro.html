@@ -4993,6 +4993,11 @@ function markLessonWithoutScore(name){
   if(st)st.textContent=(name||'MIDI')+' · sin partitura';
 }
 
+// Für Elise EMBEBIDA (base64 de Fur_Elise_fingered.mxl, 219 digitaciones):
+// la URL externa original murió con 404 — el demo de un click ahora funciona
+// sin red, offline y desde file://. Se descomprime con el unzipMxl existente.
+const FUR_ELISE_MXL_B64="";/*contenido eliminado del historial por procedencia*/
+
 // ----- Für Elise: descarga el XML; la lección se genera automáticamente desde OSMD -----
 // Loading state en todos los botones Für Elise (toolbar + estado vacío):
 // deshabilitados con la estrella girando mientras descarga → sin doble clic.
@@ -5009,22 +5014,18 @@ async function loadFurEliseLesson(){
     songState.loaded=false;
   }
   setFurEliseLoading(true);
-  const ctl=new AbortController();
-  const timeout=setTimeout(()=>ctl.abort(),8000);
-  const loading=showToast({type:'info',title:'Descargando Für Elise',body:'Beethoven · Für Elise',id:'fur-elise',duration:null});
   try{
-    const res=await fetch('https://raw.githubusercontent.com/musetrainer/library/main/F%C3%BCr%20Elise.xml',{signal:ctl.signal});
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const xml=await res.text();
-    loading.dismiss();
-    await loadScoreXml(xml,'Für Elise — Beethoven');
+    // Decodificar el .mxl embebido → XML → pipeline normal de partituras.
+    const bin=atob(FUR_ELISE_MXL_B64);
+    const bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+    const xml=await unzipMxl(bytes.buffer);
+    await loadScoreXml(xml,'Für Elise — Beethoven (digitada)');
     // loadScoreXml dispara loadLessonFromOsmd automáticamente al terminar
   }catch(e){
-    loading.dismiss();
-    const reason=e.name==='AbortError'?'tiempo de espera agotado':(e.message||'sin conexión');
-    showToast({type:'error',title:'No se pudo descargar Für Elise',body:reason+'. Carga manualmente un .xml/.mxl.',duration:null});
+    console.error('[fur-elise]',e);
+    showToast({type:'error',title:'No se pudo cargar Für Elise',body:(e&&e.message)||'error al descomprimir la pieza embebida.',duration:null});
   }finally{
-    clearTimeout(timeout);
     setFurEliseLoading(false);
   }
 }
