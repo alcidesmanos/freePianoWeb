@@ -567,6 +567,20 @@ label.btn{cursor:pointer}
   position:absolute;transition:opacity 0.3s;
 }
 #note-idle.hidden{opacity:0}
+/* Acorde detectado en tiempo real — chip dorado flotante en el hero */
+#chord-display{
+  position:absolute;top:2px;right:6px;
+  font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;
+  color:var(--gold);letter-spacing:0.02em;
+  background:rgba(251,191,36,0.10);
+  border:1px solid rgba(251,191,36,0.35);
+  border-radius:8px;padding:0.25rem 0.6rem;
+  box-shadow:0 0 18px rgba(251,191,36,0.15);
+  opacity:0;transform:translateY(-4px);
+  transition:opacity 0.2s, transform 0.25s cubic-bezier(.2,.7,.2,1);
+  pointer-events:none;
+}
+#chord-display.show{opacity:1;transform:translateY(0)}
 
 /* ---------- PIANO ---------- */
 #piano-frame{
@@ -942,6 +956,7 @@ input[type=range]:focus{outline:none}
     <div id="note-stage">
       <div id="note-idle">— pulsa una tecla —</div>
       <div id="note-name-display"></div>
+      <div id="chord-display" title="Acorde detectado en tiempo real"></div>
     </div>
     <div id="staff-block">
       <svg id="staff-svg" viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg">
@@ -1974,6 +1989,9 @@ function setSustain(on){
       liveNotes.delete(m);
     });
     sustainedReleases.clear();
+    // el pedal soltó las notas retenidas → recalcular el acorde mostrado
+    _chordSustained.clear();
+    updateChordDisplay();
   }
 }
 
@@ -2216,6 +2234,9 @@ function noteOn(midi, vel, source='virtual'){
   }
   activeKeys[midi]=true; draw();
   showNote(midi, vel, modoNotaActivo?'es':'en');
+  _chordPressed.add(midi);
+  _chordSustained.delete(midi);
+  updateChordDisplay();
   if(songState.loaded && songState.waitMode) registerUserHit(midi, true);
 }
 function noteOff(midi, source='virtual'){
@@ -2226,6 +2247,83 @@ function noteOff(midi, source='virtual'){
     audioNoteOff(midi);
   }
   activeKeys[midi]=false; draw();
+  _chordPressed.delete(midi);
+  if(sustainOn)_chordSustained.add(midi); else _chordSustained.delete(midi);
+  updateChordDisplay();
+}
+
+// ============================================================
+//   DETECCIÓN DE ACORDES EN TIEMPO REAL
+// ============================================================
+// Formas como conjuntos de intervalos desde la fundamental (pitch classes).
+// La detección compara el conjunto EXACTO: octavas dobladas no estorban
+// (se normaliza a pitch class) y las inversiones salen como slash chord.
+const CHORD_SHAPES=[
+  {name:'',      intervals:[0,4,7]},         // mayor
+  {name:'m',     intervals:[0,3,7]},         // menor
+  {name:'dim',   intervals:[0,3,6]},
+  {name:'aug',   intervals:[0,4,8]},
+  {name:'sus2',  intervals:[0,2,7]},
+  {name:'sus4',  intervals:[0,5,7]},
+  {name:'5',     intervals:[0,7]},           // power chord
+  {name:'7',     intervals:[0,4,7,10]},
+  {name:'maj7',  intervals:[0,4,7,11]},
+  {name:'m7',    intervals:[0,3,7,10]},
+  {name:'m7b5',  intervals:[0,3,6,10]},
+  {name:'dim7',  intervals:[0,3,6,9]},
+  {name:'mMaj7', intervals:[0,3,7,11]},
+  {name:'6',     intervals:[0,4,7,9]},
+  {name:'m6',    intervals:[0,3,7,9]},
+  {name:'add9',  intervals:[0,2,4,7]},
+  {name:'madd9', intervals:[0,2,3,7]},
+  {name:'9',     intervals:[0,2,4,7,10]},
+  {name:'maj9',  intervals:[0,2,4,7,11]},
+  {name:'m9',    intervals:[0,2,3,7,10]},
+];
+
+// Identifica el acorde formado por un conjunto de midis.
+// Prueba cada pitch class presente como posible fundamental y prefiere la
+// interpretación cuya fundamental está en el bajo (sin slash); si la mejor
+// lectura tiene otra nota en el bajo, la nombra como inversión: "C/E".
+// Devuelve {label, rootPc, bassPc, suffix} o null si no hay forma conocida.
+function detectChord(midis, mode){
+  mode=mode||'en';
+  if(!midis||midis.length<2)return null;
+  const sorted=[...new Set(midis)].sort((a,b)=>a-b);
+  const bassPc=sorted[0]%12;
+  const pcs=[...new Set(sorted.map(m=>m%12))];
+  if(pcs.length<2)return null; // solo octavas de la misma nota
+  const names=mode==='es'?NOTE_NAMES_ES:NOTE_NAMES_EN;
+  let best=null;
+  for(const rootPc of pcs){
+    const rel=new Set(pcs.map(pc=>(pc-rootPc+12)%12));
+    for(const shape of CHORD_SHAPES){
+      if(shape.intervals.length!==rel.size)continue;
+      if(!shape.intervals.every(iv=>rel.has(iv)))continue;
+      const isBassRoot=rootPc===bassPc;
+      const score=(isBassRoot?100:0)+shape.intervals.length;
+      if(!best||score>best.score)best={score,rootPc,shape,isBassRoot};
+    }
+  }
+  if(!best)return null;
+  let label=names[best.rootPc]+best.shape.name;
+  if(!best.isBassRoot)label+='/'+names[bassPc];
+  return {label, rootPc:best.rootPc, bassPc, suffix:best.shape.name};
+}
+
+// Notas "sonando" a efectos de detección: presionadas + retenidas por sustain.
+// Independiente de liveNotes (que solo existe en salida PC) — funciona igual
+// tocando en modo Yamaha.
+const _chordPressed=new Set();
+const _chordSustained=new Set();
+
+function updateChordDisplay(){
+  const el=document.getElementById('chord-display');
+  if(!el)return;
+  const chord=detectChord([..._chordPressed, ..._chordSustained], modoNotaActivo?'es':'en');
+  if(!chord){el.classList.remove('show');return}
+  el.textContent=chord.label;
+  el.classList.add('show');
 }
 
 // ---------- Acumulador de acordes ----------

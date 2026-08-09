@@ -164,10 +164,11 @@
 
 ## P2 — Teoría y análisis en tiempo real
 
-- [ ] **Detección de acordes en tiempo real** `[L]`
-  - Mientras tocas, identifica el acorde formado: Cmaj7, Dm9/F, etc.
-  - Algoritmo: tomar las últimas N notas activas (sustain o presionadas), normalizar a una root, buscar coincidencia en biblioteca de chord shapes
-  - Mostrar en flotante junto al hero display
+- [x] **Detección de acordes en tiempo real** `[L]` — **HECHO 2026-08-09**
+  - `detectChord`: 20 formas (tríadas, sus, 6ª, 7ªs, 9ªs, power chord) como conjuntos de intervalos; prueba cada pitch class como fundamental, prefiere la que está en el bajo y nombra inversiones como slash (`C/E`); octavas dobladas no estorban
+  - Notas activas = presionadas + retenidas por sustain (`_chordPressed`/`_chordSustained`, independiente del modo de salida — funciona en modo Yamaha)
+  - Chip dorado flotante en el hero (`#chord-display`), nombres EN/ES según modo nota
+  - Ambigüedad C6 vs Am7 resuelta por el bajo — `test/acordes.test.js` (10 casos)
 
 - [ ] **Círculo de quintas interactivo** `[M]`
   - SVG con 12 segmentos

@@ -27,6 +27,8 @@ const EXPORTS = [
   'transposeSong', 'handleKeyboardShortcut', 'nudgeTempo', 'classifyPianoFile',
   'setMixVolume', 'mixVolumes',
   'buildSessionSnapshot', 'applySessionSnapshot', 'loadSong',
+  // detección de acordes
+  'detectChord', 'updateChordDisplay', 'noteOn', 'noteOff', 'setSustain',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   // integración Yamaha
