@@ -328,7 +328,7 @@
 
 - [ ] **Tempo change durante playback en wait mode**: al mover el slider, ajustamos `pausedAt` y `startPerf`. En auto mode funciona; en wait mode con grupo en espera puede haber salto visual. Reproducir y comprobar.
 
-- [ ] **Acordes simultáneos en wait mode**: los grupos se forman con tolerancia 30ms (`GROUP_TOLERANCE`). Si un MIDI tiene un acorde con notas desfasadas >30ms, se separan en grupos. Considerar subirla a 60ms (ahora es cambiar UNA constante; el bug de notas huérfanas 10ms/30ms se corrigió el 2026-08-09 guardando referencias en los grupos — tests BUG 0.1/0.1b).
+- [x] **Acordes simultáneos en wait mode** — RESUELTO 2026-08-09: `GROUP_TOLERANCE` subida a 60ms (tolera acordes "humanos" de MIDIs grabados en vivo). El bug de notas huérfanas 10ms/30ms se corrigió antes guardando referencias en los grupos (tests BUG 0.1/0.1b).
 
 - [ ] **Memoria con muchas notas**: cada `setTimeout` para auto-mode crea un closure por nota. Para canciones largas (>2000 notas), considerar un solo loop con cola.
 

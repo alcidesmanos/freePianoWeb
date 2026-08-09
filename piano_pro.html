@@ -2945,7 +2945,7 @@ const songState = {
 
 const highlightedKeys={}; // midi -> 'left' | 'right' (próxima nota a tocar)
 const LOOK_AHEAD = 2.8; // segundos visibles cayendo
-const GROUP_TOLERANCE = 0.03; // seg — notas a ≤30ms forman el mismo grupo/acorde
+const GROUP_TOLERANCE = 0.06; // seg — notas a ≤60ms forman el mismo grupo/acorde (60ms tolera acordes "humanos" de MIDIs grabados en vivo)
 const _pendingAutoTimeouts = new Set(); // timeouts de note-off del autoplay (se cancelan al cargar otra lección)
 
 // ---------- LOOP A-B ----------

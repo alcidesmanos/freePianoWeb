@@ -26,21 +26,21 @@ function setupLesson(p, notes) {
   p.songState.duration = Math.max(...p.songState.notes.map(n => n.time + n.duration));
 }
 
-test('buildGroups: notas a ≤30ms forman un solo grupo', () => {
+test('buildGroups: notas a ≤60ms (GROUP_TOLERANCE) forman un solo grupo', () => {
   const p = loadPiano();
   const groups = p.buildGroups([
     { midi: 60, time: 1.00, duration: 0.5 },
-    { midi: 64, time: 1.02, duration: 0.5 },
+    { midi: 64, time: 1.05, duration: 0.5 }, // acorde "humano" de un MIDI grabado en vivo
   ]);
   assert.equal(groups.length, 1);
   assert.deepEqual([...groups[0].midis].sort(), [60, 64]);
 });
 
-test('buildGroups: notas a >30ms forman grupos separados', () => {
+test('buildGroups: notas a >60ms forman grupos separados', () => {
   const p = loadPiano();
   const groups = p.buildGroups([
     { midi: 60, time: 1.00, duration: 0.5 },
-    { midi: 64, time: 1.05, duration: 0.5 },
+    { midi: 64, time: 1.08, duration: 0.5 },
   ]);
   assert.equal(groups.length, 2);
 });
