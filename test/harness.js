@@ -41,6 +41,8 @@ const EXPORTS = [
   // entrenamiento de oído
   'EAR_LEVELS', 'earState', 'generateEarExercise', 'earAnswerMatches',
   'setEarLevel', 'toggleEarTraining', 'revealEarExercise',
+  // grabadora MIDI
+  'recState', 'toggleRecording', 'stopRecording', 'useTakeAsLesson', 'exportTakeAsMidi',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   'layout', 'getMidiFromPoint',

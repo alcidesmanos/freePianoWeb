@@ -610,19 +610,24 @@ label.btn{cursor:pointer}
 }
 #roman-display.show{opacity:1}
 
-/* ---------- ENTRENAMIENTO DE OÍDO ---------- */
-#ear-section{
+/* ---------- ENTRENAMIENTO DE OÍDO + GRABADORA ---------- */
+#ear-section,#rec-section{
   background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
   border:1px solid var(--border);border-radius:14px;
   padding:0.7rem 1.1rem;
   display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap;
   animation:rise 600ms cubic-bezier(.2,.7,.2,1) both;
 }
-#ear-section.hidden{display:none}
-#ear-section .ear-head{flex:1;min-width:230px}
-#ear-section .ear-head .t{font-family:'Fraunces',serif;font-size:16px;color:var(--text)}
-#ear-section .ear-head .s{font-size:12px;color:var(--text-dim);margin-top:0.2rem}
+#ear-section.hidden,#rec-section.hidden{display:none}
+#ear-section .ear-head,#rec-section .ear-head{flex:1;min-width:230px}
+#ear-section .ear-head .t,#rec-section .ear-head .t{font-family:'Fraunces',serif;font-size:16px;color:var(--text)}
+#ear-section .ear-head .s,#rec-section .ear-head .s{font-size:12px;color:var(--text-dim);margin-top:0.2rem}
 #ear-stats{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold)}
+.btn.rec-live{
+  background:linear-gradient(135deg,rgba(239,68,68,0.85),rgba(236,72,153,0.7));
+  color:#fff;border-color:rgba(255,255,255,0.3);
+  animation:pulse 1.4s ease-in-out infinite;
+}
 
 /* ---------- CÍRCULO DE QUINTAS ---------- */
 #circle-section{
@@ -886,6 +891,7 @@ input[type=range]:focus{outline:none}
     <button class="btn" id="btn-score" onclick="toggleScore()">Ocultar partitura</button>
     <button class="btn" id="btn-circle" onclick="toggleCircle()" title="Círculo de quintas: detecta la tonalidad de lo que tocas; click en un segmento fija y suena su escala">Círculo 5ªs</button>
     <button class="btn" id="btn-ear" onclick="toggleEarTraining()" title="Entrenamiento de oído: la app toca algo y tú lo repites en el teclado">Oído</button>
+    <button class="btn" id="btn-rec" onclick="toggleRecSection()" title="Grabadora MIDI: captura lo que tocas, reprodúcelo, practícalo o expórtalo a .mid">Grabadora</button>
     <span class="spacer"></span>
     <button class="btn active" id="btn-full" onclick="setMode('full')">Vista general</button>
     <button class="btn" id="btn-zoom" onclick="setMode('zoom')">Vista real</button>
@@ -1095,6 +1101,17 @@ input[type=range]:focus{outline:none}
       <div id="sustain-flash"></div>
       <div class="lab">Sustain</div>
     </div>
+  </section>
+
+  <section id="rec-section" class="hidden">
+    <div class="ear-head">
+      <div class="t">⏺ Grabadora MIDI</div>
+      <div class="s" id="rec-status">Pulsa «Grabar» y toca — el reloj arranca con tu primera nota.</div>
+    </div>
+    <button class="btn" id="btn-rec-toggle" onclick="toggleRecording()">● Grabar</button>
+    <button class="btn" onclick="playTake()">▶ Reproducir</button>
+    <button class="btn" onclick="useTakeAsLesson()">📚 Usar como lección</button>
+    <button class="btn cyan" onclick="exportTakeAsMidi()">⬇ Exportar .mid</button>
   </section>
 
   <section id="ear-section" class="hidden">
@@ -2375,6 +2392,7 @@ function noteOn(midi, vel, source='virtual'){
   _chordSustained.delete(midi);
   updateChordDisplay(true);
   _registerKeyDetection(midi);
+  _recNoteOn(midi, vel);
   // El oído tiene prioridad: si hay ejercicio en curso, la nota es respuesta
   // del ejercicio y no debe contar como acierto/fallo de la lección.
   if(!_registerEarInput(midi)){
@@ -2392,6 +2410,7 @@ function noteOff(midi, source='virtual'){
   _chordPressed.delete(midi);
   if(sustainOn)_chordSustained.add(midi); else _chordSustained.delete(midi);
   updateChordDisplay();
+  _recNoteOff(midi);
 }
 
 // ============================================================
@@ -2908,6 +2927,158 @@ function toggleEarTraining(){
   if(btn)btn.classList.toggle('active',show);
   if(!show){ _cancelEarPlayback(); earState.awaiting=false; }
   else if(!earState.exercise) updateEarUI('Pulsa «Nuevo» — oirás algo y lo repites en el teclado.');
+}
+
+// ============================================================
+//   GRABADORA MIDI
+// ============================================================
+// Captura lo que el usuario toca (virtual o Yamaha; nunca el autoplay ni los
+// previews, que no pasan por noteOn). La grabación arranca con la PRIMERA
+// nota — pulsar Grabar solo "arma" — y la toma resultante tiene la misma
+// forma que las notas de loadSong: se puede reproducir, convertir en lección
+// o exportar como .mid estándar con @tonejs/midi.
+const recState={armed:false, recording:false, startAt:0, notes:[], open:new Map(), take:null};
+
+function toggleRecording(){
+  if(recState.recording||recState.armed)stopRecording();
+  else startRecording();
+}
+function startRecording(){
+  recState.armed=true; recState.recording=false;
+  recState.notes=[]; recState.open.clear(); recState.take=null;
+  updateRecUI('Armada — la grabación arranca con tu primera nota.');
+  showToast({type:'info',title:'⏺ Grabadora armada',body:'Toca cuando quieras; el reloj arranca con la primera nota.',duration:3000});
+}
+function _recNoteOn(midi, vel){
+  if(!recState.armed && !recState.recording)return;
+  if(!recState.recording){
+    recState.recording=true; recState.armed=false;
+    recState.startAt=performance.now();
+  }
+  recState.open.set(midi,{start:(performance.now()-recState.startAt)/1000, velocity:(vel||80)/127});
+  updateRecUI();
+}
+function _recNoteOff(midi){
+  if(!recState.recording)return;
+  const o=recState.open.get(midi);
+  if(!o)return;
+  recState.open.delete(midi);
+  const end=(performance.now()-recState.startAt)/1000;
+  recState.notes.push({midi, time:o.start, duration:Math.max(0.05,end-o.start), velocity:o.velocity, hand:midi<60?'left':'right'});
+  updateRecUI();
+}
+function stopRecording(){
+  if(recState.armed && !recState.recording){
+    recState.armed=false;
+    updateRecUI('Grabación cancelada (no sonó ninguna nota).');
+    return;
+  }
+  if(!recState.recording)return;
+  const end=(performance.now()-recState.startAt)/1000;
+  // cerrar notas que siguen presionadas al parar
+  recState.open.forEach((o,midi)=>{
+    recState.notes.push({midi, time:o.start, duration:Math.max(0.05,end-o.start), velocity:o.velocity, hand:midi<60?'left':'right'});
+  });
+  recState.open.clear();
+  recState.recording=false;
+  recState.notes.sort((a,b)=>a.time-b.time);
+  if(!recState.notes.length){
+    updateRecUI('Grabación vacía.');
+    return;
+  }
+  const dur=Math.max(...recState.notes.map(n=>n.time+n.duration));
+  recState.take={notes:recState.notes.slice(), duration:dur, recordedAt:Date.now()};
+  updateRecUI();
+  showToast({type:'success',title:'⏹ Toma lista',body:recState.take.notes.length+' notas · '+fmtTime(dur),duration:3000});
+}
+
+// Reproduce la toma tal cual se tocó (velocity y timing humanos).
+let _takeTimeouts=[];
+function playTake(){
+  if(!recState.take){showToast({type:'warn',title:'Sin toma',body:'Graba algo primero.',duration:2500});return}
+  _takeTimeouts.forEach(t=>clearTimeout(t)); _takeTimeouts=[];
+  recState.take.notes.forEach(n=>{
+    const v=Math.max(1,Math.round(n.velocity*127));
+    const t1=setTimeout(()=>{
+      if(_playLocal())audioNoteOn(n.midi,v);
+      if(_sendMidi()){try{midiOutput.send([0x90,n.midi,v])}catch(e){}}
+      activeKeys[n.midi]=true;draw();
+      const t2=setTimeout(()=>{
+        if(_playLocal())audioNoteOff(n.midi);
+        if(_sendMidi()){try{midiOutput.send([0x80,n.midi,0])}catch(e){}}
+        activeKeys[n.midi]=false;draw();
+      },n.duration*1000);
+      _takeTimeouts.push(t2);
+    },n.time*1000);
+    _takeTimeouts.push(t1);
+  });
+}
+
+// La toma se vuelve una lección normal: falling notes, wait mode, loop A-B…
+function useTakeAsLesson(){
+  if(!recState.take){showToast({type:'warn',title:'Sin toma',body:'Graba algo primero.',duration:2500});return}
+  const hora=new Date(recState.take.recordedAt);
+  const hh=String(hora.getHours()).padStart(2,'0'), mm=String(hora.getMinutes()).padStart(2,'0');
+  loadSong(recState.take.notes.map(n=>({...n})), 'Mi grabación '+hh+':'+mm, 80);
+  showToast({type:'success',title:'📚 Grabación → lección',body:'Practícate a ti mismo. Wait mode y loop A-B disponibles.',duration:3500});
+}
+
+// Exporta .mid estándar (NO MusicXML: una toma es interpretación — timing y
+// velocity humanos — que es justo lo que MIDI representa; la notación
+// requeriría cuantizar, que es otra feature).
+function exportTakeAsMidi(){
+  if(!recState.take){showToast({type:'warn',title:'Sin toma',body:'Graba algo primero.',duration:2500});return}
+  if(typeof Midi==='undefined'){showToast({type:'error',title:'Librería no disponible',body:'@tonejs/midi no cargó; revisa la conexión.',duration:4000});return}
+  try{
+    const m=new Midi();
+    const track=m.addTrack();
+    track.name='Pianoforte Aurora Pro';
+    recState.take.notes.forEach(n=>{
+      track.addNote({midi:n.midi, time:n.time, duration:n.duration, velocity:n.velocity});
+    });
+    const blob=new Blob([m.toArray()],{type:'audio/midi'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const f=new Date(recState.take.recordedAt);
+    a.href=url;
+    a.download='grabacion-'+f.getFullYear()+String(f.getMonth()+1).padStart(2,'0')+String(f.getDate()).padStart(2,'0')+'-'+String(f.getHours()).padStart(2,'0')+String(f.getMinutes()).padStart(2,'0')+'.mid';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+    showToast({type:'success',title:'⬇ .mid exportado',body:a.download+' — se puede recargar con «Cargar MIDI» o abrir en MuseScore.',duration:4500});
+  }catch(e){
+    console.error('[grabadora] export falló:',e);
+    showToast({type:'error',title:'No se pudo exportar',body:(e&&e.message)||'error desconocido',duration:4000});
+  }
+}
+
+function updateRecUI(msg){
+  const btn=document.getElementById('btn-rec-toggle');
+  if(btn){
+    if(recState.recording){
+      btn.textContent='■ Parar · '+(recState.notes.length+recState.open.size)+' notas';
+      btn.classList.add('rec-live');
+    }else if(recState.armed){
+      btn.textContent='● Esperando…';
+      btn.classList.add('rec-live');
+    }else{
+      btn.textContent='● Grabar';
+      btn.classList.remove('rec-live');
+    }
+  }
+  const st=document.getElementById('rec-status');
+  if(st){
+    if(msg)st.textContent=msg;
+    else if(recState.recording)st.textContent='Grabando… pulsa Parar al terminar.';
+    else if(recState.take)st.textContent='Toma lista: '+recState.take.notes.length+' notas · '+fmtTime(recState.take.duration)+'. Reproduce, practícala o exporta.';
+  }
+}
+function toggleRecSection(){
+  const sec=document.getElementById('rec-section');
+  if(!sec)return;
+  const show=sec.classList.contains('hidden');
+  sec.classList.toggle('hidden',!show);
+  const btn=document.getElementById('btn-rec');
+  if(btn)btn.classList.toggle('active',show);
 }
 
 // ---------- Acumulador de acordes ----------
