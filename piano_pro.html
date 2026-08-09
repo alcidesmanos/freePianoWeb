@@ -1248,6 +1248,9 @@ let sampler=null, samplerReady=false;
 let sustainOn=false;
 let reverbBus=null;
 let currentInstrument='piano';
+// En modo Yamaha currentInstrument puede cambiar SIN descargar samples;
+// samplerPreset registra qué preset tiene el sampler local realmente cargado.
+let samplerPreset='piano';
 const sustainedReleases=new Set(); // midis whose noteOff fue diferido por sustain
 const liveNotes=new Set(); // midis actualmente sonando
 
@@ -1465,10 +1468,12 @@ async function initAudio(onProgress, onFail){
 // Carga un preset distinto y reemplaza el sampler activo. Cancela notas en vuelo del anterior.
 // fromMidiIn=true cuando el cambio vino de un Program Change del Yamaha (evita eco de vuelta).
 let _switchInProgress=false;
-async function switchInstrument(presetKey, fromMidiIn=false){
+// forceReload=true recarga los samples aunque presetKey===currentInstrument
+// (necesario al volver a salida local tras cambiar de voz en modo Yamaha).
+async function switchInstrument(presetKey, fromMidiIn=false, forceReload=false){
   const preset=INSTRUMENT_PRESETS[presetKey];
   if(!preset){console.warn('preset desconocido:',presetKey);return}
-  if(presetKey===currentInstrument){return} // ya está cargado
+  if(presetKey===currentInstrument && !forceReload){return} // ya está cargado
   if(_switchInProgress){console.log('switch en curso, ignorando');return}
   _switchInProgress=true;
 
@@ -1571,6 +1576,7 @@ async function switchInstrument(presetKey, fromMidiIn=false){
     const old=sampler;
     sampler=newSampler;
     currentInstrument=presetKey;
+    samplerPreset=presetKey;
     if(old){try{old.dispose()}catch(e){}}
 
     loadingToast.dismiss();
@@ -1814,6 +1820,19 @@ function setOutputMode(mode){
   if((mode==='yamaha'||mode==='both') && !midiOutput){
     showToast({type:'warn',title:'Sin Yamaha conectado',body:'No detecto MIDI out. Conecta el Yamaha y vuelve a seleccionar.',duration:5000});
     return;
+  }
+  // Re-sincronizar el sampler local: en modo Yamaha se pudo cambiar de voz sin
+  // descargar samples; si ahora la salida vuelve a incluir al PC, el sampler
+  // cargado debe coincidir con el instrumento que muestra la UI.
+  if(_playLocal() && currentInstrument!==samplerPreset){
+    const preset=INSTRUMENT_PRESETS[currentInstrument];
+    if(preset && preset.isDrum){
+      // Drum Kit no tiene samples locales: volver al último sampler cargado
+      currentInstrument=samplerPreset;
+      updateInstrumentUI();
+    }else{
+      switchInstrument(currentInstrument, false, true); // forzar recarga de samples
+    }
   }
   // Mensajes contextuales
   const messages={
