@@ -198,7 +198,7 @@ footer{margin-top:1.6rem;text-align:center;font-family:'JetBrains Mono',ui-monos
   <div class="gate"><span class="st ok">CUMPLE</span><div>Degradación elegante sin red: en modo Yamaha se puede tocar y usar el metrónomo aunque el CDN no cargue.</div></div>
   <div class="gate"><span class="st ok">CUMPLE</span><div>Jitter de autoplay p95 ≤ 25ms y ≥ 55fps: tras la segunda iteración, p95 25.7ms y 55.4 fps <em>en el peor caso</em> (software rendering, con el modo rendimiento auto-activado); con GPU real quedará holgado.</div></div>
   <div class="gate"><span class="st pend">PENDIENTE</span><div>Validación con hardware: los 3 tests condicionados en verde con el teclado conectado, incluido el interactivo.</div></div>
-  <div class="gate"><span class="st parcial">PARCIAL</span><div>Accesibilidad y responsive: hay base (títulos en botones, layout adaptable) pero sin auditoría formal (contraste, foco visible, teclado-solo).</div></div>
+  <div class="gate"><span class="st ok">CUMPLE</span><div>Accesibilidad (2026-08-09): auditoría axe-core con <strong>cero violaciones</strong> (de cualquier impacto) automatizada como test permanente (<code>smoke/a11y.spec.js</code>); foco visible por teclado en todos los controles, toggles y file-inputs focalizables (eran <code>display:none</code>), nombres accesibles en sliders/selects/botones-símbolo, toasts como live region, <code>prefers-reduced-motion</code> respetado, y contraste de textos secundarios elevado.</div></div>
 </section>
 
 <section>

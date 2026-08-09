@@ -17,8 +17,8 @@
   --border:rgba(255,255,255,0.10);
   --border-hi:rgba(255,255,255,0.20);
   --text:#f5f5f7;
-  --text-dim:rgba(245,245,247,0.65);
-  --text-mute:rgba(245,245,247,0.42);
+  --text-dim:rgba(245,245,247,0.72);
+  --text-mute:rgba(245,245,247,0.55);
   --ok:#22c55e;
   --err:#ef4444;
 }
@@ -185,7 +185,9 @@ header{
 }
 .btn .icon{font-size:14px;opacity:0.9}
 label.btn{cursor:pointer}
-.hidden-input{display:none}
+/* input de archivo oculto pero focalizable; el anillo se pinta en su label */
+.hidden-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+label.btn:has(+ .hidden-input:focus-visible){outline:2px solid var(--cyan);outline-offset:2px}
 .spacer{width:1px;height:22px;background:var(--border)}
 
 .toggle{
@@ -198,7 +200,10 @@ label.btn{cursor:pointer}
   transition:all 0.25s;
 }
 .toggle:hover{color:var(--text);border-color:var(--border-hi)}
-.toggle input{display:none}
+/* checkbox oculto pero FOCALIZABLE (display:none lo sacaba del teclado) */
+.toggle{position:relative}
+.toggle input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.toggle input:focus-visible ~ .switch{outline:2px solid var(--cyan);outline-offset:2px}
 .toggle .switch{
   width:30px;height:18px;border-radius:999px;
   background:rgba(255,255,255,0.12);
@@ -718,7 +723,8 @@ input[type=range]::-webkit-slider-thumb{
 }
 input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:none;box-shadow:0 0 18px rgba(255,255,255,0.6)}
 input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.15)}
-input[type=range]:focus{outline:none}
+input[type=range]:focus:not(:focus-visible){outline:none}
+input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:6px}
 
 #colophon{display:none}
 
@@ -812,6 +818,23 @@ input[type=range]:focus{outline:none}
 
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 
+/* ---------- ACCESIBILIDAD ---------- */
+/* Foco visible por teclado en todo control interactivo (solo :focus-visible:
+   el click con ratón no pinta anillos) */
+.btn:focus-visible,.tbtn:focus-visible,select:focus-visible,
+.btn-mark:focus-visible,.transpose-ctl button:focus-visible,
+.hand-filter button:focus-visible,input[type=text]:focus-visible,
+a.btn:focus-visible,#splash button:focus-visible,
+.toast .close:focus-visible,.toast .action-btn:focus-visible,.toast .cancel-btn:focus-visible{
+  outline:2px solid var(--cyan);outline-offset:2px;
+}
+@media (prefers-reduced-motion:reduce){
+  body::before,.brand .logo{animation:none}
+  header,#toolbar,#score-section,#lesson-panel,#lesson-empty,#info-panel,
+  #piano-frame,#bottom-bar,#circle-section,#ear-section,#rec-section{animation:none}
+  .toast{animation-duration:0.01s}
+}
+
 /* ---------- MODO RENDIMIENTO ----------
    Auditoría 2026-08-09: el compositor de backdrop-filter + la aurora animada
    eran el 100% del costo de frame en render por software (18→60 fps al
@@ -862,11 +885,11 @@ body.perf-mode .brand .logo{animation:none}
 </head>
 <body>
 <div class="grain"></div>
-<div id="toast-container"></div>
+<div id="toast-container" role="status" aria-live="polite"></div>
 <div id="drop-overlay"><div class="msg"><div class="t">Suelta el archivo</div><div class="s">.mid · .midi · .xml · .musicxml · .mxl</div></div></div>
 
 <!-- LOADING SPLASH -->
-<div id="splash">
+<div id="splash" role="region" aria-label="Pantalla de carga">
   <div class="box">
     <div class="ring"></div>
     <h2>Pianoforte Aurora Pro</h2>
@@ -876,12 +899,12 @@ body.perf-mode .brand .logo{animation:none}
   </div>
 </div>
 
-<div id="app">
-  <header>
+<div id="app" role="main">
+  <header role="group" aria-label="Estado de la aplicación">
     <div class="brand">
       <div class="logo"></div>
       <div>
-        <div class="name">Pianoforte<em> pro</em></div>
+        <h1 class="name">Pianoforte<em> pro</em></h1>
         <div class="tag">Salamander Grand · Web MIDI · Falling notes</div>
       </div>
     </div>
@@ -902,18 +925,18 @@ body.perf-mode .brand .logo{animation:none}
     <button class="btn" id="btn-circle" onclick="toggleCircle()" title="Círculo de quintas: detecta la tonalidad de lo que tocas; click en un segmento fija y suena su escala">Círculo 5ªs</button>
     <button class="btn" id="btn-ear" onclick="toggleEarTraining()" title="Entrenamiento de oído: la app toca algo y tú lo repites en el teclado">Oído</button>
     <button class="btn" id="btn-rec" onclick="toggleRecSection()" title="Grabadora MIDI: captura lo que tocas, reprodúcelo, practícalo o expórtalo a .mid">Grabadora</button>
-    <a class="btn" href="ayuda.html" target="_blank" rel="noopener" title="Manual de uso completo">?</a>
+    <a class="btn" href="ayuda.html" target="_blank" rel="noopener" title="Manual de uso completo" aria-label="Abrir el manual de uso">?</a>
     <span class="spacer"></span>
     <button class="btn active" id="btn-full" onclick="setMode('full')">Vista general</button>
     <button class="btn" id="btn-zoom" onclick="setMode('zoom')">Vista real</button>
-    <label class="toggle" title="Desactiva los efectos de cristal y la aurora animada para máxima fluidez (se activa solo si detecto fps bajos)"><input type="checkbox" id="chk-perf" onchange="setPerfMode(this.checked)"><span class="switch"></span><span>⚡</span></label>
+    <label class="toggle" title="Desactiva los efectos de cristal y la aurora animada para máxima fluidez (se activa solo si detecto fps bajos)"><input type="checkbox" id="chk-perf" onchange="setPerfMode(this.checked)" aria-label="Modo rendimiento: desactivar efectos visuales"><span class="switch"></span><span aria-hidden="true">⚡</span></label>
     <span class="spacer"></span>
     <label class="toggle"><input type="checkbox" id="chk-nota" onchange="modoNotaActivo=this.checked"><span class="switch"></span><span>Modo nota</span></label>
     <label class="toggle" title="Muestra Do Re Mi... sobre cada tecla blanca del piano"><input type="checkbox" id="chk-practice" onchange="setPracticeMode(this.checked)"><span class="switch"></span><span>Notas en teclas</span></label>
     <label class="toggle" title="Muestra dónde reposa cada mano (span de 5 dedos): con digitaciones ancla al pulgar; sin ellas estima (~)"><input type="checkbox" id="chk-handpos" onchange="setHandPosGuide(this.checked)"><span class="switch"></span><span>Posición manos</span></label>
     <label class="toggle" title="Metrónomo (M)"><input type="checkbox" id="chk-metro" onchange="toggleMetronomo(this.checked)"><span class="switch"></span><span>Metrónomo</span></label>
     <span class="spacer"></span>
-    <select id="scale-root" onchange="setScaleRoot(this.value)" title="Tónica de la escala">
+    <select id="scale-root" onchange="setScaleRoot(this.value)" title="Tónica de la escala" aria-label="Tónica de la escala">
       <option value="0">C · Do</option>
       <option value="1">C# · Do#</option>
       <option value="2">D · Re</option>
@@ -927,7 +950,7 @@ body.perf-mode .brand .logo{animation:none}
       <option value="10">A# · La#</option>
       <option value="11">B · Si</option>
     </select>
-    <select id="scale-type" onchange="setScaleType(this.value)" title="Tipo de escala">
+    <select id="scale-type" onchange="setScaleType(this.value)" title="Tipo de escala" aria-label="Tipo de escala">
       <option value="major">Mayor (jónico)</option>
       <option value="minor">Menor natural</option>
       <option value="harmonic-minor">Menor armónica</option>
@@ -942,14 +965,14 @@ body.perf-mode .brand .logo{animation:none}
       <option value="blues">Blues</option>
     </select>
     <label class="toggle" title="Resalta las teclas de la escala en el piano (tónica en dorado)"><input type="checkbox" id="chk-scale" onchange="setScaleActive(this.checked)"><span class="switch"></span><span>Escala</span></label>
-    <select id="output-mode" onchange="setOutputMode(this.value)" title="Por dónde sale el sonido">
+    <select id="output-mode" onchange="setOutputMode(this.value)" title="Por dónde sale el sonido" aria-label="Salida de sonido">
       <option value="pc">Salida: PC</option>
       <option value="yamaha">Salida: Yamaha</option>
       <option value="both">Salida: Ambas</option>
     </select>
     <span class="spacer"></span>
-    <input type="text" id="instrument-filter" placeholder="🔍 filtrar..." oninput="filterInstruments(this.value)" title="Filtra por nombre o categoría">
-    <select id="instrument-select" onchange="onInstrumentSelect(this.value)" title="Instrumento (samples) o voz Yamaha exclusiva">
+    <input type="text" id="instrument-filter" placeholder="🔍 filtrar..." oninput="filterInstruments(this.value)" title="Filtra por nombre o categoría" aria-label="Filtrar instrumentos por nombre, categoría o código">
+    <select id="instrument-select" onchange="onInstrumentSelect(this.value)" title="Instrumento (samples) o voz Yamaha exclusiva" aria-label="Instrumento o voz Yamaha">
       <optgroup label="🎹 Teclados">
         <option value="piano">Piano (Salamander Grand)</option>
         <option value="organ">Hammond Organ</option>
@@ -1016,8 +1039,8 @@ body.perf-mode .brand .logo{animation:none}
       <div class="meta"><span id="lesson-notes">0 notas</span><span class="sep">·</span><span id="lesson-bpm">— bpm</span><span class="sep">·</span><span id="lesson-dur">0:00</span></div>
     </div>
     <div class="transport">
-      <button class="tbtn" onclick="restartSong()" title="Reiniciar (R)">⟲</button>
-      <button class="tbtn play" id="play-btn" onclick="togglePlay()" title="Play / Pausa (Espacio)">▶</button>
+      <button class="tbtn" onclick="restartSong()" title="Reiniciar (R)" aria-label="Reiniciar la canción">⟲</button>
+      <button class="tbtn play" id="play-btn" onclick="togglePlay()" title="Play / Pausa (Espacio)" aria-label="Reproducir o pausar">▶</button>
       <label class="toggle" style="margin-left:0.4rem" title="Pausa hasta que toques la nota correcta (W)"><input type="checkbox" id="chk-wait" checked onchange="songState.waitMode=this.checked"><span class="switch"></span><span>Esperar</span></label>
       <label class="toggle" title="La lección avanza visualmente sin sonido. Tú tocas lo que ves."><input type="checkbox" id="chk-mute-lesson" onchange="setLessonMute(this.checked)"><span class="switch"></span><span>Silencio</span></label>
       <div class="hand-filter" title="Manos separadas: practica una sola mano; la otra se atenúa en las notas que caen">
@@ -1028,13 +1051,13 @@ body.perf-mode .brand .logo{animation:none}
     </div>
     <div class="tempo-control">
       <div class="head"><span>Tempo</span><span class="val"><span id="tempo-val">100</span>%</span></div>
-      <input type="range" id="tempo-slider" min="40" max="150" value="100" oninput="setTempo(+this.value)">
+      <input type="range" id="tempo-slider" min="40" max="150" value="100" aria-label="Tempo de la lección en porcentaje" oninput="setTempo(+this.value)">
     </div>
     <div class="transpose-ctl" title="Transponer la pieza en semitonos — las teclas a tocar cambian de tono">
       <span class="lab">Transp.</span>
-      <button onclick="transposeSong(-1)" title="Bajar un semitono">−1</button>
-      <span id="transpose-val" class="tval">0</span>
-      <button onclick="transposeSong(1)" title="Subir un semitono">+1</button>
+      <button onclick="transposeSong(-1)" title="Bajar un semitono" aria-label="Transponer un semitono abajo">−1</button>
+      <span id="transpose-val" class="tval" aria-live="polite">0</span>
+      <button onclick="transposeSong(1)" title="Subir un semitono" aria-label="Transponer un semitono arriba">+1</button>
     </div>
     <div class="stats">
       <div>Aciertos<span class="v good" id="stat-hits">0</span></div>
@@ -1052,7 +1075,7 @@ body.perf-mode .brand .logo{animation:none}
       <button class="btn-mark set-a" onclick="markPointA()" title="Marcar A en el tiempo actual">A</button>
       <button class="btn-mark set-b" onclick="markPointB()" title="Marcar B en el tiempo actual">B</button>
       <button class="btn-mark" id="btn-loop-toggle" onclick="toggleLoopActive()" title="Activar/desactivar loop">Activar</button>
-      <button class="btn-mark" onclick="clearLoop()" title="Limpiar marcas">×</button>
+      <button class="btn-mark" onclick="clearLoop()" title="Limpiar marcas" aria-label="Limpiar marcas del loop">×</button>
       <label class="toggle" title="Sube +5% el tempo cuando completes con ≥85%"><input type="checkbox" id="chk-loop-progressive" onchange="loopState.progressive=this.checked"><span class="switch"></span><span>Subida</span></label>
       <label class="toggle" title="Extiende +1 compás cuando domines a tempo 100%"><input type="checkbox" id="chk-loop-extend" onchange="loopState.autoExtend=this.checked"><span class="switch"></span><span>Extender</span></label>
       <div id="loop-stats" style="display:none">
@@ -1122,7 +1145,7 @@ body.perf-mode .brand .logo{animation:none}
       <div class="s" id="rec-status">Pulsa «Grabar» y toca — el reloj arranca con tu primera nota.</div>
     </div>
     <button class="btn" id="btn-rec-toggle" onclick="toggleRecording()">● Grabar</button>
-    <select id="rec-quant" onchange="setTakeQuantize(this.value)" title="Cuantizar la toma a la grilla del metrónomo (graba con el click puesto para que la grilla coincida)">
+    <select id="rec-quant" onchange="setTakeQuantize(this.value)" title="Cuantizar la toma a la grilla del metrónomo (graba con el click puesto para que la grilla coincida)" aria-label="Cuantización de la toma grabada">
       <option value="off">Sin cuantizar</option>
       <option value="8">Corchea 1/8</option>
       <option value="16">Semicorch. 1/16</option>
@@ -1138,7 +1161,7 @@ body.perf-mode .brand .logo{animation:none}
       <div class="t">🎧 Entrenamiento de oído</div>
       <div class="s" id="ear-status">Pulsa «Nuevo» — oirás algo y lo repites en el teclado.</div>
     </div>
-    <select id="ear-level" onchange="setEarLevel(this.value)" title="Nivel de dificultad">
+    <select id="ear-level" onchange="setEarLevel(this.value)" title="Nivel de dificultad" aria-label="Nivel del entrenamiento de oído">
       <option value="intervals">1 · Intervalos</option>
       <option value="triads">2 · Tríadas</option>
       <option value="sevenths">3 · Séptimas</option>
@@ -1161,8 +1184,8 @@ body.perf-mode .brand .logo{animation:none}
 
   <section id="piano-frame">
     <div id="piano-wrapper">
-      <canvas id="falling-canvas"></canvas>
-      <canvas id="piano-canvas"></canvas>
+      <canvas id="falling-canvas" aria-hidden="true"></canvas>
+      <canvas id="piano-canvas" role="img" aria-label="Teclado de piano de 88 teclas. Toca con el ratón, la pantalla táctil o un teclado MIDI conectado; los atajos Espacio, R, W y M controlan la lección."></canvas>
     </div>
     <div id="octave-bar">
       <span>C1</span><span>C2</span><span>C3</span><span>C4</span><span>C5</span><span>C6</span><span>C7</span><span>C8</span>
@@ -1175,20 +1198,20 @@ body.perf-mode .brand .logo{animation:none}
         <span class="lab">Velocidad</span>
         <span class="val"><span id="vel-val">80</span><span class="unit">vel</span></span>
       </div>
-      <input type="range" min="20" max="127" value="80" oninput="fixedVel=+this.value;document.getElementById('vel-val').textContent=this.value">
+      <input type="range" min="20" max="127" value="80" aria-label="Velocidad de las teclas tocadas con ratón o pantalla" oninput="fixedVel=+this.value;document.getElementById('vel-val').textContent=this.value">
     </div>
     <div class="control">
       <div class="head">
         <span class="lab">BPM Metrónomo</span>
         <span class="val"><span id="bpm-val">80</span><span class="unit">bpm</span></span>
       </div>
-      <input type="range" id="bpm-slider" min="40" max="200" value="80" oninput="setBPM(+this.value)">
+      <input type="range" id="bpm-slider" min="40" max="200" value="80" aria-label="BPM del metrónomo" oninput="setBPM(+this.value)">
     </div>
     <div class="control" title="Volúmenes independientes: tu piano, el click del metrónomo y el autoplay de la lección">
       <div class="head"><span class="lab">Mezclador</span></div>
-      <div class="mixer-row"><span class="mlab">Piano</span><input type="range" id="mix-piano" min="0" max="100" value="100" oninput="setMixVolume('piano',this.value)"><span class="mval" id="mix-piano-val">100</span></div>
-      <div class="mixer-row"><span class="mlab">Metró.</span><input type="range" id="mix-metro" min="0" max="100" value="70" oninput="setMixVolume('metro',this.value)"><span class="mval" id="mix-metro-val">70</span></div>
-      <div class="mixer-row"><span class="mlab">Lección</span><input type="range" id="mix-lesson" min="0" max="100" value="100" oninput="setMixVolume('lesson',this.value)"><span class="mval" id="mix-lesson-val">100</span></div>
+      <div class="mixer-row"><span class="mlab">Piano</span><input type="range" id="mix-piano" min="0" max="100" value="100" aria-label="Volumen del piano" oninput="setMixVolume('piano',this.value)"><span class="mval" id="mix-piano-val">100</span></div>
+      <div class="mixer-row"><span class="mlab">Metró.</span><input type="range" id="mix-metro" min="0" max="100" value="70" aria-label="Volumen del metrónomo" oninput="setMixVolume('metro',this.value)"><span class="mval" id="mix-metro-val">70</span></div>
+      <div class="mixer-row"><span class="mlab">Lección</span><input type="range" id="mix-lesson" min="0" max="100" value="100" aria-label="Volumen del autoplay de la lección" oninput="setMixVolume('lesson',this.value)"><span class="mval" id="mix-lesson-val">100</span></div>
     </div>
   </div>
 

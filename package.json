@@ -9,6 +9,7 @@
     "smoke:yamaha": "playwright test --config=smoke/playwright.config.js smoke/yamaha.spec.js --headed"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1"
+    "@playwright/test": "^1.62.1",
+    "axe-core": "^4.13.0"
   }
 }
