@@ -1,0 +1,3783 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pianoforte — Aurora Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --violet:#8b5cf6; --cyan:#06b6d4; --magenta:#ec4899; --teal:#2dd4bf; --gold:#fbbf24;
+  --left:#06b6d4; --right:#ec4899;
+  --bg:#0a0814;
+  --glass:rgba(255,255,255,0.04);
+  --glass-2:rgba(255,255,255,0.07);
+  --border:rgba(255,255,255,0.10);
+  --border-hi:rgba(255,255,255,0.20);
+  --text:#f5f5f7;
+  --text-dim:rgba(245,245,247,0.65);
+  --text-mute:rgba(245,245,247,0.42);
+  --ok:#22c55e;
+  --err:#ef4444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text)}
+body{
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  min-height:100vh;
+  padding:clamp(0.5rem,1.2vw,1rem) clamp(0.8rem,2vw,1.4rem);
+  position:relative;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:-30%;z-index:-2;
+  background:
+    radial-gradient(45% 55% at 18% 28%, rgba(139,92,246,0.65) 0%, transparent 60%),
+    radial-gradient(40% 50% at 82% 18%, rgba(6,182,212,0.55) 0%, transparent 60%),
+    radial-gradient(50% 45% at 72% 78%, rgba(236,72,153,0.55) 0%, transparent 60%),
+    radial-gradient(45% 50% at 22% 88%, rgba(45,212,191,0.45) 0%, transparent 60%),
+    radial-gradient(35% 40% at 50% 50%, rgba(251,191,36,0.18) 0%, transparent 60%);
+  filter:blur(60px) saturate(1.4);
+  animation:aurora 28s ease-in-out infinite;
+}
+@keyframes aurora{
+  0%,100%{transform:scale(1) translate(0,0) rotate(0deg)}
+  33%{transform:scale(1.12) translate(-3%,2%) rotate(3deg)}
+  66%{transform:scale(0.94) translate(2%,-3%) rotate(-3deg)}
+}
+body::after{
+  content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 30%,rgba(10,8,20,0.5) 100%);
+}
+.grain{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.5;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.45 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+
+#app{position:relative;z-index:1;width:100%;max-width:1340px;margin:0 auto;display:flex;flex-direction:column;gap:clamp(0.4rem,0.8vw,0.7rem)}
+
+/* ---------- LOADING SCREEN ---------- */
+#splash{
+  position:fixed;inset:0;z-index:1000;
+  background:rgba(10,8,20,0.85);backdrop-filter:blur(20px);
+  display:grid;place-items:center;
+  transition:opacity 0.5s, visibility 0.5s;
+}
+#splash.gone{opacity:0;visibility:hidden;pointer-events:none}
+#splash .box{text-align:center;padding:2rem}
+#splash .ring{
+  width:64px;height:64px;border-radius:50%;
+  border:2px solid rgba(255,255,255,0.1);
+  border-top-color:var(--cyan);
+  border-right-color:var(--magenta);
+  margin:0 auto 1.5rem;
+  animation:spin 1.2s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#splash h2{font-family:'Fraunces',serif;font-size:24px;font-weight:400;letter-spacing:-0.02em;background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;color:transparent}
+#splash p{margin-top:0.5rem;color:var(--text-dim);font-size:13px;letter-spacing:0.04em}
+#splash .progress{
+  margin-top:1rem;width:240px;height:3px;border-radius:999px;
+  background:rgba(255,255,255,0.06);overflow:hidden;
+}
+#splash .progress > div{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--violet),var(--cyan),var(--magenta));
+  transition:width 0.3s;
+}
+#splash button{
+  margin-top:1.5rem;padding:0.6rem 1.4rem;
+  background:linear-gradient(135deg,var(--violet),var(--cyan));
+  border:none;border-radius:12px;color:#fff;font-family:inherit;font-size:14px;font-weight:600;
+  cursor:pointer;letter-spacing:0.02em;
+  box-shadow:0 8px 24px rgba(139,92,246,0.35);
+  display:none;
+}
+#splash.ready button{display:inline-block}
+#splash.ready .ring{display:none}
+
+/* ---------- HEADER ---------- */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0.6rem 1.1rem;
+  background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
+  border:1px solid var(--border);
+  border-radius:18px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 40px rgba(0,0,0,0.3);
+  animation:rise 700ms cubic-bezier(.2,.7,.2,1) both;
+  flex-wrap:wrap;gap:0.7rem;
+}
+.brand{display:flex;align-items:center;gap:0.85rem}
+.brand .logo{
+  width:34px;height:34px;border-radius:11px;
+  background:conic-gradient(from 180deg at 50% 50%, var(--violet), var(--cyan), var(--magenta), var(--teal), var(--violet));
+  position:relative;
+  box-shadow:0 0 30px rgba(139,92,246,0.4), inset 0 0 0 1px rgba(255,255,255,0.2);
+  animation:rotate 12s linear infinite;
+}
+@keyframes rotate{to{transform:rotate(360deg)}}
+.brand .logo::after{
+  content:'';position:absolute;inset:6px;border-radius:8px;
+  background:rgba(10,8,20,0.85);
+}
+.brand .name{
+  font-family:'Fraunces',serif;font-weight:400;font-size:20px;line-height:1;
+  letter-spacing:-0.02em;
+  background:linear-gradient(135deg, #fff 30%, rgba(255,255,255,0.5));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.brand .name em{font-style:italic;color:var(--cyan);font-weight:300;-webkit-text-fill-color:var(--cyan)}
+.brand .tag{font-size:11px;color:var(--text-mute);letter-spacing:0.04em;margin-top:2px}
+
+.status-group{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap}
+.pill{
+  display:inline-flex;align-items:center;gap:0.5rem;
+  padding:0.45rem 0.85rem;
+  background:var(--glass-2);
+  border:1px solid var(--border);
+  border-radius:999px;
+  font-size:12px;color:var(--text-dim);
+  backdrop-filter:blur(20px);
+  font-weight:500;
+}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--text-mute);transition:all 0.3s}
+.pill .dot.connected{background:var(--teal);box-shadow:0 0 14px var(--teal)}
+.pill .dot.searching{background:var(--gold);box-shadow:0 0 12px var(--gold);animation:pulse 1.4s ease-in-out infinite}
+.pill .dot.active{background:var(--magenta);box-shadow:0 0 14px var(--magenta)}
+@keyframes pulse{50%{opacity:0.4}}
+
+/* ---------- TOOLBAR ---------- */
+#toolbar{
+  display:flex;flex-wrap:wrap;align-items:center;gap:0.4rem;
+  padding:0.45rem 0.7rem;
+  background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
+  border:1px solid var(--border);border-radius:14px;
+  animation:rise 800ms cubic-bezier(.2,.7,.2,1) both;animation-delay:80ms;
+}
+.btn{
+  font-family:inherit;font-size:12px;font-weight:500;letter-spacing:-0.01em;
+  padding:0.4rem 0.8rem;
+  background:var(--glass-2);
+  color:var(--text-dim);
+  border:1px solid var(--border);
+  border-radius:12px;
+  cursor:pointer;
+  transition:all 0.25s cubic-bezier(.2,.7,.2,1);
+  backdrop-filter:blur(20px);
+  display:inline-flex;align-items:center;gap:0.4rem;
+}
+.btn:hover{color:var(--text);background:rgba(255,255,255,0.10);border-color:var(--border-hi);transform:translateY(-1px)}
+.btn.active{
+  color:#fff;
+  background:linear-gradient(135deg,rgba(139,92,246,0.6),rgba(6,182,212,0.5));
+  border-color:rgba(255,255,255,0.3);
+  box-shadow:0 8px 24px rgba(139,92,246,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+}
+.btn.featured{
+  background:linear-gradient(135deg,rgba(236,72,153,0.85),rgba(139,92,246,0.85));
+  color:#fff;border-color:rgba(255,255,255,0.25);
+  box-shadow:0 8px 28px rgba(236,72,153,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+}
+.btn.featured:hover{box-shadow:0 12px 36px rgba(236,72,153,0.55)}
+.btn.cyan{
+  background:linear-gradient(135deg,rgba(45,212,191,0.7),rgba(6,182,212,0.7));
+  color:#fff;border-color:rgba(255,255,255,0.25);
+  box-shadow:0 8px 28px rgba(6,182,212,0.35);
+}
+.btn .icon{font-size:14px;opacity:0.9}
+label.btn{cursor:pointer}
+.hidden-input{display:none}
+.spacer{width:1px;height:22px;background:var(--border)}
+
+.toggle{
+  display:inline-flex;align-items:center;gap:0.45rem;
+  padding:0.4rem 0.75rem;
+  background:var(--glass-2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  cursor:pointer;font-size:12px;color:var(--text-dim);user-select:none;
+  transition:all 0.25s;
+}
+.toggle:hover{color:var(--text);border-color:var(--border-hi)}
+.toggle input{display:none}
+.toggle .switch{
+  width:30px;height:18px;border-radius:999px;
+  background:rgba(255,255,255,0.12);
+  position:relative;flex-shrink:0;
+  transition:all 0.25s;
+}
+.toggle .switch::after{
+  content:'';position:absolute;top:2px;left:2px;
+  width:14px;height:14px;border-radius:50%;
+  background:#fff;
+  transition:all 0.25s cubic-bezier(.4,1.4,.6,1);
+  box-shadow:0 2px 6px rgba(0,0,0,0.3);
+}
+.toggle input:checked ~ .switch{
+  background:linear-gradient(135deg,var(--violet),var(--cyan));
+  box-shadow:0 0 14px rgba(139,92,246,0.5);
+}
+.toggle input:checked ~ .switch::after{transform:translateX(12px)}
+
+/* Filtro de instrumento */
+#instrument-filter{
+  font-family:inherit;font-size:12px;
+  padding:0.4rem 0.7rem;
+  background:var(--glass-2);
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:10px;
+  outline:none;
+  width:130px;
+  transition:all 0.25s;
+}
+#instrument-filter::placeholder{color:var(--text-mute)}
+#instrument-filter:focus{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(6,182,212,0.3);width:180px}
+
+/* Selector de instrumento */
+#instrument-select{
+  font-family:inherit;font-size:12px;
+  padding:0.4rem 0.7rem;
+  background:var(--glass-2);
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:10px;
+  cursor:pointer;
+  transition:all 0.25s;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23f5f5f7' stroke-width='1.5'><path d='M3 5l3 3 3-3'/></svg>");
+  background-repeat:no-repeat;
+  background-position:right 0.5rem center;
+  padding-right:1.7rem;
+  max-width:220px;
+}
+#instrument-select:hover{border-color:var(--border-hi)}
+#instrument-select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 1px rgba(6,182,212,0.3)}
+/* Las options abren un dropdown nativo del OS — los browsers permiten parcial styling */
+#instrument-select option{
+  background:#15101e;
+  color:var(--text);
+  padding:0.4rem 0.6rem;
+}
+#instrument-select optgroup{
+  background:#0a0814;
+  color:var(--cyan);
+  font-weight:700;
+  font-style:normal;
+  letter-spacing:0.04em;
+}
+
+/* ---------- SCORE ---------- */
+#score-section{
+  background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
+  border:1px solid var(--border);
+  border-radius:16px;overflow:hidden;
+  animation:rise 900ms cubic-bezier(.2,.7,.2,1) both;animation-delay:160ms;
+}
+#score-section.hidden{display:none}
+#score-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0.5rem 1rem;
+  border-bottom:1px solid var(--border);
+}
+#score-header .marker{font-size:11px;color:var(--text-mute);letter-spacing:0.08em;text-transform:uppercase;font-weight:600}
+#score-title{font-family:'Fraunces',serif;font-size:15px;color:var(--text);font-weight:400;font-style:italic}
+#osmd-container{height:170px;overflow:auto;padding:0.7rem 1rem;background:rgba(255,255,255,0.96);position:relative;scroll-behavior:smooth}
+#score-loading{text-align:center;padding:2.5rem 1rem;color:#666;font-family:'Fraunces',serif;font-style:italic;font-size:15px}
+/* Cursor de OSMD — barra cyan luminosa */
+#osmd-container .cursor{
+  background:linear-gradient(180deg, rgba(6,182,212,0.45), rgba(236,72,153,0.45)) !important;
+  border:none !important;
+  box-shadow:0 0 12px rgba(6,182,212,0.6), 0 0 24px rgba(236,72,153,0.4) !important;
+  border-radius:2px !important;
+  transition:left 0.12s ease, top 0.12s ease;
+  z-index:5;
+}
+
+/* ---------- LESSON PANEL ---------- */
+#lesson-panel{
+  background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
+  border:1px solid var(--border);border-radius:14px;
+  padding:0.6rem 1rem;
+  display:none;
+  flex-wrap:wrap;align-items:center;gap:0.8rem;
+  animation:rise 600ms cubic-bezier(.2,.7,.2,1) both;
+  position:relative;overflow:hidden;
+}
+#lesson-panel.show{display:flex}
+#lesson-panel::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(180deg,var(--cyan),var(--magenta));
+}
+.lesson-info{display:flex;flex-direction:column;gap:0.2rem;min-width:180px;flex:1}
+.lesson-info .name{font-family:'Fraunces',serif;font-size:18px;color:var(--text);letter-spacing:-0.01em}
+.lesson-info .meta{font-size:11px;color:var(--text-mute);letter-spacing:0.08em;font-family:'JetBrains Mono',monospace}
+.lesson-info .meta .sep{color:var(--cyan);margin:0 0.4em}
+
+.transport{display:flex;align-items:center;gap:0.5rem}
+.tbtn{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--glass-2);border:1px solid var(--border);
+  display:grid;place-items:center;cursor:pointer;
+  color:var(--text);font-size:14px;
+  transition:all 0.2s;
+}
+.tbtn:hover{background:rgba(255,255,255,0.1);border-color:var(--border-hi);transform:scale(1.05)}
+.tbtn.play{
+  width:46px;height:46px;font-size:16px;
+  background:linear-gradient(135deg,var(--violet),var(--magenta));
+  border-color:rgba(255,255,255,0.25);
+  color:#fff;box-shadow:0 8px 24px rgba(236,72,153,0.4);
+}
+.tbtn.play:hover{box-shadow:0 12px 32px rgba(236,72,153,0.55)}
+
+.tempo-control{display:flex;flex-direction:column;gap:0.3rem;min-width:180px}
+.tempo-control .head{display:flex;justify-content:space-between;font-size:11px;color:var(--text-mute);letter-spacing:0.12em;text-transform:uppercase;font-weight:600}
+.tempo-control .head .val{font-family:'JetBrains Mono',monospace;color:var(--cyan);font-size:13px;letter-spacing:0;text-transform:none}
+
+.progress-bar{
+  flex:1 1 100%;
+  height:4px;border-radius:999px;background:rgba(255,255,255,0.08);
+  position:relative;overflow:visible;
+}
+.progress-bar #progress-fill{
+  position:absolute;left:0;top:0;bottom:0;width:0%;
+  background:linear-gradient(90deg,var(--cyan),var(--magenta));
+  transition:width 0.1s linear;
+  border-radius:999px;
+}
+.progress-bar .marks{position:absolute;inset:0;pointer-events:none}
+.loop-region{
+  position:absolute;top:0;bottom:0;
+  background:rgba(6,182,212,0.18);
+  border-top:1px solid rgba(6,182,212,0.35);
+  border-bottom:1px solid rgba(236,72,153,0.35);
+  pointer-events:none;
+}
+.loop-mark{
+  position:absolute;top:-5px;bottom:-5px;width:2px;
+  transform:translateX(-1px);
+  pointer-events:none;
+  border-radius:1px;
+}
+.loop-mark.a{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+.loop-mark.b{background:var(--magenta);box-shadow:0 0 8px var(--magenta)}
+.loop-mark::after{
+  content:attr(data-label);
+  position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+  font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;
+  color:#fff;letter-spacing:0.05em;
+  background:inherit;padding:1px 4px;border-radius:3px;
+  white-space:nowrap;box-shadow:none;
+}
+
+#loop-controls{
+  flex:1 1 100%;
+  display:flex;align-items:center;gap:0.35rem;flex-wrap:wrap;
+  padding-top:0.3rem;border-top:1px dashed var(--border);
+  margin-top:0.2rem;
+}
+#loop-controls .lab{font-size:9px;color:var(--text-mute);letter-spacing:0.18em;text-transform:uppercase;font-weight:600;margin-right:0.3rem}
+#loop-controls .btn-mark{
+  font-family:inherit;font-size:11px;font-weight:700;letter-spacing:0.04em;
+  padding:0.3rem 0.6rem;min-width:32px;
+  background:var(--glass-2);
+  color:var(--text-dim);
+  border:1px solid var(--border);
+  border-radius:8px;cursor:pointer;
+  transition:all 0.2s;
+}
+#loop-controls .btn-mark:hover{color:var(--text);border-color:var(--border-hi)}
+#loop-controls .btn-mark.set-a{color:var(--cyan);border-color:rgba(6,182,212,0.4)}
+#loop-controls .btn-mark.set-b{color:var(--magenta);border-color:rgba(236,72,153,0.4)}
+#loop-controls .btn-mark.toggle-on{
+  background:linear-gradient(135deg,rgba(6,182,212,0.6),rgba(236,72,153,0.6));
+  color:#fff;border-color:rgba(255,255,255,0.25);
+  box-shadow:0 4px 14px rgba(6,182,212,0.3);
+}
+#loop-controls .toggle{padding:0.3rem 0.6rem;font-size:10px;letter-spacing:0.05em}
+#loop-controls .toggle .switch{width:24px;height:14px}
+#loop-controls .toggle .switch::after{width:10px;height:10px;top:2px;left:2px}
+#loop-controls .toggle input:checked ~ .switch::after{transform:translateX(10px)}
+#loop-stats{
+  display:flex;gap:0.7rem;flex-wrap:wrap;
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-mute);
+  margin-left:auto;
+}
+#loop-stats .lbl{letter-spacing:0.04em;text-transform:lowercase}
+#loop-stats .v{color:var(--cyan);font-weight:500}
+#loop-stats .v.good{color:#4ade80}
+#loop-stats .v.bad{color:#fca5a5}
+
+.stats{display:flex;gap:1rem;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-mute);font-weight:600}
+.stats .v{font-family:'JetBrains Mono',monospace;color:var(--text);font-size:14px;letter-spacing:0;text-transform:none;font-weight:500;margin-left:0.4em}
+.stats .v.good{color:var(--ok)}
+.stats .v.bad{color:var(--err)}
+
+/* ---------- HERO INFO ---------- */
+#info-panel{
+  display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:1.1rem;
+  padding:0.8rem 1.2rem;min-height:90px;
+  background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
+  border:1px solid var(--border);border-radius:24px;
+  position:relative;overflow:hidden;
+  animation:rise 1000ms cubic-bezier(.2,.7,.2,1) both;animation-delay:240ms;
+}
+#info-panel::before{
+  content:'';position:absolute;inset:0;z-index:0;
+  background:radial-gradient(60% 80% at 50% 50%, rgba(139,92,246,0.10), transparent 70%);
+  pointer-events:none;
+}
+#metro-block{display:flex;flex-direction:column;align-items:center;gap:0.5rem;padding-right:1.6rem;border-right:1px solid var(--border);position:relative;z-index:1}
+#metro-flash{
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(255,255,255,0.05);
+  border:1px solid var(--border);
+  transition:all 0.06s;
+}
+#metro-flash.beat{
+  background:radial-gradient(circle,var(--cyan),var(--violet));
+  border-color:rgba(255,255,255,0.4);
+  box-shadow:0 0 32px var(--cyan), 0 0 60px var(--violet);
+}
+#metro-block .lab{font-size:10px;color:var(--text-mute);letter-spacing:0.18em;text-transform:uppercase;font-weight:600}
+
+#sustain-block{display:flex;flex-direction:column;align-items:center;gap:0.45rem;padding-left:1.6rem;padding-right:0;border-left:1px solid var(--border);z-index:1;min-width:60px}
+
+#staff-block{
+  display:flex;flex-direction:column;align-items:center;gap:0.4rem;
+  padding-left:1.6rem;border-left:1px solid var(--border);
+  z-index:1;
+}
+#staff-block .lab{font-size:10px;color:var(--text-mute);letter-spacing:0.18em;text-transform:uppercase;font-weight:600}
+#staff-svg{width:170px;height:auto;display:block}
+#staff-svg .staff-line{stroke:rgba(245,245,247,0.42);stroke-width:0.7}
+#staff-svg .barline{stroke:rgba(245,245,247,0.55);stroke-width:1.2}
+#staff-svg .clef{font-family:'Cambria','Bravura','Noto Music',serif;font-size:38px;fill:var(--cyan);dominant-baseline:middle}
+#staff-svg .clef-bass{font-size:30px}
+#staff-svg .ledger-line{stroke:rgba(245,245,247,0.7);stroke-width:0.9;stroke-linecap:round}
+#staff-svg .note-head{
+  fill:url(#note-grad);
+  stroke:rgba(255,255,255,0.4);stroke-width:0.5;
+  filter:drop-shadow(0 0 6px rgba(236,72,153,0.6));
+  transform-origin:center;
+  animation:noteAppear 0.35s cubic-bezier(.2,.7,.2,1) both;
+}
+#staff-svg .accidental{
+  font-family:serif;font-size:14px;fill:var(--gold);font-weight:600;
+  filter:drop-shadow(0 0 4px rgba(251,191,36,0.5));
+  animation:noteAppear 0.35s cubic-bezier(.2,.7,.2,1) both;
+}
+#staff-svg .flag-pin{
+  stroke:rgba(6,182,212,0.5);stroke-width:0.8;
+  animation:noteAppear 0.45s cubic-bezier(.2,.7,.2,1) both;
+}
+#staff-svg .flag-bg{
+  fill:rgba(6,182,212,0.18);
+  stroke:rgba(6,182,212,0.55);stroke-width:0.6;
+  animation:noteAppear 0.5s cubic-bezier(.2,.7,.2,1) both;
+}
+#staff-svg .flag-text{
+  font-family:'Fraunces',serif;font-style:italic;font-size:11px;fill:var(--text);
+  text-anchor:middle;dominant-baseline:middle;
+  animation:noteAppear 0.55s cubic-bezier(.2,.7,.2,1) both;
+}
+@keyframes noteAppear{
+  from{opacity:0;transform:translateY(-4px) scale(0.7)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+#sustain-flash{
+  width:28px;height:14px;border-radius:4px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid var(--border);transition:all 0.15s;
+}
+#sustain-flash.on{
+  background:linear-gradient(180deg,var(--gold),#d97706);
+  border-color:var(--gold);box-shadow:0 0 18px var(--gold);
+}
+#sustain-block .lab{font-size:9px;color:var(--text-mute);letter-spacing:0.18em;text-transform:uppercase;font-weight:600}
+
+#note-stage{text-align:center;position:relative;min-height:90px;display:flex;align-items:center;justify-content:center;z-index:1}
+#note-name-display{
+  font-family:'Fraunces',serif;
+  font-size:clamp(2.4rem,6vw,4.2rem);line-height:1;
+  font-weight:400;letter-spacing:-0.04em;
+  background:linear-gradient(135deg, #fff, var(--cyan) 50%, var(--magenta));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  opacity:0;transform:translateY(8px) scale(0.96);
+  transition:opacity 0.3s, transform 0.4s cubic-bezier(.2,.7,.2,1);
+}
+#note-name-display.show{opacity:1;transform:translateY(0) scale(1)}
+/* Pista de próxima nota (modo wait + practiceMode): tenue e itálica para distinguir de nota tocada */
+#note-name-display.show.hint{opacity:0.38;font-style:italic}
+#note-name-display .acc{font-style:italic;font-weight:300;color:var(--magenta);-webkit-text-fill-color:var(--magenta)}
+#note-name-display .oct{font-size:0.42em;vertical-align:super;font-weight:300;font-style:italic;color:var(--cyan);-webkit-text-fill-color:var(--cyan);margin-left:0.08em}
+#note-name-display .sep{color:var(--cyan);-webkit-text-fill-color:var(--cyan);margin:0 0.18em;opacity:0.55;font-style:normal;font-weight:300}
+#note-name-display .more{font-family:'Plus Jakarta Sans',sans-serif;font-size:0.45em;color:var(--text-mute);-webkit-text-fill-color:var(--text-mute);margin-left:0.4em;font-style:normal;font-weight:500;letter-spacing:0.04em;vertical-align:super}
+#note-name-display.chord-2{font-size:clamp(2.6rem,6.5vw,4.4rem)}
+#note-name-display.chord-3{font-size:clamp(2rem,5.2vw,3.4rem)}
+#note-name-display.chord-many{font-size:clamp(1.6rem,4.4vw,2.8rem)}
+#note-idle{
+  font-family:'Fraunces',serif;font-style:italic;
+  font-size:1.3rem;color:var(--text-mute);letter-spacing:0.02em;
+  position:absolute;transition:opacity 0.3s;
+}
+#note-idle.hidden{opacity:0}
+
+/* ---------- PIANO ---------- */
+#piano-frame{
+  padding:0.7rem;
+  background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
+  border:1px solid var(--border);border-radius:16px;
+  position:relative;overflow:hidden;
+  animation:rise 1000ms cubic-bezier(.2,.7,.2,1) both;animation-delay:320ms;
+}
+#piano-frame::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(80% 100% at 50% 0%, rgba(255,255,255,0.04), transparent 70%);
+  pointer-events:none;
+}
+
+#piano-wrapper{
+  width:100%;overflow-x:auto;
+  background:rgba(0,0,0,0.55);border:1px solid var(--border);
+  border-radius:14px;padding:0;
+  box-shadow:inset 0 4px 12px rgba(0,0,0,0.4);
+  position:relative;
+}
+#falling-canvas{display:block;height:0;transition:height 0.4s cubic-bezier(.2,.7,.2,1)}
+#falling-canvas.show{height:200px}
+#piano-wrapper.show-falling{padding-top:0}
+#piano-canvas{display:block;cursor:pointer;touch-action:none;border-radius:0 0 6px 6px}
+
+#octave-bar{display:flex;justify-content:space-between;padding:0.6rem 8px 0;font-family:'JetBrains Mono',monospace}
+#octave-bar span{font-size:10px;color:var(--text-mute);letter-spacing:0.05em}
+
+/* ---------- BOTTOM ---------- */
+#bottom-bar{
+  display:grid;grid-template-columns:1fr 1fr;gap:1rem;
+  animation:rise 1000ms cubic-bezier(.2,.7,.2,1) both;animation-delay:400ms;
+}
+.control{
+  padding:0.6rem 1rem;
+  background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
+  border:1px solid var(--border);border-radius:14px;
+  display:flex;flex-direction:column;gap:0.5rem;
+  position:relative;
+}
+.control::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+}
+.control .head{display:flex;align-items:baseline;justify-content:space-between;gap:0.6rem}
+.control .lab{font-size:11px;color:var(--text-dim);letter-spacing:0.16em;text-transform:uppercase;font-weight:600}
+.control .val{font-family:'Fraunces',serif;font-weight:400;font-size:22px;letter-spacing:-0.03em;color:var(--text);font-variant-numeric:tabular-nums;line-height:1}
+.control .val .unit{font-family:'Plus Jakarta Sans',sans-serif;font-size:11px;color:var(--text-mute);letter-spacing:0.18em;margin-left:0.4em;text-transform:uppercase;font-weight:600}
+
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;background:transparent;cursor:pointer;height:18px}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:999px;background:linear-gradient(90deg,var(--violet),var(--cyan),var(--magenta))}
+input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:linear-gradient(90deg,var(--violet),var(--cyan),var(--magenta))}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:#fff;margin-top:-6px;
+  box-shadow:0 0 0 1px rgba(0,0,0,0.1), 0 0 18px rgba(255,255,255,0.6);
+  transition:transform 0.15s;
+}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:none;box-shadow:0 0 18px rgba(255,255,255,0.6)}
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.15)}
+input[type=range]:focus{outline:none}
+
+#colophon{display:none}
+
+/* ---------- TOASTS ---------- */
+#toast-container{
+  position:fixed;top:1rem;right:1rem;z-index:2000;
+  display:flex;flex-direction:column;gap:0.55rem;
+  max-width:380px;width:calc(100vw - 2rem);
+  pointer-events:none;
+}
+.toast{
+  background:rgba(14,10,28,0.85);backdrop-filter:blur(40px) saturate(1.5);-webkit-backdrop-filter:blur(40px) saturate(1.5);
+  border:1px solid var(--border);border-radius:14px;
+  padding:0.85rem 0.95rem 0.85rem 0.85rem;
+  color:var(--text);font-size:13px;line-height:1.4;
+  display:flex;gap:0.7rem;align-items:flex-start;
+  box-shadow:0 12px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+  pointer-events:auto;
+  animation:toastIn 0.35s cubic-bezier(.2,.7,.2,1) both;
+}
+.toast.out{animation:toastOut 0.25s ease-in both}
+.toast .ico{
+  width:22px;height:22px;border-radius:50%;
+  display:grid;place-items:center;flex-shrink:0;
+  font-size:12px;font-weight:700;
+  background:rgba(255,255,255,0.08);
+}
+.toast .content{flex:1;min-width:0}
+.toast .title{font-weight:600;letter-spacing:-0.01em;margin-bottom:0.15rem;font-size:13px}
+.toast .body{color:var(--text-dim);font-size:12px;word-break:break-word}
+.toast .close{
+  flex-shrink:0;cursor:pointer;color:var(--text-mute);
+  padding:0 0.2rem;font-size:18px;line-height:1;
+  margin-top:-2px;align-self:flex-start;
+  transition:color 0.15s;
+}
+.toast .close:hover{color:var(--text)}
+.toast.progress{min-width:320px}
+.toast.progress .body{margin-bottom:0.4rem;font-family:'JetBrains Mono',monospace;font-size:11px}
+.toast .progress-track{width:100%;height:4px;background:rgba(255,255,255,0.08);border-radius:999px;overflow:hidden;margin-top:0.4rem;position:relative}
+.toast .progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--cyan),var(--magenta));transition:width 0.15s ease;border-radius:999px}
+.toast .progress-fill.indeterminate{width:30%;animation:indet 1.4s ease-in-out infinite;transition:none}
+@keyframes indet{0%{margin-left:-30%}100%{margin-left:100%}}
+.toast .progress-text{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-mute);margin-top:0.3rem;letter-spacing:0.02em}
+.toast .cancel-btn{
+  background:rgba(239,68,68,0.18);
+  border:1px solid rgba(239,68,68,0.4);
+  color:#fca5a5;
+  padding:0.35rem 0.7rem;border-radius:8px;
+  font-size:11px;font-weight:600;cursor:pointer;
+  font-family:inherit;letter-spacing:0.04em;
+  transition:all 0.15s;margin-top:0.55rem;align-self:flex-start;
+}
+.toast .cancel-btn:hover{background:rgba(239,68,68,0.3);color:#fff}
+.toast .actions{display:flex;gap:0.5rem;margin-top:0.55rem;flex-wrap:wrap}
+.toast .action-btn{
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.15);
+  color:var(--text);
+  padding:0.4rem 0.85rem;border-radius:8px;
+  font-size:11px;font-weight:600;cursor:pointer;
+  font-family:inherit;letter-spacing:0.04em;
+  transition:all 0.15s;
+}
+.toast .action-btn:hover{background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.25)}
+.toast .action-btn.primary{
+  background:linear-gradient(135deg,var(--violet),var(--cyan));
+  border-color:rgba(255,255,255,0.2);
+  color:#fff;
+}
+.toast .action-btn.primary:hover{box-shadow:0 4px 14px rgba(139,92,246,0.4)}
+.toast .action-btn.danger{
+  background:rgba(239,68,68,0.2);
+  border-color:rgba(239,68,68,0.4);
+  color:#fca5a5;
+}
+.toast .action-btn.danger:hover{background:rgba(239,68,68,0.35);color:#fff}
+.toast.success{border-color:rgba(34,197,94,0.45)}
+.toast.success .ico{background:rgba(34,197,94,0.18);color:#4ade80}
+.toast.error{border-color:rgba(239,68,68,0.45);box-shadow:0 12px 40px rgba(239,68,68,0.18), inset 0 1px 0 rgba(255,255,255,0.06)}
+.toast.error .ico{background:rgba(239,68,68,0.18);color:#fca5a5}
+.toast.warn{border-color:rgba(251,191,36,0.45)}
+.toast.warn .ico{background:rgba(251,191,36,0.18);color:var(--gold)}
+.toast.info{border-color:rgba(6,182,212,0.45)}
+.toast.info .ico{background:rgba(6,182,212,0.18);color:var(--cyan)}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px) scale(0.96)}to{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(20px) scale(0.96)}}
+@media (max-width:640px){
+  #toast-container{top:0.6rem;right:0.6rem;left:0.6rem;width:auto}
+}
+
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+@media (max-width:1100px){
+  #info-panel{grid-template-columns:auto 1fr auto auto}
+}
+@media (max-width:900px){
+  #info-panel{grid-template-columns:auto 1fr auto;gap:1rem}
+  #staff-block{display:none}
+  #bottom-bar{grid-template-columns:1fr}
+  #falling-canvas.show{height:220px}
+}
+@media (max-width:640px){
+  body{padding:1rem 0.7rem}
+  header{flex-direction:column;align-items:flex-start;border-radius:18px}
+  #info-panel{grid-template-columns:1fr;text-align:center}
+  #metro-block,#sustain-block,#staff-block{flex-direction:row;padding:0.5rem 0;border-right:none;border-left:none;border-top:1px solid var(--border);justify-content:center}
+  #staff-block{display:flex}
+  .btn{font-size:12px;padding:0.5rem 0.85rem}
+  #falling-canvas.show{height:180px}
+  .lesson-info{flex:1 1 100%}
+}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div id="toast-container"></div>
+
+<!-- LOADING SPLASH -->
+<div id="splash">
+  <div class="box">
+    <div class="ring"></div>
+    <h2>Pianoforte Aurora Pro</h2>
+    <p>Cargando samples Salamander Grand Piano…</p>
+    <div class="progress"><div id="splash-progress"></div></div>
+    <button onclick="startApp()">Comenzar</button>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <div class="name">Pianoforte<em> pro</em></div>
+        <div class="tag">Salamander Grand · Web MIDI · Falling notes</div>
+      </div>
+    </div>
+    <div class="status-group">
+      <div class="pill"><span class="dot" id="status-dot"></span><span id="status-text">Sin MIDI</span></div>
+      <div class="pill"><span class="dot" id="audio-dot"></span><span id="audio-text">Audio listo</span></div>
+      <div class="pill" title="Instrumento activo"><span style="font-size:13px">♪</span><span id="instrument-badge">Salamander Grand</span></div>
+    </div>
+  </header>
+
+  <div id="toolbar">
+    <button class="btn featured" onclick="loadFurEliseLesson()"><span class="icon">★</span>Für Elise (lección)</button>
+    <label class="btn cyan" for="midi-input"><span class="icon">↥</span>Cargar MIDI</label>
+    <input type="file" id="midi-input" class="hidden-input" accept=".mid,.midi" onchange="loadMidiFile(this)">
+    <label class="btn" for="xml-input"><span class="icon">↥</span>Cargar partitura</label>
+    <input type="file" id="xml-input" class="hidden-input" accept=".xml,.musicxml,.mxl" onchange="loadXmlFile(this)">
+    <button class="btn" id="btn-score" onclick="toggleScore()">Ocultar partitura</button>
+    <span class="spacer"></span>
+    <button class="btn active" id="btn-full" onclick="setMode('full')">Vista general</button>
+    <button class="btn" id="btn-zoom" onclick="setMode('zoom')">Vista real</button>
+    <span class="spacer"></span>
+    <label class="toggle"><input type="checkbox" id="chk-nota" onchange="modoNotaActivo=this.checked"><span class="switch"></span><span>Modo nota</span></label>
+    <label class="toggle" title="Muestra Do Re Mi... sobre cada tecla blanca del piano"><input type="checkbox" id="chk-practice" onchange="setPracticeMode(this.checked)"><span class="switch"></span><span>Notas en teclas</span></label>
+    <label class="toggle"><input type="checkbox" id="chk-metro" onchange="toggleMetronomo(this.checked)"><span class="switch"></span><span>Metrónomo</span></label>
+    <select id="output-mode" onchange="setOutputMode(this.value)" title="Por dónde sale el sonido">
+      <option value="pc">Salida: PC</option>
+      <option value="yamaha">Salida: Yamaha</option>
+      <option value="both">Salida: Ambas</option>
+    </select>
+    <span class="spacer"></span>
+    <input type="text" id="instrument-filter" placeholder="🔍 filtrar..." oninput="filterInstruments(this.value)" title="Filtra por nombre o categoría">
+    <select id="instrument-select" onchange="onInstrumentSelect(this.value)" title="Instrumento (samples) o voz Yamaha exclusiva">
+      <optgroup label="🎹 Teclados">
+        <option value="piano">Piano (Salamander Grand)</option>
+        <option value="organ">Hammond Organ</option>
+        <option value="harmonium">Armonio</option>
+      </optgroup>
+      <optgroup label="🎻 Cuerdas frotadas">
+        <option value="violin">Violín</option>
+        <option value="cello">Cello</option>
+        <option value="contrabass">Contrabajo</option>
+      </optgroup>
+      <optgroup label="🎸 Cuerdas pulsadas">
+        <option value="harp">Arpa</option>
+        <option value="guitar-acoustic">Guitarra acústica</option>
+        <option value="guitar-electric">Guitarra eléctrica</option>
+        <option value="bass-electric">Bajo eléctrico</option>
+      </optgroup>
+      <optgroup label="🎵 Vientos madera">
+        <option value="flute">Flauta</option>
+        <option value="clarinet">Clarinete</option>
+        <option value="saxophone">Saxofón</option>
+        <option value="bassoon">Fagot</option>
+      </optgroup>
+      <optgroup label="🎺 Metales">
+        <option value="trumpet">Trompeta</option>
+        <option value="trombone">Trombón</option>
+        <option value="french-horn">Trompa (corno francés)</option>
+        <option value="tuba">Tuba</option>
+      </optgroup>
+      <optgroup label="🎶 Percusión melódica">
+        <option value="xylophone">Xilófono</option>
+      </optgroup>
+      <optgroup label="🥁 Batería (solo Yamaha)">
+        <option value="drum-kit">Drum Kit Standard</option>
+      </optgroup>
+    </select>
+    <label class="toggle" title="Cambiar voz en el Yamaha cambia automáticamente el sampler de la app"><input type="checkbox" id="chk-autoswitch" checked onchange="autoSwitchInstrument=this.checked"><span class="switch"></span><span>Auto-instrumento</span></label>
+  </div>
+
+  <section id="score-section">
+    <div id="score-header">
+      <span class="marker">Partitura</span>
+      <span id="score-title">— sin cargar —</span>
+      <span class="marker" style="opacity:0.5">MusicXML</span>
+    </div>
+    <div id="osmd-container">
+      <div id="score-loading">Pulsa «Für Elise» o carga un archivo MusicXML</div>
+    </div>
+  </section>
+
+  <section id="lesson-panel">
+    <div class="lesson-info">
+      <div class="name" id="lesson-name">— sin canción —</div>
+      <div class="meta"><span id="lesson-notes">0 notas</span><span class="sep">·</span><span id="lesson-bpm">— bpm</span><span class="sep">·</span><span id="lesson-dur">0:00</span></div>
+    </div>
+    <div class="transport">
+      <button class="tbtn" onclick="restartSong()" title="Reiniciar">⟲</button>
+      <button class="tbtn play" id="play-btn" onclick="togglePlay()" title="Play / Pausa">▶</button>
+      <label class="toggle" style="margin-left:0.4rem"><input type="checkbox" id="chk-wait" checked onchange="songState.waitMode=this.checked"><span class="switch"></span><span>Esperar</span></label>
+      <label class="toggle" title="La lección avanza visualmente sin sonido. Tú tocas lo que ves."><input type="checkbox" id="chk-mute-lesson" onchange="setLessonMute(this.checked)"><span class="switch"></span><span>Silencio</span></label>
+    </div>
+    <div class="tempo-control">
+      <div class="head"><span>Tempo</span><span class="val"><span id="tempo-val">100</span>%</span></div>
+      <input type="range" id="tempo-slider" min="40" max="150" value="100" oninput="setTempo(+this.value)">
+    </div>
+    <div class="stats">
+      <div>Aciertos<span class="v good" id="stat-hits">0</span></div>
+      <div>Fallos<span class="v bad" id="stat-miss">0</span></div>
+      <div>Precisión<span class="v" id="stat-acc">—</span></div>
+    </div>
+    <div class="progress-bar">
+      <div id="loop-region" class="loop-region" style="display:none"></div>
+      <div id="progress-fill"></div>
+      <div id="loop-mark-a" class="loop-mark a" data-label="A" style="display:none"></div>
+      <div id="loop-mark-b" class="loop-mark b" data-label="B" style="display:none"></div>
+    </div>
+    <div id="loop-controls">
+      <span class="lab">Loop A-B</span>
+      <button class="btn-mark set-a" onclick="markPointA()" title="Marcar A en el tiempo actual">A</button>
+      <button class="btn-mark set-b" onclick="markPointB()" title="Marcar B en el tiempo actual">B</button>
+      <button class="btn-mark" id="btn-loop-toggle" onclick="toggleLoopActive()" title="Activar/desactivar loop">Activar</button>
+      <button class="btn-mark" onclick="clearLoop()" title="Limpiar marcas">×</button>
+      <label class="toggle" title="Sube +5% el tempo cuando completes con ≥85%"><input type="checkbox" id="chk-loop-progressive" onchange="loopState.progressive=this.checked"><span class="switch"></span><span>Subida</span></label>
+      <label class="toggle" title="Extiende +1 compás cuando domines a tempo 100%"><input type="checkbox" id="chk-loop-extend" onchange="loopState.autoExtend=this.checked"><span class="switch"></span><span>Extender</span></label>
+      <div id="loop-stats" style="display:none">
+        <span><span class="lbl">iter</span> <span class="v" id="loop-iter">0</span></span>
+        <span><span class="lbl">mejor</span> <span class="v good" id="loop-best">—</span></span>
+        <span><span class="lbl">última</span> <span class="v" id="loop-last">—</span></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="info-panel">
+    <div id="metro-block">
+      <div id="metro-flash"></div>
+      <div class="lab">Tempo</div>
+    </div>
+    <div id="note-stage">
+      <div id="note-idle">— pulsa una tecla —</div>
+      <div id="note-name-display"></div>
+    </div>
+    <div id="staff-block">
+      <svg id="staff-svg" viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="note-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f5e0ff"/>
+            <stop offset="50%" stop-color="#ec4899"/>
+            <stop offset="100%" stop-color="#a855f7"/>
+          </linearGradient>
+        </defs>
+        <!-- Treble staff (líneas E4 G4 B4 D5 F5) -->
+        <g class="staff treble">
+          <line class="staff-line" x1="38" y1="20" x2="194" y2="20"/>
+          <line class="staff-line" x1="38" y1="28" x2="194" y2="28"/>
+          <line class="staff-line" x1="38" y1="36" x2="194" y2="36"/>
+          <line class="staff-line" x1="38" y1="44" x2="194" y2="44"/>
+          <line class="staff-line" x1="38" y1="52" x2="194" y2="52"/>
+        </g>
+        <!-- Bass staff (líneas G2 B2 D3 F3 A3) -->
+        <g class="staff bass">
+          <line class="staff-line" x1="38" y1="78" x2="194" y2="78"/>
+          <line class="staff-line" x1="38" y1="86" x2="194" y2="86"/>
+          <line class="staff-line" x1="38" y1="94" x2="194" y2="94"/>
+          <line class="staff-line" x1="38" y1="102" x2="194" y2="102"/>
+          <line class="staff-line" x1="38" y1="110" x2="194" y2="110"/>
+        </g>
+        <!-- Línea conectora vertical -->
+        <line class="barline" x1="38" y1="20" x2="38" y2="110"/>
+        <line class="barline" x1="194" y1="20" x2="194" y2="110"/>
+        <!-- Claves (unicode) -->
+        <text class="clef" x="6" y="42">𝄞</text>
+        <text class="clef clef-bass" x="8" y="86">𝄢</text>
+        <!-- Capa de notas dinámicas -->
+        <g id="staff-notes-layer"></g>
+      </svg>
+      <div class="lab">Pentagrama</div>
+    </div>
+    <div id="sustain-block">
+      <div id="sustain-flash"></div>
+      <div class="lab">Sustain</div>
+    </div>
+  </section>
+
+  <section id="piano-frame">
+    <div id="piano-wrapper">
+      <canvas id="falling-canvas"></canvas>
+      <canvas id="piano-canvas"></canvas>
+    </div>
+    <div id="octave-bar">
+      <span>C1</span><span>C2</span><span>C3</span><span>C4</span><span>C5</span><span>C6</span><span>C7</span><span>C8</span>
+    </div>
+  </section>
+
+  <div id="bottom-bar">
+    <div class="control">
+      <div class="head">
+        <span class="lab">Velocidad</span>
+        <span class="val"><span id="vel-val">80</span><span class="unit">vel</span></span>
+      </div>
+      <input type="range" min="20" max="127" value="80" oninput="fixedVel=+this.value;document.getElementById('vel-val').textContent=this.value">
+    </div>
+    <div class="control">
+      <div class="head">
+        <span class="lab">BPM Metrónomo</span>
+        <span class="val"><span id="bpm-val">80</span><span class="unit">bpm</span></span>
+      </div>
+      <input type="range" id="bpm-slider" min="40" max="200" value="80" oninput="setBPM(+this.value)">
+    </div>
+  </div>
+
+  <div id="colophon">— aurora pro · salamander grand · 2026 —</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@1.9.0/build/opensheetmusicdisplay.min.js"></script>
+<script>
+/* ============================================================
+   PIANOFORTE AURORA PRO
+   - Tone.js Sampler con Salamander Grand Piano
+   - Sustain pedal real (CC 64)
+   - Falling notes + wait mode + parser MIDI
+   ============================================================ */
+
+const NOTE_NAMES_EN=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NOTE_NAMES_ES=['Do','Do#','Re','Re#','Mi','Fa','Fa#','Sol','Sol#','La','La#','Si'];
+const TOTAL_WHITE=52;
+
+// Voice List del Yamaha PSR-E363 — voces "Panel" más comunes con su Bank/PC exacto.
+// Formato: [Bank MSB, Bank LSB, PC 1-based, Nombre, Categoría]. Solo si MSB=0 y LSB se mapea.
+// Usado para reverse lookup cuando el Yamaha envía Bank Select + Program Change.
+// Marca '*' significa Yamaha exclusiva (no GM puro).
+const PSR_E363_VOICES=[
+  // PIANO
+  [0,112,1,'Grand Piano','Piano *'],
+  [0,112,2,'Bright Piano','Piano *'],
+  [0,112,7,'Harpsichord','Piano *'],
+  [0,112,4,'Honky Tonk Piano','Piano *'],
+  [0,112,3,'MIDI Grand Piano','Piano *'],
+  [0,113,3,'CP80','Piano *'],
+  // E.PIANO
+  [0,114,5,'Cool! Galaxy Electric Piano','EP *'],
+  [0,113,6,'Hyper Tines','EP *'],
+  [0,112,5,'Funky Electric Piano','EP *'],
+  [0,112,6,'DX Modern Electric Piano','EP *'],
+  [0,114,6,'Venus Electric Piano','EP *'],
+  [0,112,8,'Clavi','EP *'],
+  // ORGAN
+  [0,118,19,'Cool! Organ','Organ *'],
+  [0,117,19,'Cool! Rotor Organ','Organ *'],
+  [0,112,17,'Jazz Organ 1','Organ *'],
+  [0,113,17,'Jazz Organ 2','Organ *'],
+  [0,112,19,'Rock Organ','Organ *'],
+  [0,114,19,'Purple Organ','Organ *'],
+  [0,112,18,'Click Organ','Organ *'],
+  [0,116,17,'Bright Organ','Organ *'],
+  [0,127,19,'Theater Organ','Organ *'],
+  [0,121,20,"16'+2' Organ",'Organ *'],
+  [0,120,20,"16'+4' Organ",'Organ *'],
+  [0,113,20,'Chapel Organ','Organ *'],
+  [0,112,20,'Pipe Organ','Organ *'],
+  [0,112,21,'Reed Organ','Organ *'],
+  // ACCORDION
+  [0,112,22,'Musette Accordion','Accordion *'],
+  [0,113,22,'Traditional Accordion','Accordion *'],
+  [0,113,24,'Bandoneon','Accordion *'],
+  [0,113,23,'Modern Harp','Accordion *'],
+  [0,115,23,'Harmonica','Harmonica *'],
+  // GUITAR
+  [0,116,25,'Dynamic Nylon Guitar','Guitar *'],
+  [0,118,30,'Dynamic Overdriven Guitar','Guitar *'],
+  [0,112,25,'Classical Guitar','Guitar *'],
+  [0,112,26,'Folk Guitar','Guitar *'],
+  [0,112,27,'Jazz Guitar','Guitar *'],
+  [0,117,28,'60s Clean Guitar','Guitar *'],
+  [0,113,26,'12Strings Guitar','Guitar *'],
+  [0,112,28,'Clean Guitar','Guitar *'],
+  [0,113,27,'Octave Guitar','Guitar *'],
+  [0,112,29,'Muted Guitar','Guitar *'],
+  [0,112,30,'Overdriven Guitar','Guitar *'],
+  [0,112,31,'Distortion Guitar','Guitar *'],
+  // BASS
+  [0,116,34,'Dynamic Electric Bass','Bass *'],
+  [0,112,34,'Finger Bass','Bass *'],
+  [0,112,33,'Acoustic Bass','Bass *'],
+  [0,112,35,'Pick Bass','Bass *'],
+  [0,112,36,'Fretless Bass','Bass *'],
+  [0,112,37,'Slap Bass','Bass *'],
+  [0,121,40,'Funk Bass','Bass *'],
+  [0,112,39,'Synth Bass','Bass *'],
+  [0,113,39,'Hi-Q Bass','Bass *'],
+  [0,113,40,'Dance Bass','Bass *'],
+  // STRINGS
+  [0,112,49,'Strings','Strings *'],
+  [0,112,50,'Chamber Strings','Strings *'],
+  [0,115,50,'Marcato Strings','Strings *'],
+  [0,113,50,'Slow Strings','Strings *'],
+  [0,112,45,'Tremolo Strings','Strings *'],
+  [0,112,51,'Synth Strings','Strings *'],
+  [0,112,46,'Pizzicato Strings','Strings *'],
+  [0,112,41,'Violin','Strings *'],
+  [0,112,43,'Cello','Strings *'],
+  [0,112,44,'Contrabass','Strings *'],
+  [0,112,47,'Harp','Strings *'],
+  [0,112,56,'Orchestra Hit','Strings *'],
+  // CHOIR
+  [0,112,53,'Choir','Choir *'],
+  [0,113,53,'Vocal Ensemble','Choir *'],
+  [0,112,55,'Air Choir','Choir *'],
+  [0,112,54,'Vox Humana','Choir *'],
+  // SAX
+  [0,117,67,'Sweet! Tenor Sax','Sax *'],
+  [0,112,67,'Tenor Sax','Sax *'],
+  [0,112,66,'Alto Sax','Sax *'],
+  [0,112,65,'Soprano Sax','Sax *'],
+  [0,112,68,'Baritone Sax','Sax *'],
+  [0,114,67,'Breathy Tenor Sax','Sax *'],
+  [0,116,66,'Sax Section','Sax *'],
+  // WOODWIND
+  [0,112,72,'Clarinet','Woodwind *'],
+  [0,112,69,'Oboe','Woodwind *'],
+  [0,112,70,'English Horn','Woodwind *'],
+  [0,112,71,'Bassoon','Woodwind *'],
+  // TRUMPET / BRASS
+  [0,112,57,'Trumpet','Brass *'],
+  [0,112,58,'Trombone','Brass *'],
+  [0,113,58,'Trombone Section','Brass *'],
+  [0,112,60,'Muted Trumpet','Brass *'],
+  [0,112,61,'French Horn','Brass *'],
+  [0,112,59,'Tuba','Brass *'],
+  [0,112,62,'Brass Section','Brass *'],
+  [0,113,62,'Big Band Brass','Brass *'],
+  [0,116,62,'Octave Brass','Brass *'],
+  [0,113,63,'80s Brass','Brass *'],
+  [0,119,62,'Mellow Horns','Brass *'],
+  [0,115,63,'Funky Brass','Brass *'],
+  [0,114,63,'Techno Brass','Brass *'],
+  [0,112,63,'Synth Brass','Brass *'],
+  // FLUTE
+  [0,114,74,'Sweet! Flute','Flute *'],
+  [0,112,74,'Flute','Flute *'],
+  [0,112,73,'Piccolo','Flute *'],
+  [0,112,76,'Pan Flute','Flute *'],
+  [0,112,75,'Recorder','Flute *'],
+  [0,112,80,'Ocarina','Flute *'],
+  // SYNTH
+  [0,112,81,'Square Lead','Synth *'],
+  [0,112,82,'Sawtooth Lead','Synth *'],
+  [0,108,82,'RS Tech Saw','Synth *'],
+  [0,112,88,'Under Heim','Synth *'],
+  [0,112,85,'Portatone','Synth *'],
+  [0,115,82,'Analogon','Synth *'],
+  [0,119,82,'Fargo','Synth *'],
+  [0,112,86,'Voice Lead','Synth *'],
+  [0,121,82,'Funky Lead','Synth *'],
+  // PAD
+  [0,118,89,'Sweet Heaven','Pad *'],
+  [0,121,89,'Dream Heaven','Pad *'],
+  [0,113,89,'Symbiont','Pad *'],
+  [0,112,99,'Stardust','Pad *'],
+  [0,112,101,'Brightness','Pad *'],
+  [0,112,92,'Xenon Pad','Pad *'],
+  [0,112,95,'Equinox','Pad *'],
+  [0,112,89,'Fantasia','Pad *'],
+  [0,113,90,'Dark Moon','Pad *'],
+  [0,113,101,'Bell Pad','Pad *'],
+  [0,126,90,'RS Analog Pad','Pad *'],
+  [0,116,91,'RS Short Resonance','Pad *'],
+  // PERCUSSION
+  [0,112,12,'Vibraphone','Percussion *'],
+];
+
+// Busca el nombre exacto de la voz en la tabla del PSR-E363.
+// msb,lsb son los del Bank Select. pcByte es 0-127 (MIDI). La tabla usa 1-128 (manual).
+function findYamahaVoiceName(msb, lsb, pcByte){
+  const pc1=pcByte+1;
+  const found=PSR_E363_VOICES.find(v=>v[0]===msb && v[1]===lsb && v[2]===pc1);
+  return found?{name:found[3], category:found[4]}:null;
+}
+
+// Estándar General MIDI (programas 0-127) — fallback cuando no hay Bank Select reconocido.
+const GM_INSTRUMENTS=[
+  'Acoustic Grand Piano','Bright Acoustic Piano','Electric Grand Piano','Honky-tonk Piano',
+  'Electric Piano 1','Electric Piano 2','Harpsichord','Clavinet',
+  'Celesta','Glockenspiel','Music Box','Vibraphone','Marimba','Xylophone','Tubular Bells','Dulcimer',
+  'Drawbar Organ','Percussive Organ','Rock Organ','Church Organ','Reed Organ','Accordion','Harmonica','Tango Accordion',
+  'Acoustic Guitar (nylon)','Acoustic Guitar (steel)','Electric Guitar (jazz)','Electric Guitar (clean)','Electric Guitar (muted)','Overdriven Guitar','Distortion Guitar','Guitar Harmonics',
+  'Acoustic Bass','Electric Bass (finger)','Electric Bass (pick)','Fretless Bass','Slap Bass 1','Slap Bass 2','Synth Bass 1','Synth Bass 2',
+  'Violin','Viola','Cello','Contrabass','Tremolo Strings','Pizzicato Strings','Orchestral Harp','Timpani',
+  'String Ensemble 1','String Ensemble 2','SynthStrings 1','SynthStrings 2','Choir Aahs','Voice Oohs','Synth Voice','Orchestra Hit',
+  'Trumpet','Trombone','Tuba','Muted Trumpet','French Horn','Brass Section','SynthBrass 1','SynthBrass 2',
+  'Soprano Sax','Alto Sax','Tenor Sax','Baritone Sax','Oboe','English Horn','Bassoon','Clarinet',
+  'Piccolo','Flute','Recorder','Pan Flute','Blown Bottle','Shakuhachi','Whistle','Ocarina',
+  'Lead 1 (square)','Lead 2 (sawtooth)','Lead 3 (calliope)','Lead 4 (chiff)','Lead 5 (charang)','Lead 6 (voice)','Lead 7 (fifths)','Lead 8 (bass+lead)',
+  'Pad 1 (new age)','Pad 2 (warm)','Pad 3 (polysynth)','Pad 4 (choir)','Pad 5 (bowed)','Pad 6 (metallic)','Pad 7 (halo)','Pad 8 (sweep)',
+  'FX 1 (rain)','FX 2 (soundtrack)','FX 3 (crystal)','FX 4 (atmosphere)','FX 5 (brightness)','FX 6 (goblins)','FX 7 (echoes)','FX 8 (sci-fi)',
+  'Sitar','Banjo','Shamisen','Koto','Kalimba','Bagpipe','Fiddle','Shanai',
+  'Tinkle Bell','Agogo','Steel Drums','Woodblock','Taiko Drum','Melodic Tom','Synth Drum','Reverse Cymbal',
+  'Guitar Fret Noise','Breath Noise','Seashore','Bird Tweet','Telephone Ring','Helicopter','Applause','Gunshot'
+];
+
+// ---------- TOASTS ----------
+const TOAST_ICON={success:'✓',error:'✕',warn:'!',info:'i'};
+const TOAST_TITLE={success:'Listo',error:'Error',warn:'Aviso',info:'Info'};
+const _activeToasts=new Map(); // dedup por id
+
+function showToast(opts){
+  if(typeof opts==='string')opts={body:opts};
+  const type=opts.type||'info';
+  const duration=(opts.duration!==undefined)?opts.duration:(type==='error'?null:type==='warn'?6000:3500);
+  const container=document.getElementById('toast-container');
+  if(!container)return;
+
+  // dedup: si ya hay un toast con la misma id, lo reemplazamos
+  if(opts.id && _activeToasts.has(opts.id)){
+    _activeToasts.get(opts.id).remove();
+    _activeToasts.delete(opts.id);
+  }
+
+  const t=document.createElement('div');
+  t.className='toast '+type;
+  const title=opts.title||TOAST_TITLE[type];
+  const body=opts.body||'';
+  t.innerHTML=`<div class="ico">${TOAST_ICON[type]}</div><div class="content"><div class="title"></div><div class="body"></div></div><div class="close" aria-label="Cerrar">×</div>`;
+  t.querySelector('.title').textContent=title;
+  t.querySelector('.body').textContent=body;
+  container.appendChild(t);
+
+  const remove=()=>{
+    if(opts.id)_activeToasts.delete(opts.id);
+    t.classList.add('out');
+    setTimeout(()=>t.remove(),250);
+  };
+  t.querySelector('.close').onclick=remove;
+  if(duration)setTimeout(remove,duration);
+  if(opts.id)_activeToasts.set(opts.id,t);
+  return {dismiss:remove,el:t};
+}
+
+function showProgressToast(opts){
+  opts=opts||{};
+  const container=document.getElementById('toast-container');
+  if(!container)return null;
+  const t=document.createElement('div');
+  t.className='toast info progress';
+  t.innerHTML=`<div class="ico">⟲</div><div class="content"><div class="title"></div><div class="body"></div><div class="progress-track"><div class="progress-fill"></div></div><div class="progress-text">0%</div>${opts.cancelable!==false?'<button class="cancel-btn" type="button">Cancelar</button>':''}</div><div class="close" aria-label="Cerrar">×</div>`;
+  t.querySelector('.title').textContent=opts.title||'Procesando';
+  t.querySelector('.body').textContent=opts.body||'';
+  container.appendChild(t);
+
+  const fill=t.querySelector('.progress-fill');
+  const text=t.querySelector('.progress-text');
+  const titleEl=t.querySelector('.title');
+  const bodyEl=t.querySelector('.body');
+  let cancelled=false;
+  let removed=false;
+
+  const remove=()=>{
+    if(removed)return;
+    removed=true;
+    t.classList.add('out');
+    setTimeout(()=>t.remove(),250);
+  };
+  const cancel=()=>{
+    if(cancelled||removed)return;
+    cancelled=true;
+    if(opts.onCancel){try{opts.onCancel()}catch(e){}}
+    remove();
+  };
+  const cancelBtn=t.querySelector('.cancel-btn');
+  if(cancelBtn)cancelBtn.onclick=cancel;
+  t.querySelector('.close').onclick=cancel;
+
+  return {
+    setProgress(pct){
+      if(cancelled||removed)return;
+      if(pct==null){
+        fill.classList.add('indeterminate');
+        text.textContent='…';
+      }else{
+        fill.classList.remove('indeterminate');
+        const p=Math.max(0,Math.min(1,pct));
+        fill.style.width=Math.round(p*100)+'%';
+        text.textContent=Math.round(p*100)+'%';
+      }
+    },
+    setIndeterminate(label){
+      if(cancelled||removed)return;
+      fill.classList.add('indeterminate');
+      text.textContent=label||'procesando…';
+    },
+    setMessage(title,body){
+      if(cancelled||removed)return;
+      if(title!=null)titleEl.textContent=title;
+      if(body!=null)bodyEl.textContent=body;
+    },
+    isCancelled(){return cancelled},
+    dismiss:remove,
+    cancel,
+    el:t,
+  };
+}
+
+function yieldToBrowser(){
+  return new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+}
+
+// Extrae el XML interno de un .mxl usando JSZip directamente (más robusto que el parser interno de OSMD).
+// MXL = ZIP con META-INF/container.xml apuntando al rootfile (XML real).
+async function unzipMxl(arrayBuffer){
+  if(typeof JSZip==='undefined')throw new Error('JSZip no cargado');
+  const zip=await JSZip.loadAsync(arrayBuffer);
+  let rootPath=null;
+  // Camino estándar: leer META-INF/container.xml
+  const containerFile=zip.file('META-INF/container.xml');
+  if(containerFile){
+    const containerXml=await containerFile.async('string');
+    const m=containerXml.match(/<rootfile[^>]+full-path="([^"]+)"/i);
+    if(m)rootPath=m[1];
+  }
+  // Fallback: buscar el primer .xml/.musicxml en la raíz que no sea META-INF
+  if(!rootPath){
+    const candidates=Object.keys(zip.files).filter(k=>/\.(xml|musicxml)$/i.test(k) && !/META-INF/i.test(k));
+    if(candidates.length)rootPath=candidates[0];
+  }
+  if(!rootPath)throw new Error('No se encontró archivo XML dentro del .mxl');
+  const file=zip.file(rootPath);
+  if(!file)throw new Error('Rootfile «'+rootPath+'» referenciado pero no encontrado en el ZIP');
+  return await file.async('string');
+}
+
+// ---------- AUDIO ENGINE ----------
+let sampler=null, samplerReady=false;
+let sustainOn=false;
+let reverbBus=null;
+let currentInstrument='piano';
+const sustainedReleases=new Set(); // midis whose noteOff fue diferido por sustain
+const liveNotes=new Set(); // midis actualmente sonando
+
+// Presets de instrumentos. Salamander (piano) viene de tonejs.github.io. El resto de nbrosowsky/tonejs-instruments.
+// Cada preset usa rangos de notas que típicamente existen en su carpeta del repo. Tone.Sampler interpola
+// entre las muestras disponibles, así que aunque alguna 404, las cercanas lo cubren.
+function _nbro(folder, name, notes, release=0.7){
+  const urls={};
+  // El repo nbrosowsky usa "Cs2.mp3" no "C#2.mp3" (s reemplaza al #)
+  notes.forEach(n=>{ urls[n]=n.replace('#','s')+'.mp3' });
+  return {name, baseUrl:`https://nbrosowsky.github.io/tonejs-instruments/samples/${folder}/`, urls, release};
+}
+
+const INSTRUMENT_PRESETS={
+  // Piano (Salamander Grand, calidad superior, otro CDN)
+  piano:{
+    name:'Piano (Salamander Grand)',
+    baseUrl:'https://tonejs.github.io/audio/salamander/',
+    urls:(()=>{const u={};['A0','C1','D#1','F#1','A1','C2','D#2','F#2','A2','C3','D#3','F#3','A3','C4','D#4','F#4','A4','C5','D#5','F#5','A5','C6','D#6','F#6','A6','C7','D#7','F#7','A7','C8'].forEach(n=>u[n]=n.replace('#','s')+'.mp3');return u})(),
+    release:1.4,
+  },
+  // Teclados (rango medio-alto)
+  organ:        _nbro('organ',         'Hammond Organ',     ['A1','A2','A3','A4','A5','C2','C3','C4','C5','C6'], 0.4),
+  harmonium:    _nbro('harmonium',     'Armonio',           ['A2','A3','A4','C2','C3','C4','C5','D#2','D#3','D#4','F#2','F#3','F#4'], 0.6),
+  // Cuerdas frotadas
+  violin:       _nbro('violin',        'Violín',            ['A3','A4','A5','A6','C4','C5','C6','C7','E4','E5','G4','G5'], 1.0),
+  cello:        _nbro('cello',         'Cello',             ['A2','A3','A4','C2','C3','C4','C5','D#2','D#3','D#4','E2','E3','E4','G2','G3','G4'], 1.2),
+  contrabass:   _nbro('contrabass',    'Contrabajo',        ['A1','A2','C1','C2','C3','D1','D2','D3','E1','E2','F#1','F#2','G1','G2'], 1.0),
+  // Cuerdas pulsadas
+  harp:         _nbro('harp',          'Arpa',              ['A2','A3','A4','A5','A6','C2','C3','C4','C5','C6','C7','D#2','D#3','D#4','D#5'], 1.0),
+  'guitar-acoustic': _nbro('guitar-acoustic','Guitarra acústica', ['A2','A3','A4','C3','C4','C5','D2','D3','D4','D5','F3','F4','F5','G2','G3','G4','G5'], 0.6),
+  'guitar-electric': _nbro('guitar-electric','Guitarra eléctrica', ['A2','A3','A4','A5','C3','C4','C5','D#2','D#3','D#4','D#5','F#2','F#3','F#4','F#5'], 0.5),
+  'bass-electric':   _nbro('bass-electric','Bajo eléctrico',     ['A#1','A#2','A#3','A#4','C#2','C#3','C#4','E1','E2','E3','E4','G1','G2','G3'], 0.6),
+  // Vientos madera
+  flute:        _nbro('flute',         'Flauta',            ['A4','A5','A6','C4','C5','C6','C7','E4','E5','E6'], 0.6),
+  clarinet:     _nbro('clarinet',      'Clarinete',         ['A#3','A#4','A#5','D3','D4','D5','D6','F#3','F#4','F#5'], 0.5),
+  saxophone:    _nbro('saxophone',     'Saxofón',           ['A4','A5','C4','C5','D#4','D#5','F4','F5','G4','G5'], 0.5),
+  bassoon:      _nbro('bassoon',       'Fagot',             ['A2','A3','A4','C3','C4','C5','E2','E3','E4','G1','G2','G3','G4'], 0.6),
+  // Metales
+  trumpet:      _nbro('trumpet',       'Trompeta',          ['A3','A4','A5','C4','C5','C6','D#4','D#5','F3','F4','F5','G3','G4','G5'], 0.5),
+  trombone:     _nbro('trombone',      'Trombón',           ['A2','A3','A4','C2','C3','C4','D#2','D#3','D#4','F2','F3','F4','G#2','G#3','G#4'], 0.6),
+  'french-horn':_nbro('french-horn',   'Trompa (corno francés)', ['A1','A3','C2','C4','D#2','D#3','F3','F4','G1','G2','G3'], 0.6),
+  tuba:         _nbro('tuba',          'Tuba',              ['A#1','A#2','A#3','C2','C3','D2','D3','D#1','D#2','D#3','F1','F2','F3'], 0.7),
+  // Percusión melódica
+  xylophone:    _nbro('xylophone',     'Xilófono',          ['C5','C6','C7','C8','G4','G5','G6','G7'], 0.3),
+  // Drum Kit: caso especial. No hay samples locales, solo se envía Bank Select 127/0 al Yamaha (XG drum bank)
+  'drum-kit':{name:'Drum Kit (solo Yamaha)', isDrum:true, urls:{}, baseUrl:'', release:0.3},
+};
+
+// Helper: envía cambio de voz al Yamaha en 2 fases con delay para que aplique mid-playback.
+// Fase 1: silenciar inmediato (AllNotesOff + AllSoundOff + Reset Controllers)
+// Fase 2: tras 60ms, Bank Select + Program Change
+// El delay es CRÍTICO en el PSR-E363: si llegan los 5 mensajes seguidos, el Yamaha procesa
+// las notas siguientes del autoplay con la voz vieja antes de aplicar el cambio.
+function sendYamahaProgramChange(msb, lsb, pcByte){
+  if(!midiOutput)return;
+  try{
+    midiOutput.send([0xB0, 121, 0]);   // Reset All Controllers
+    midiOutput.send([0xB0, 123, 0]);   // All Notes Off
+    midiOutput.send([0xB0, 120, 0]);   // All Sound Off
+  }catch(e){console.warn('[MIDI] notes off:',e); return}
+  // Pequeña pausa para que el Yamaha procese el silenciado
+  setTimeout(()=>{
+    try{
+      midiOutput.send([0xB0, 0, msb]);   // Bank Select MSB
+      midiOutput.send([0xB0, 32, lsb]);  // Bank Select LSB
+      midiOutput.send([0xC0, pcByte]);   // Program Change
+    }catch(e){console.warn('[MIDI] bank+pc:',e)}
+  }, 60);
+}
+
+// Mapeo inverso: preset interno → program GM más representativo (para enviar al Yamaha)
+const PRESET_TO_GM={
+  piano:0,             // Acoustic Grand Piano
+  organ:16,            // Drawbar Organ
+  harmonium:21,        // Accordion / reed organ (cercano)
+  violin:40,           // Violin
+  cello:42,            // Cello
+  contrabass:43,       // Contrabass
+  harp:46,             // Orchestral Harp
+  'guitar-acoustic':25,// Acoustic Guitar (steel)
+  'guitar-electric':27,// Electric Guitar (clean)
+  'bass-electric':33,  // Electric Bass (finger)
+  flute:73,            // Flute
+  clarinet:71,         // Clarinet
+  saxophone:65,        // Alto Sax
+  bassoon:70,          // Bassoon
+  trumpet:56,          // Trumpet
+  trombone:57,         // Trombone
+  'french-horn':60,    // French Horn
+  tuba:58,             // Tuba
+  xylophone:13,        // Xylophone
+};
+
+// Mapea program GM (0-127) al preset interno más cercano (mucho más fino que antes)
+function programToPreset(p){
+  // 0-7 Piano family
+  if(p<=7) return 'piano';
+  // 8-15 Chromatic percussion (celesta, glockenspiel, vibraphone, marimba, xylophone, tubular bells, dulcimer)
+  if(p<=15) return 'xylophone';
+  // 16-23 Organ
+  if(p<=20) return 'organ';
+  if(p<=23) return 'harmonium';
+  // 24-31 Guitar
+  if(p===24||p===25) return 'guitar-acoustic';
+  if(p<=31) return 'guitar-electric';
+  // 32-39 Bass
+  if(p<=39) return 'bass-electric';
+  // 40-44 Solo strings: violin, viola, cello, contrabass, tremolo
+  if(p===40||p===41) return 'violin';
+  if(p===42) return 'cello';
+  if(p===43) return 'contrabass';
+  if(p===44) return 'violin';
+  // 45 Pizzicato strings (no tenemos, violín como aproximación)
+  if(p===45) return 'violin';
+  // 46 Orchestral harp
+  if(p===46) return 'harp';
+  // 47 Timpani (no tenemos drum, fallback xylophone)
+  if(p===47) return 'xylophone';
+  // 48-55 Strings ensemble + choir
+  if(p<=55) return 'violin';
+  // 56-59 Trumpet, Trombone, Tuba, Muted Trumpet
+  if(p===56||p===59) return 'trumpet';
+  if(p===57) return 'trombone';
+  if(p===58) return 'tuba';
+  // 60 French Horn
+  if(p===60) return 'french-horn';
+  // 61-63 Brass section, Synth Brass
+  if(p<=63) return 'trumpet';
+  // 64-67 Sax (Soprano, Alto, Tenor, Baritone)
+  if(p<=67) return 'saxophone';
+  // 68 Oboe (no tenemos, clarinete)
+  if(p===68) return 'clarinet';
+  // 69 English Horn (clarinet)
+  if(p===69) return 'clarinet';
+  // 70 Bassoon
+  if(p===70) return 'bassoon';
+  // 71 Clarinet
+  if(p===71) return 'clarinet';
+  // 72-79 Pipes (piccolo, flute, recorder, etc.)
+  if(p<=79) return 'flute';
+  // 80-95 Synth (lead/pad) — sin samples sintéticos, fallback piano
+  if(p<=95) return 'piano';
+  // 96-103 FX
+  if(p<=103) return 'piano';
+  // 104-111 Ethnic (sitar, banjo, koto, kalimba, etc.)
+  if(p===108) return 'xylophone'; // kalimba
+  if(p<=111) return 'guitar-acoustic';
+  // 112-119 Percussive (taiko, drums, etc.)
+  if(p<=119) return 'xylophone';
+  // 120-127 SFX
+  return 'piano';
+}
+
+function midiToToneName(midi){
+  const oct=Math.floor(midi/12)-1;
+  const n=NOTE_NAMES_EN[midi%12].replace('#','#');
+  return n+oct;
+}
+
+async function initAudio(onProgress, onFail){
+  if(typeof Tone==='undefined'){
+    onFail&&onFail('tone-missing');
+    showToast({type:'error',title:'Motor de audio no disponible',body:'No se pudo cargar Tone.js. Revisa tu conexión y recarga la página.',duration:null});
+    return;
+  }
+  try{
+    // Reverb sutil estilo sala de concierto — bus compartido para todos los instrumentos
+    reverbBus=new Tone.Reverb({decay:2.4,wet:0.18}).toDestination();
+    await reverbBus.generate();
+
+    const preset=INSTRUMENT_PRESETS.piano;
+
+    // Progreso simulado (Tone.Sampler no expone progreso por archivo)
+    let pct=0;
+    const tick=setInterval(()=>{
+      if(samplerReady){clearInterval(tick);return}
+      pct=Math.min(0.92, pct+0.04);
+      onProgress(pct);
+    },120);
+
+    // Timeout duro: si en 45s no termina, asumimos fallo de red
+    const timeoutId=setTimeout(()=>{
+      if(!samplerReady){
+        clearInterval(tick);
+        onFail&&onFail('timeout');
+        showToast({type:'error',title:'Samples no disponibles',body:'No pudieron cargarse los samples del piano (red o CDN). Recarga para reintentar.',duration:null});
+      }
+    },45000);
+
+    sampler=new Tone.Sampler({
+      urls:preset.urls,
+      release:preset.release,
+      baseUrl:preset.baseUrl,
+      onload:()=>{
+        samplerReady=true;
+        clearInterval(tick);
+        clearTimeout(timeoutId);
+        onProgress(1);
+      },
+      onerror:(e)=>{
+        clearInterval(tick);
+        clearTimeout(timeoutId);
+        onFail&&onFail('sample-error');
+        const msg=(e&&e.message)?e.message:'Error al descargar un sample.';
+        showToast({type:'error',title:'Error cargando samples',body:msg,duration:null});
+      },
+    }).connect(reverbBus);
+  }catch(e){
+    onFail&&onFail('exception');
+    showToast({type:'error',title:'Error al inicializar audio',body:(e&&e.message)?e.message:'Excepción desconocida.',duration:null});
+  }
+}
+
+// Carga un preset distinto y reemplaza el sampler activo. Cancela notas en vuelo del anterior.
+// fromMidiIn=true cuando el cambio vino de un Program Change del Yamaha (evita eco de vuelta).
+let _switchInProgress=false;
+async function switchInstrument(presetKey, fromMidiIn=false){
+  const preset=INSTRUMENT_PRESETS[presetKey];
+  if(!preset){console.warn('preset desconocido:',presetKey);return}
+  if(presetKey===currentInstrument){return} // ya está cargado
+  if(_switchInProgress){console.log('switch en curso, ignorando');return}
+  _switchInProgress=true;
+
+  // === DRUM KIT: caso especial — solo funciona con Yamaha ===
+  if(preset.isDrum){
+    if(outputMode==='pc' || !midiOutput){
+      _switchInProgress=false;
+      showToast({type:'warn',title:'Drum Kit requiere Yamaha',body:'Cambia a modo "Salida: Yamaha" o "Ambas" y conecta el teclado.',duration:5000});
+      // Restaurar el selector al instrumento que sí está activo
+      const sel=document.getElementById('instrument-select');
+      if(sel)sel.value=currentInstrument;
+      return;
+    }
+    // Drum Kit XG: Bank 127/0 + PC 0 (Standard Kit GM)
+    sendYamahaProgramChange(127, 0, 0);
+    console.log('[MIDI out] Drum Kit · Bank 127/0 + PC 0');
+    currentInstrument=presetKey;
+    try{localStorage.setItem('pianopro:instrument',presetKey)}catch(e){}
+    updateInstrumentUI();
+    showToast({type:'success',title:'🥁 Drum Kit',body:'Toca el Yamaha como batería. Cada nota MIDI = un sonido del kit.',duration:3500});
+    _switchInProgress=false;
+    return;
+  }
+
+  // === MODO YAMAHA: sin descargar samples ===
+  // El sonido viene del motor interno del teclado. Solo enviamos Program Change + Bank Select.
+  if(outputMode==='yamaha' && midiOutput){
+    console.log('[audio] modo Yamaha — sin samples, solo MIDI:',presetKey);
+    currentInstrument=presetKey;
+    try{localStorage.setItem('pianopro:instrument',presetKey)}catch(e){}
+    if(!fromMidiIn){
+      // Solo cuando el cambio viene de la UI: enviamos PC al Yamaha y mostramos toast de confirmación.
+      const program=PRESET_TO_GM[presetKey];
+      if(program!==undefined){
+        sendYamahaProgramChange(0, 0, program);
+        console.log('[MIDI out] BankSelect 0/0 + PC',program,'('+GM_INSTRUMENTS[program]+')');
+      }
+      showToast({type:'success',title:preset.name,body:'MIDI directo al Yamaha · sin descargar samples',duration:2500});
+    }
+    // updateInstrumentUI lo llama el caller; aquí no es necesario porque puede quedar en estado obsoleto
+    // antes de que se hayan seteado las variables _lastYamaha* desde el handler.
+    _switchInProgress=false;
+    return;
+  }
+
+  const loadingToast=showToast({type:'info',title:'Cargando instrumento',body:preset.name+' …',id:'instr-loading',duration:null});
+  console.log('[audio] cambiando a preset:',presetKey,preset.name);
+
+  let newSampler=null;
+  try{
+    // Soltar notas activas del sampler viejo (pero no lo desechamos hasta tener el nuevo OK)
+    if(sampler){
+      try{liveNotes.forEach(m=>sampler.triggerRelease(midiToToneName(m)))}catch(e){}
+      liveNotes.clear();
+      sustainedReleases.clear();
+    }
+
+    // Crear el nuevo sampler. Tone.Sampler dispara onload cuando *intenta* cargar todos los samples,
+    // pero algunos pueden dar 404 silenciosamente. Usamos onload + Tone.loaded() + timeout para ser robustos.
+    let loadedSamples=0, failedSamples=0;
+    const totalSamples=Object.keys(preset.urls).length;
+
+    newSampler=await new Promise((resolve,reject)=>{
+      let settled=false;
+      const t=setTimeout(()=>{
+        if(!settled){
+          settled=true;
+          // Si al menos cargó UN sample, podemos seguir (Tone.Sampler interpola)
+          if(loadedSamples>0){
+            console.warn(`[audio] timeout pero ${loadedSamples}/${totalSamples} samples cargados, continuando`);
+            resolve(s);
+          }else{
+            reject(new Error(`timeout 35s — 0/${totalSamples} samples cargados`));
+          }
+        }
+      },35000);
+      const s=new Tone.Sampler({
+        urls:preset.urls,
+        release:preset.release,
+        baseUrl:preset.baseUrl,
+        onload:()=>{
+          if(!settled){
+            settled=true;
+            clearTimeout(t);
+            console.log(`[audio] ${preset.name}: ${totalSamples - failedSamples}/${totalSamples} samples OK`);
+            resolve(s);
+          }
+        },
+        onerror:(err)=>{
+          failedSamples++;
+          console.warn('[audio] sample 404:', err && err.message);
+        },
+      });
+    });
+
+    // Conectar al bus de reverb
+    newSampler.connect(reverbBus);
+
+    // Reemplazar el viejo
+    const old=sampler;
+    sampler=newSampler;
+    currentInstrument=presetKey;
+    if(old){try{old.dispose()}catch(e){}}
+
+    loadingToast.dismiss();
+    showToast({type:'success',title:'Instrumento listo',body:preset.name});
+    updateInstrumentUI();
+
+    // Persistir para próximas sesiones
+    try{localStorage.setItem('pianopro:instrument',presetKey)}catch(e){}
+
+    // Si el cambio vino de la UI (no del propio Yamaha), enviar PC + Bank Select al teclado
+    if(!fromMidiIn && midiOutput && _sendMidi()){
+      const program=PRESET_TO_GM[presetKey];
+      if(program!==undefined){
+        sendYamahaProgramChange(0, 0, program);
+        console.log('[MIDI out] BankSelect 0/0 + PC',program,'('+GM_INSTRUMENTS[program]+')');
+      }
+    }
+  }catch(e){
+    loadingToast.dismiss();
+    if(newSampler){try{newSampler.dispose()}catch(_){}}
+    console.error('[audio] switchInstrument falló:',e);
+    showToast({type:'error',title:'No se pudo cargar instrumento',body:preset.name+': '+((e&&e.message)||'error desconocido')+'. Conexión lenta o samples no disponibles. Sigue activo el anterior.',duration:6000});
+    // Restaurar el selector al instrumento que sí está activo
+    updateInstrumentUI();
+  }finally{
+    _switchInProgress=false;
+  }
+}
+
+function updateInstrumentUI(){
+  const badge=document.getElementById('instrument-badge');
+  if(badge){
+    // En modo Yamaha mostramos el nombre REAL de la voz Yamaha (más preciso que el preset interno)
+    if(outputMode==='yamaha' && yamahaVoiceName){
+      badge.textContent=yamahaVoiceName;
+    }else{
+      const preset=INSTRUMENT_PRESETS[currentInstrument];
+      badge.textContent=preset?preset.name:currentInstrument;
+    }
+  }
+  const sel=document.getElementById('instrument-select');
+  if(sel){
+    // En modo Yamaha, intentar seleccionar la voz Yamaha exacta si la conocemos
+    if(outputMode!=='pc' && _lastYamahaPC>=0){
+      const yamahaValue='yamaha:'+_lastYamahaBank.msb+'-'+_lastYamahaBank.lsb+'-'+(_lastYamahaPC+1);
+      const opt=sel.querySelector('option[value="'+yamahaValue+'"]');
+      if(opt){sel.value=yamahaValue; return}
+    }
+    sel.value=currentInstrument;
+  }
+}
+
+// Maneja selección del dropdown: pueden ser presets de samples (Tone.js) o voces Yamaha (yamaha:M-L-PC)
+function onInstrumentSelect(val){
+  if(typeof val==='string' && val.indexOf('yamaha:')===0){
+    selectYamahaVoice(val);
+  }else{
+    switchInstrument(val);
+  }
+}
+
+function selectYamahaVoice(spec){
+  const m=spec.match(/^yamaha:(\d+)-(\d+)-(\d+)$/);
+  if(!m){return}
+  const msb=+m[1], lsb=+m[2], pc1=+m[3];
+  const pcByte=pc1-1;
+  const voice=findYamahaVoiceName(msb, lsb, pcByte);
+  const name=voice?voice.name:'Voz Yamaha';
+  if(!midiOutput){
+    showToast({type:'warn',title:'Sin Yamaha conectado',body:'Esta voz solo se puede usar con el teclado físico conectado.',duration:4500});
+    // restaurar selector
+    const sel=document.getElementById('instrument-select');if(sel)sel.value=currentInstrument;
+    return;
+  }
+  if(outputMode==='pc'){
+    showToast({type:'warn',title:'Modo PC activo',body:'Cambia a "Salida: Yamaha" o "Ambas" para usar voces Yamaha exclusivas.',duration:4500});
+    const sel=document.getElementById('instrument-select');if(sel)sel.value=currentInstrument;
+    return;
+  }
+  // Lock: ignoramos PC entrantes por 1.5s para que el Yamaha no nos sobrescriba con su respuesta
+  _userSelectionLock=performance.now()+1500;
+  // All Notes Off + Bank Select + PC. El AllNotesOff es CRÍTICO durante reproducción
+  // para que el Yamaha aplique el cambio inmediato sin esperar a que terminen las notas activas.
+  sendYamahaProgramChange(msb, lsb, pcByte);
+  console.log('[MIDI out] Yamaha voice request:', name, 'Bank', msb+'/'+lsb, 'PC', pc1);
+  yamahaVoiceName=name;
+  _lastYamahaPC=pcByte;
+  _lastYamahaBank.msb=msb;
+  _lastYamahaBank.lsb=lsb;
+  updateInstrumentUI();
+  showToast({
+    type:'info',
+    title:'🎹 '+name,
+    body:'Bank '+msb+'/'+lsb+' · PC '+pc1+'. Nota: el PSR-E363 puede ignorar esto en su Main Voice — usa los botones del teclado para cambiar la voz que tocas.',
+    duration:6000,
+  });
+}
+
+// Filtra opciones del dropdown. Busca en: nombre, categoría, valor (yamaha:M-L-PC), y código Bank/PC.
+// Ejemplos:
+//   "organ"   → todas las voces de órgano
+//   "0/112"   → todas las voces del banco XGlite principal
+//   "127/0"   → drum kits
+//   "/19"     → todas con PC=19
+function filterInstruments(q){
+  const sel=document.getElementById('instrument-select');
+  if(!sel)return;
+  const query=(q||'').toLowerCase().trim();
+  Array.from(sel.querySelectorAll('option')).forEach(opt=>{
+    if(!query){opt.hidden=false;return}
+    const text=opt.textContent.toLowerCase();
+    const groupLabel=(opt.parentElement && opt.parentElement.label)?opt.parentElement.label.toLowerCase():'';
+    const value=(opt.value||'').toLowerCase();
+    // El value tiene formato "yamaha:M-L-PC" — convertimos a "M/L/PC" para que matchee con el formato visual
+    const valueAsCode=value.replace(/^yamaha:/,'').replace(/-/g,'/');
+    opt.hidden=!text.includes(query) && !groupLabel.includes(query) && !valueAsCode.includes(query);
+  });
+  Array.from(sel.querySelectorAll('optgroup')).forEach(grp=>{
+    const visible=Array.from(grp.children).some(c=>!c.hidden);
+    grp.hidden=!visible;
+  });
+}
+
+// Asegura que el dropdown tenga una opción para la voz Yamaha activa.
+// Si no existe (no está en la tabla del PSR-E363), la agrega dinámicamente al optgroup "Detectados".
+function ensureYamahaOption(msb, lsb, pcByte, label){
+  const sel=document.getElementById('instrument-select');
+  if(!sel)return null;
+  const value='yamaha:'+msb+'-'+lsb+'-'+(pcByte+1);
+  let opt=sel.querySelector('option[value="'+value+'"]');
+  if(opt)return opt;
+  // No existe → crear en grupo "Detectados"
+  let group=sel.querySelector('optgroup[data-detected="1"]');
+  if(!group){
+    group=document.createElement('optgroup');
+    group.label='🎹 Yamaha · Detectados en vivo';
+    group.setAttribute('data-detected','1');
+    sel.appendChild(group);
+  }
+  opt=document.createElement('option');
+  opt.value=value;
+  // Mostrar nombre + código Bank/PC. Sufijo " *" para distinguir las dinámicas.
+  const codeStr=msb+'/'+lsb+'/'+(pcByte+1);
+  const baseLabel=label||('Voz '+codeStr);
+  opt.textContent=baseLabel+' · '+codeStr+' *';
+  group.appendChild(opt);
+  console.log('[dropdown] voz Yamaha agregada dinámicamente:', label, value);
+  return opt;
+}
+
+// Genera dinámicamente las opciones del dropdown con las voces del PSR-E363, agrupadas por categoría.
+// Cada opción muestra el código numérico Bank/PC al lado del nombre, y el filtro busca también por código.
+function buildYamahaVoiceOptions(){
+  const sel=document.getElementById('instrument-select');
+  if(!sel)return;
+  if(sel.querySelector('option[value^="yamaha:"]'))return;
+
+  const byCat={};
+  PSR_E363_VOICES.forEach(v=>{
+    const cat=v[4];
+    if(!byCat[cat])byCat[cat]=[];
+    byCat[cat].push(v);
+  });
+
+  Object.keys(byCat).forEach(cat=>{
+    const group=document.createElement('optgroup');
+    group.label='🎹 Yamaha · '+cat;
+    byCat[cat].forEach(v=>{
+      const opt=document.createElement('option');
+      opt.value='yamaha:'+v[0]+'-'+v[1]+'-'+v[2];
+      // Mostrar código Bank/PC al final, formato compacto: "Grand Piano · 0/112/1"
+      opt.textContent=v[3]+' · '+v[0]+'/'+v[1]+'/'+v[2];
+      group.appendChild(opt);
+    });
+    sel.appendChild(group);
+  });
+}
+
+function audioNoteOn(midi, vel){
+  if(!samplerReady)return;
+  const name=midiToToneName(midi);
+  // si ya sonaba, hacemos retrigger limpio
+  if(liveNotes.has(midi))sampler.triggerRelease(name);
+  sampler.triggerAttack(name, undefined, vel/127);
+  liveNotes.add(midi);
+  sustainedReleases.delete(midi);
+}
+
+function audioNoteOff(midi){
+  if(!samplerReady)return;
+  if(sustainOn){
+    // posponer release hasta que el pedal se suelte
+    sustainedReleases.add(midi);
+    return;
+  }
+  sampler.triggerRelease(midiToToneName(midi));
+  liveNotes.delete(midi);
+}
+
+function setPracticeMode(on){
+  practiceMode=on;
+  draw();
+  if(typeof showNextNoteHint==='function')showNextNoteHint();  // muestra/oculta pista de próxima nota
+  try{localStorage.setItem('pianopro:practice',on?'1':'0')}catch(e){}
+  showToast({type:'info',title:on?'📌 Notas en teclas activado':'Notas en teclas desactivado',body:on?'Teclas con nombre + pista de próxima nota en modo Esperar.':'Vista limpia, sin pistas.',duration:2200});
+}
+
+function setLessonMute(on){
+  lessonMute=on;
+  // Si estamos silenciando con notas activas, soltar todo
+  if(on){
+    if(sampler && samplerReady){
+      try{liveNotes.forEach(m=>sampler.triggerRelease(midiToToneName(m)))}catch(e){}
+      liveNotes.clear();
+    }
+    if(midiOutput && _sendMidi()){
+      try{midiOutput.send([0xB0,123,0]); midiOutput.send([0xB0,120,0])}catch(e){}
+    }
+    _pendingAutoTimeouts.forEach(tid=>clearTimeout(tid));
+    _pendingAutoTimeouts.clear();
+  }
+  showToast({
+    type:'info',
+    title:on?'🔇 Modo Silencio':'🔊 Sonido normal',
+    body:on?'La lección avanza visualmente sin sonar. Toca lo que ves para acompañarte tú mismo.':'El autoplay vuelve a sonar.',
+    duration:2500,
+  });
+  try{localStorage.setItem('pianopro:lessonMute',on?'1':'0')}catch(e){}
+}
+
+function setOutputMode(mode){
+  if(!['pc','yamaha','both'].includes(mode))mode='pc';
+  const prev=outputMode;
+  outputMode=mode;
+  sendToExternalMidi=_sendMidi(); // legado
+
+  // Si cambia de yamaha/both a pc → cortar notas que estaban sonando en el Yamaha
+  if((prev==='yamaha'||prev==='both') && mode==='pc' && midiOutput){
+    for(let m=21;m<=108;m++){try{midiOutput.send([0x80,m,0])}catch(e){}}
+  }
+  // Si cambia a yamaha y no hay output MIDI, advertir
+  if((mode==='yamaha'||mode==='both') && !midiOutput){
+    showToast({type:'warn',title:'Sin Yamaha conectado',body:'No detecto MIDI out. Conecta el Yamaha y vuelve a seleccionar.',duration:5000});
+    return;
+  }
+  // Mensajes contextuales
+  const messages={
+    pc:{title:'Salida → PC',body:'Suena por los altavoces del PC (Salamander Grand). El Yamaha solo suena lo que toques físicamente.'},
+    yamaha:{title:'Salida → Yamaha',body:'PC silenciado. Todo va al teclado por MIDI. Si oyes doble, activa «Local Off» en el Yamaha.'},
+    both:{title:'Salida → Ambas',body:'Suena en ambos lados. Útil para grabación o monitoreo, pero puede oírse doble.'},
+  };
+  showToast({type:'info',...messages[mode]});
+
+  // Persistir
+  try{localStorage.setItem('pianopro:outputMode',mode)}catch(e){}
+}
+
+function setSustain(on){
+  sustainOn=on;
+  document.getElementById('sustain-flash').classList.toggle('on', on);
+  if(!on){
+    // soltar todas las notas que estaban esperando
+    sustainedReleases.forEach(m=>{
+      sampler.triggerRelease(midiToToneName(m));
+      liveNotes.delete(m);
+    });
+    sustainedReleases.clear();
+  }
+}
+
+// ---------- PIANO STATE ----------
+const canvas=document.getElementById('piano-canvas');
+const ctx=canvas.getContext('2d');
+const fcanvas=document.getElementById('falling-canvas');
+const fctx=fcanvas.getContext('2d');
+
+let mode='full', fixedVel=80;
+let activeKeys={}, midiOutput=null;
+let WW,BW,WH,BH;
+let scoreVisible=true, osmd=null;
+let modoNotaActivo=false;
+// METRÓNOMO: reloj base = AudioContext.currentTime (vía Tone.now()), NO setInterval.
+// Patrón lookahead scheduler ("A Tale of Two Clocks", Chris Wilson): setTimeout solo
+// despierta el scheduler; cada click se programa con tiempo absoluto de audio = precisión de hardware.
+let metroActivo=false, bpm=80;
+let _metroSchedulerId=null;        // id del setTimeout que despierta el scheduler
+let _metroNextNoteTime=0;          // tiempo (seg, audio clock) del próximo click a programar
+let _metroBeat=0;                  // contador de pulsos
+const METRO_LOOKAHEAD_MS=25;       // cada cuánto despierta el scheduler (wall clock)
+const METRO_SCHEDULE_AHEAD=0.1;    // cuántos segundos de audio programa por adelantado
+// outputMode: 'pc' = solo Tone.js, 'yamaha' = solo MIDI out, 'both' = ambos
+let outputMode='pc';
+function _playLocal(){return outputMode==='pc'||outputMode==='both'}
+function _sendMidi(){return (outputMode==='yamaha'||outputMode==='both') && !!midiOutput}
+let sendToExternalMidi=false; // legado — derivado de outputMode (mantenemos var para compatibilidad)
+let autoSwitchInstrument=true; // Si true, cambiar voz en Yamaha cambia el sampler de la app
+let lessonMute=false; // Si true, el autoplay avanza visualmente pero no emite sonido (modo play-along)
+let practiceMode=false; // Si true, dibuja Do Re Mi… sobre cada tecla blanca para ubicarse
+let yamahaVoiceName=null; // Último nombre de voz GM que reportó el Yamaha
+let _lastYamahaPC=-1; // Último program change recibido del Yamaha (byte 0-127)
+const _recentNoteOnTimes=[]; // timestamps de Note On entrantes para detectar arpeggio/style
+let _arpeggioToastAt=0;
+
+function _checkArpeggioRate(){
+  const now=performance.now();
+  _recentNoteOnTimes.push(now);
+  while(_recentNoteOnTimes.length>0 && _recentNoteOnTimes[0]<now-1500){
+    _recentNoteOnTimes.shift();
+  }
+  // >12 Note On en 1.5s = sospechoso (arpeggio rápido o style con drums+bass+chord)
+  if(_recentNoteOnTimes.length>12 && now-_arpeggioToastAt>8000){
+    _arpeggioToastAt=now;
+    showToast({
+      type:'info',
+      title:'🎼 Arpeggio o Style activo',
+      body:'Tu Yamaha envía '+_recentNoteOnTimes.length+' notas en 1.5s. Apaga ARPEGGIO / ACMP / STYLE / SMART CHORD en el teclado si las teclas parecen "parpadear".',
+      duration:7000,
+    });
+  }
+}
+// Bank Select POR CANAL (cada canal tiene su propio bank) — antes era global y se contaminaba con Dual Voice
+const _yamahaBankByCh=Array.from({length:16},()=>({msb:0,lsb:0}));
+// Compatibilidad legado: alias al canal 0
+const _lastYamahaBank=_yamahaBankByCh[0];
+let _userSelectionLock=0; // timestamp ms hasta el cual ignoramos PC entrantes para no pisar selecciones manuales
+
+function getNoteInfo(midi){const oct=Math.floor(midi/12)-1,idx=midi%12;return{en:NOTE_NAMES_EN[idx],es:NOTE_NAMES_ES[idx],oct,isBlack:NOTE_NAMES_EN[idx].includes('#')}}
+function midiToFreq(midi){return 440*Math.pow(2,(midi-69)/12)}
+function whiteIndex(midi){let c=0;for(let m=21;m<midi;m++)if(!NOTE_NAMES_EN[m%12].includes('#'))c++;return c}
+
+function keyXCenter(midi){
+  if(getNoteInfo(midi).isBlack){
+    const x=whiteIndex(midi-1)*WW+WW*0.71-BW/2;
+    return x+BW/2;
+  }
+  return whiteIndex(midi)*WW+WW/2;
+}
+function keyXLeft(midi){
+  if(getNoteInfo(midi).isBlack)return whiteIndex(midi-1)*WW+WW*0.71-BW/2;
+  return whiteIndex(midi)*WW;
+}
+function keyWidth(midi){return getNoteInfo(midi).isBlack?BW:WW}
+
+function layout(){
+  const wrap=document.getElementById('piano-wrapper');
+  const totalW=mode==='full'?wrap.clientWidth:Math.max(wrap.clientWidth,1400);
+  WW=totalW/TOTAL_WHITE; BW=WW*0.58; WH=WW*3.6; BH=WH*0.62;
+  canvas.width=totalW; canvas.height=WH+4;
+  fcanvas.width=totalW;
+  const fh = fcanvas.classList.contains('show') ? (window.innerWidth<640?140:window.innerWidth<900?170:200) : 0;
+  fcanvas.height = fh;
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let midi=21;midi<=108;midi++){
+    if(getNoteInfo(midi).isBlack)continue;
+    const x=whiteIndex(midi)*WW,active=activeKeys[midi],highlight=highlightedKeys[midi];
+    if(active){
+      const g=ctx.createLinearGradient(0,0,0,WH);
+      g.addColorStop(0,'#f5e0ff');g.addColorStop(0.5,'#c8b6ff');g.addColorStop(1,'#8b5cf6');
+      ctx.fillStyle=g;
+    }else if(highlight){
+      const g=ctx.createLinearGradient(0,0,0,WH);
+      g.addColorStop(0,'#fff');g.addColorStop(1, highlight==='left'?'#06b6d4':'#ec4899');
+      ctx.fillStyle=g;
+    }else{
+      const g=ctx.createLinearGradient(0,0,0,WH);
+      g.addColorStop(0,'#fafafa');g.addColorStop(1,'#d6d6e0');
+      ctx.fillStyle=g;
+    }
+    ctx.strokeStyle='rgba(0,0,0,0.3)';ctx.lineWidth=0.6;
+    ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(x+0.5,0.5,WW-1,WH-1,[0,0,5,5]);else ctx.rect(x+0.5,0.5,WW-1,WH-1);
+    ctx.fill();ctx.stroke();
+    if(active){ctx.fillStyle='rgba(255,255,255,0.8)';ctx.fillRect(x+1.5,1,WW-3,2)}
+    // Etiqueta de la nota
+    const idx=midi%12;
+    const oct=Math.floor(midi/12)-1;
+    if(practiceMode && WW>10){
+      // Modo práctica: letras VERTICALES alineadas al BOTTOM de cada tecla blanca
+      const letters=NOTE_NAMES_ES[idx].toUpperCase().split('');
+      const fontSize=Math.max(9,Math.min(14,WW*0.5));
+      const lineH=fontSize+1;
+      ctx.fillStyle=active?'#3a2058':'rgba(0,0,0,0.65)';
+      ctx.font=`600 ${fontSize}px 'Plus Jakarta Sans', sans-serif`;
+      ctx.textAlign='center';
+      ctx.textBaseline='bottom';
+      // Última letra a 6px del bottom; las anteriores apiladas hacia arriba
+      let yBottom=WH-6;
+      letters.slice().reverse().forEach(letter=>{
+        ctx.fillText(letter, x+WW/2, yBottom);
+        yBottom-=lineH;
+      });
+      ctx.textBaseline='alphabetic';
+    }else if(idx===0 && WW>12){
+      // Modo normal: solo C de cada octava
+      ctx.fillStyle=active?'#3a2058':'rgba(0,0,0,0.35)';
+      ctx.font=`${Math.max(7,Math.min(11,WW*0.32))}px 'JetBrains Mono', monospace`;
+      ctx.textAlign='center';
+      ctx.fillText('C'+oct, x+WW/2, WH-6);
+    }
+  }
+  for(let midi=21;midi<=108;midi++){
+    if(!getNoteInfo(midi).isBlack)continue;
+    const x=whiteIndex(midi-1)*WW+WW*0.71-BW/2,active=activeKeys[midi],highlight=highlightedKeys[midi];
+    if(active){
+      const g=ctx.createLinearGradient(0,0,0,BH);
+      g.addColorStop(0,'#ec4899');g.addColorStop(0.5,'#a855f7');g.addColorStop(1,'#06b6d4');
+      ctx.fillStyle=g;
+    }else if(highlight){
+      const g=ctx.createLinearGradient(0,0,0,BH);
+      const c=highlight==='left'?'#06b6d4':'#ec4899';
+      g.addColorStop(0,c);g.addColorStop(1,'#1a1530');
+      ctx.fillStyle=g;
+    }else{
+      const g=ctx.createLinearGradient(0,0,0,BH);
+      g.addColorStop(0,'#1a1530');g.addColorStop(0.6,'#0a0820');g.addColorStop(1,'#1a1530');
+      ctx.fillStyle=g;
+    }
+    ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(x,0,BW,BH,[0,0,4,4]);else ctx.rect(x,0,BW,BH);
+    ctx.fill();
+    ctx.fillStyle=active?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.10)';
+    ctx.fillRect(x+0.5,0.5,BW-1,1);
+  }
+}
+
+function getMidiFromPoint(x,y){
+  // ajusta y porque el canvas está debajo del falling
+  for(let midi=21;midi<=108;midi++){
+    if(!getNoteInfo(midi).isBlack)continue;
+    const bx=whiteIndex(midi-1)*WW+WW*0.71-BW/2;
+    if(x>=bx&&x<=bx+BW&&y<=BH)return{midi,vel:getVel(y,BH)};
+  }
+  for(let midi=21;midi<=108;midi++){
+    if(getNoteInfo(midi).isBlack)continue;
+    const wx=whiteIndex(midi)*WW;
+    if(x>=wx&&x<=wx+WW-1&&y<=WH)return{midi,vel:getVel(y,WH)};
+  }
+  return null;
+}
+function getVel(y,h){return Math.max(20,Math.min(127,Math.round(20+(y/h)*107)))}
+
+// ---------- INPUT (mouse/touch) ----------
+const downKeys=new Set();
+canvas.addEventListener('mousedown',e=>{
+  const r=canvas.getBoundingClientRect();
+  const hit=getMidiFromPoint(e.clientX-r.left,e.clientY-r.top);
+  if(hit){pressKey(hit.midi,hit.vel)}
+});
+window.addEventListener('mouseup',()=>{
+  downKeys.forEach(m=>releaseKey(m));
+  downKeys.clear();
+});
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();const r=canvas.getBoundingClientRect();
+  for(const t of e.changedTouches){const hit=getMidiFromPoint(t.clientX-r.left,t.clientY-r.top);if(hit)pressKey(hit.midi,hit.vel)}
+},{passive:false});
+canvas.addEventListener('touchend',e=>{
+  e.preventDefault();
+  downKeys.forEach(m=>releaseKey(m));
+  downKeys.clear();
+},{passive:false});
+
+function pressKey(midi, vel){
+  if(downKeys.has(midi))return;
+  downKeys.add(midi);
+  noteOn(midi, vel);
+}
+function releaseKey(midi){
+  noteOff(midi);
+}
+
+// ---------- NOTE ON/OFF (unified) ----------
+// source: 'virtual' (canvas/touch), 'midi-in' (Yamaha tocando), 'auto' (autoplay lección)
+function noteOn(midi, vel, source='virtual'){
+  // Enviar al Yamaha si el modo lo permite y la fuente NO es el propio Yamaha
+  // (evitar loop / eco cuando tocas físicamente)
+  if(_sendMidi() && source!=='midi-in'){
+    try{midiOutput.send([0x90,midi,vel])}catch(e){}
+  }
+  // Reproducir local solo si el modo lo permite
+  if(_playLocal()){
+    audioNoteOn(midi, vel);
+  }
+  activeKeys[midi]=true; draw();
+  showNote(midi, vel, modoNotaActivo?'es':'en');
+  if(songState.loaded && songState.waitMode) registerUserHit(midi, true);
+}
+function noteOff(midi, source='virtual'){
+  if(_sendMidi() && source!=='midi-in'){
+    try{midiOutput.send([0x80,midi,0])}catch(e){}
+  }
+  if(_playLocal()){
+    audioNoteOff(midi);
+  }
+  activeKeys[midi]=false; draw();
+}
+
+// ---------- Acumulador de acordes ----------
+const _chord = {notes:new Map(), open:false, mode:'en'};
+let _chordCloseTimer=null;
+let _chordClearTimer=null;
+const CHORD_WINDOW_MS=100;
+const CHORD_HOLD_MS=1500;
+
+function showNote(midi, vel, mod){
+  if(!_chord.open){
+    _chord.notes.clear();
+    _chord.open=true;
+    clearTimeout(_chordCloseTimer);
+    _chordCloseTimer=setTimeout(()=>{ _chord.open=false }, CHORD_WINDOW_MS);
+  }
+  _chord.notes.set(midi, Date.now());
+  _chord.mode=mod;
+
+  renderChordHero();
+  drawStaffChord(Array.from(_chord.notes.keys()), mod);
+  document.getElementById('note-idle').classList.add('hidden');
+
+  clearTimeout(_chordClearTimer);
+  _chordClearTimer=setTimeout(()=>{
+    _chord.notes.clear();
+    _chord.open=false;
+    document.getElementById('note-name-display').classList.remove('show','hint');
+    document.getElementById('note-name-display').classList.remove('chord-2','chord-3','chord-many');
+    document.getElementById('note-idle').classList.remove('hidden');
+    clearStaffNote();
+    // Tras desvanecer la nota tocada, reaparece la pista de la próxima (si aplica)
+    showNextNoteHint();
+  }, CHORD_HOLD_MS);
+}
+
+function formatNoteHtml(midi, mode){
+  const {en,es,oct}=getNoteInfo(midi);
+  const raw=mode==='es'?es:en;
+  const isAcc=raw.includes('#');
+  const base=isAcc?raw.slice(0,-1):raw;
+  let html=base;
+  if(isAcc)html+='<span class="acc">♯</span>';
+  html+='<span class="oct">'+oct+'</span>';
+  return html;
+}
+
+function renderChordHero(){
+  const el=document.getElementById('note-name-display');
+  const notes=Array.from(_chord.notes.keys()).sort((a,b)=>a-b);
+  el.classList.remove('chord-2','chord-3','chord-many');
+  if(notes.length===0){el.classList.remove('show');return}
+
+  let html;
+  if(notes.length===1){
+    html=formatNoteHtml(notes[0], _chord.mode);
+  }else if(notes.length<=3){
+    html=notes.map(m=>formatNoteHtml(m, _chord.mode)).join('<span class="sep">·</span>');
+    el.classList.add(notes.length===2?'chord-2':'chord-3');
+  }else{
+    html=formatNoteHtml(notes[0], _chord.mode)+'<span class="sep">·</span>'+formatNoteHtml(notes[notes.length-1], _chord.mode)+'<span class="more">+'+(notes.length-2)+'</span>';
+    el.classList.add('chord-many');
+  }
+  el.innerHTML=html;
+  el.classList.remove('hint');  // nota REAL tocada → opacidad plena (no es pista)
+  el.classList.add('show');
+}
+
+// Pista de la PRÓXIMA nota esperada (tenue) en el hero. Solo en wait mode + "Notas en teclas".
+// Devuelve true si pintó pista. Solo toca el display si está vacío o mostrando otra pista
+// (nunca pisa una nota real que se esté mostrando: esas no tienen la clase 'hint').
+function showNextNoteHint(){
+  const el=document.getElementById('note-name-display');
+  const idle=document.getElementById('note-idle');
+  if(!el)return false;
+  const shouldShow = practiceMode && songState.loaded && songState.waitMode
+                  && !_chord.open && songState.nextGroup < songState.groups.length;
+  if(!shouldShow){
+    // Si había una pista puesta, quitarla y restaurar idle (sin tocar notas reales)
+    if(el.classList.contains('hint')){
+      el.classList.remove('show','hint','chord-2','chord-3','chord-many');
+      el.innerHTML='';
+      if(idle)idle.classList.remove('hidden');
+    }
+    return false;
+  }
+  const g=songState.groups[songState.nextGroup];
+  const midis=Array.from(g.midis).sort((a,b)=>a-b);
+  if(!midis.length){
+    if(el.classList.contains('hint')){el.classList.remove('show','hint');if(idle)idle.classList.remove('hidden')}
+    return false;
+  }
+  const mode=modoNotaActivo?'es':'en';
+  el.classList.remove('chord-2','chord-3','chord-many');
+  let html;
+  if(midis.length===1){
+    html=formatNoteHtml(midis[0], mode);
+  }else if(midis.length<=3){
+    html=midis.map(m=>formatNoteHtml(m,mode)).join('<span class="sep">·</span>');
+    el.classList.add(midis.length===2?'chord-2':'chord-3');
+  }else{
+    html=formatNoteHtml(midis[0],mode)+'<span class="sep">·</span>'+formatNoteHtml(midis[midis.length-1],mode)+'<span class="more">+'+(midis.length-2)+'</span>';
+    el.classList.add('chord-many');
+  }
+  el.innerHTML=html;
+  el.classList.add('show','hint');
+  if(idle)idle.classList.add('hidden');
+  return true;
+}
+
+// ---------- PENTAGRAMA: render de la nota tocada ----------
+const CHROMA_TO_DIATONIC=[0,0,1,1,2,3,3,4,4,5,5,6]; // C C# D D# E F F# G G# A A# B → C D D E F F G G A A B B (step diatónico)
+const CHROMA_HAS_SHARP=[false,true,false,true,false,false,true,false,true,false,true,false];
+const SVG_NS='http://www.w3.org/2000/svg';
+
+function staffYFromMidi(midi){
+  // Devuelve { y, useTreble } — coordenadas en el viewBox 0 0 200 130
+  // Treble: B4 (línea media) en y=36, paso diatónico = 4
+  // Bass: D3 (línea media) en y=94, paso diatónico = 4
+  const oct=Math.floor(midi/12)-1;
+  const chroma=midi%12;
+  const step=CHROMA_TO_DIATONIC[chroma];
+  const totalSteps=oct*7+step;
+  const useTreble = midi>=60; // C4 y arriba en treble (con ledger lines abajo si aplica)
+  const y = useTreble
+    ? 36 - (totalSteps - 34) * 4  // 34 = totalSteps de B4
+    : 94 - (totalSteps - 22) * 4; // 22 = totalSteps de D3
+  return {y, useTreble};
+}
+
+function clearStaffNote(){
+  const layer=document.getElementById('staff-notes-layer');
+  if(layer)layer.innerHTML='';
+}
+
+function drawStaffChord(midis, mode){
+  const layer=document.getElementById('staff-notes-layer');
+  if(!layer)return;
+  layer.innerHTML='';
+  if(!midis||!midis.length)return;
+
+  const X_CENTER=110;
+
+  // Info por nota (ordenadas de aguda a grave: y creciente)
+  const data=midis.map(midi=>{
+    const {y, useTreble}=staffYFromMidi(midi);
+    const chroma=midi%12;
+    const oct=Math.floor(midi/12)-1;
+    const hasSharp=CHROMA_HAS_SHARP[chroma];
+    const stepIndex=Math.floor(midi/12)*7+CHROMA_TO_DIATONIC[chroma];
+    const baseName=(mode==='es'?NOTE_NAMES_ES:NOTE_NAMES_EN)[chroma].replace('#','');
+    const noteName=baseName+(hasSharp?'♯':'')+oct;
+    return {midi,y,useTreble,chroma,oct,hasSharp,stepIndex,noteName};
+  }).sort((a,b)=>a.y-b.y);
+
+  // Detectar segundas (notas a 1 step diatónico): alternan a izquierda/derecha del centro
+  data.forEach((d,i)=>{
+    d.x=X_CENTER;
+    if(i>0){
+      const prev=data[i-1];
+      if(Math.abs(d.stepIndex-prev.stepIndex)===1){
+        d.x = (prev.x===X_CENTER) ? X_CENTER+9 : X_CENTER;
+      }
+    }
+  });
+
+  const g=document.createElementNS(SVG_NS,'g');
+
+  // Ledger lines: union de todas las necesarias, abarcando el rango horizontal de las cabezas
+  const ledgerSet=new Set();
+  data.forEach(d=>{
+    if(d.useTreble){
+      if(d.y>=60) for(let ly=60;ly<=d.y+1;ly+=8) ledgerSet.add(ly);
+      else if(d.y<=12) for(let ly=12;ly>=d.y-1;ly-=8) ledgerSet.add(ly);
+    }else{
+      if(d.y>=118) for(let ly=118;ly<=d.y+1;ly+=8) ledgerSet.add(ly);
+      else if(d.y<=70) for(let ly=70;ly>=d.y-1;ly-=8) ledgerSet.add(ly);
+    }
+  });
+  const xs=data.map(d=>d.x);
+  const minX=Math.min(...xs)-9, maxX=Math.max(...xs)+9;
+  ledgerSet.forEach(ly=>{
+    const ll=document.createElementNS(SVG_NS,'line');
+    ll.setAttribute('class','ledger-line');
+    ll.setAttribute('x1',minX); ll.setAttribute('x2',maxX);
+    ll.setAttribute('y1',ly); ll.setAttribute('y2',ly);
+    g.appendChild(ll);
+  });
+
+  // Sostenidos: apilados en columnas a la izquierda, evitando solapamiento vertical
+  const accLanes=[]; // cada lane es array de {y} ya colocados; nueva nota busca lane libre
+  data.forEach(d=>{
+    if(!d.hasSharp)return;
+    let lane=0;
+    for(;lane<accLanes.length;lane++){
+      const conflict=accLanes[lane].some(o=>Math.abs(o-d.y)<10);
+      if(!conflict)break;
+    }
+    if(lane===accLanes.length)accLanes.push([]);
+    accLanes[lane].push(d.y);
+    const accX=X_CENTER-12-lane*9;
+    const acc=document.createElementNS(SVG_NS,'text');
+    acc.setAttribute('class','accidental');
+    acc.setAttribute('x',accX);
+    acc.setAttribute('y',d.y+5);
+    acc.textContent='♯';
+    g.appendChild(acc);
+  });
+
+  // Cabezas
+  data.forEach(d=>{
+    const head=document.createElementNS(SVG_NS,'ellipse');
+    head.setAttribute('class','note-head');
+    head.setAttribute('cx',d.x);
+    head.setAttribute('cy',d.y);
+    head.setAttribute('rx',5.5);
+    head.setAttribute('ry',4);
+    g.appendChild(head);
+  });
+
+  // Flag — 1 nota: nombre completo. 2-3: separadas por espacio. 4+: primera…última.
+  let flagText;
+  if(data.length===1) flagText=data[0].noteName;
+  else if(data.length<=3) flagText=data.map(d=>d.noteName).join(' ');
+  else flagText=data[0].noteName+' … '+data[data.length-1].noteName;
+
+  const topY=data[0].y;
+  const flagY=Math.max(topY-16, 6);
+  const flagW=Math.max(40, flagText.length*6+12);
+  const flagX=Math.min(Math.max(X_CENTER, flagW/2+2), 200-flagW/2-2);
+
+  const pin=document.createElementNS(SVG_NS,'line');
+  pin.setAttribute('class','flag-pin');
+  pin.setAttribute('x1',X_CENTER); pin.setAttribute('y1',topY-5);
+  pin.setAttribute('x2',flagX); pin.setAttribute('y2',flagY+5);
+  g.appendChild(pin);
+
+  const bg=document.createElementNS(SVG_NS,'rect');
+  bg.setAttribute('class','flag-bg');
+  bg.setAttribute('x',flagX-flagW/2);
+  bg.setAttribute('y',flagY-7);
+  bg.setAttribute('width',flagW);
+  bg.setAttribute('height',14);
+  bg.setAttribute('rx',7);
+  g.appendChild(bg);
+
+  const txt=document.createElementNS(SVG_NS,'text');
+  txt.setAttribute('class','flag-text');
+  txt.setAttribute('x',flagX);
+  txt.setAttribute('y',flagY+1);
+  txt.textContent=flagText;
+  g.appendChild(txt);
+
+  layer.appendChild(g);
+}
+
+// ---------- METRONOMO ----------
+// Programa UN click en un tiempo absoluto de audio (segundos, base AudioContext).
+// Así el sonido cae clavado aunque el event loop tartamudee.
+function scheduleMetroClick(time){
+  if(!samplerReady)return;
+  const tick=new Tone.Oscillator(880,'sine');   // sin .toDestination(): va por el env
+  const env=new Tone.AmplitudeEnvelope({attack:0.002,decay:0.05,sustain:0,release:0.05}).toDestination();
+  tick.connect(env);
+  tick.start(time).stop(time+0.1);
+  env.triggerAttackRelease(0.06, time);
+  // limpieza tras sonar (time es futuro; +0.3s de margen)
+  const cleanupMs=Math.max(0,(time-Tone.now())*1000)+300;
+  setTimeout(()=>{try{tick.dispose();env.dispose()}catch(e){}}, cleanupMs);
+  // flash visual sincronizado al instante de audio del click
+  const flashMs=Math.max(0,(time-Tone.now())*1000);
+  setTimeout(()=>{
+    const dot=document.getElementById('metro-flash');
+    if(dot){dot.classList.add('beat');setTimeout(()=>dot.classList.remove('beat'),80)}
+  }, flashMs);
+}
+
+// El scheduler despierta cada ~25ms y programa todos los clicks que caen
+// dentro de la ventana de lookahead. Lee bpm en vivo → cambios de tempo aplican al próximo pulso.
+function _metroScheduler(){
+  while(_metroNextNoteTime < Tone.now() + METRO_SCHEDULE_AHEAD){
+    scheduleMetroClick(_metroNextNoteTime);
+    _metroNextNoteTime += 60/bpm;
+    _metroBeat++;
+  }
+  _metroSchedulerId=setTimeout(_metroScheduler, METRO_LOOKAHEAD_MS);
+}
+
+function setBPM(val){
+  bpm=val;
+  document.getElementById('bpm-val').textContent=val;
+  // El scheduler usa bpm en vivo; no hace falta reiniciar nada.
+}
+
+function toggleMetronomo(on){
+  metroActivo=on;
+  if(on){
+    if(typeof Tone==='undefined' || !samplerReady){
+      showToast({type:'warn',title:'Audio no listo',body:'Espera a que cargue el motor de audio y reactiva el metrónomo.'});
+      metroActivo=false;
+      const chk=document.getElementById('chk-metro'); if(chk)chk.checked=false;
+      return;
+    }
+    _metroBeat=0;
+    _metroNextNoteTime=Tone.now()+0.05;  // pequeño colchón para el primer click
+    _metroScheduler();
+  }else{
+    clearTimeout(_metroSchedulerId);
+    _metroSchedulerId=null;
+  }
+}
+
+// ---------- VIEW MODE ----------
+function setMode(m){mode=m;document.getElementById('btn-full').classList.toggle('active',m==='full');document.getElementById('btn-zoom').classList.toggle('active',m==='zoom');layout();draw()}
+
+// ---------- SCORE (OSMD) ----------
+function initOSMD(){
+  if(osmd)return;
+  if(typeof opensheetmusicdisplay==='undefined'){
+    showToast({type:'error',title:'Visor de partitura no disponible',body:'No se pudo cargar la librería OSMD. Revisa tu conexión.'});
+    return;
+  }
+  osmd=new opensheetmusicdisplay.OpenSheetMusicDisplay('osmd-container',{autoResize:true,drawTitle:true,drawCredits:false,drawPartNames:false});
+}
+// Carga directa (sin progress) — usada por Für Elise (fetch). content puede ser string o ArrayBuffer.
+async function loadScoreXml(content, title){
+  const myToken=++_xmlLoadToken;
+  const el=document.getElementById('score-loading');
+  el.style.display='block';el.textContent='Cargando partitura…';
+  document.getElementById('score-title').textContent=title||'Partitura';
+  initOSMD();
+  if(!osmd)return false;
+  if(!scoreVisible)toggleScore();
+  const loading=showToast({type:'info',title:'Cargando partitura',body:title||'',id:'score-loading',duration:null});
+  try{
+    await osmd.load(content);
+    if(myToken!==_xmlLoadToken){loading.dismiss();return false}
+    await osmd.render();
+    if(myToken!==_xmlLoadToken){loading.dismiss();return false}
+    el.style.display='none';
+    loading.dismiss();
+    showToast({type:'success',title:'Partitura cargada',body:title||''});
+    showOsmdCursor();
+    loadLessonFromOsmd(title);
+    return true;
+  }catch(e){
+    loading.dismiss();
+    el.textContent='Archivo no válido. Asegúrate de que sea MusicXML.';
+    showToast({type:'error',title:'No se pudo cargar la partitura',body:(e&&e.message)?e.message:'El archivo no parece un MusicXML válido.'});
+    return false;
+  }
+}
+
+let _activeXmlReader=null;
+let _xmlLoadToken=0;
+
+async function loadXmlFile(input){
+ try{
+  const file=input.files[0];if(!file){return}
+  const myToken=++_xmlLoadToken;
+  console.log('[partitura] loadXmlFile START — file:', file.name, 'token:', myToken);
+
+  const ext=(file.name.match(/\.[^.]+$/)||[''])[0].toLowerCase();
+  const isMxl = ext==='.mxl';
+  const isPlain = ext==='.xml' || ext==='.musicxml';
+
+  if(!isMxl && !isPlain){
+    showToast({type:'error',title:'Formato no soportado',body:'Solo se aceptan .xml, .musicxml o .mxl'});
+    input.value='';return;
+  }
+
+  // Hard reject para XML enormes (en .mxl es comprimido, no aplica)
+  if(isPlain && file.size > 30*1024*1024){
+    const sizeMB=(file.size/1024/1024).toFixed(1);
+    showToast({
+      type:'error',
+      title:'Archivo demasiado grande',
+      body:`XML de ${sizeMB}MB excede el límite de 30MB. Convierte a .mxl (es ~10× más pequeño) o exporta solo la parte de piano desde MuseScore.`,
+      duration:null,
+    });
+    input.value='';return;
+  }
+  if(isPlain && file.size > 10*1024*1024){
+    showToast({type:'warn',title:'Archivo grande',body:`${(file.size/1024/1024).toFixed(1)}MB sin comprimir. Recomendamos .mxl para mejor rendimiento.`});
+  }
+
+  console.log('[partitura] step1 ext checks OK');
+
+  // Cancelar carga previa si existe
+  if(_activeXmlReader && _activeXmlReader.cancel){
+    console.log('[partitura] step2a cancelando reader anterior');
+    try{_activeXmlReader.cancel()}catch(e){console.warn('cancel falló:',e)}
+  }
+  console.log('[partitura] step2 cancel done');
+
+  // Detener reproducción de la lección anterior (audio + falling) sin ocultar el lesson-panel.
+  if(songState.loaded){
+    console.log('[partitura] step3a cleanupCurrentLesson');
+    try{cleanupCurrentLesson()}catch(e){console.error('cleanup lanzó:',e)}
+    songState.loaded=false;
+  }
+  console.log('[partitura] step3 cleanup done');
+
+  initOSMD();
+  console.log('[partitura] step4 initOSMD done');
+  if(!osmd){input.value='';return}
+  console.log('[partitura] step4a osmd OK');
+  if(!scoreVisible)toggleScore();
+  console.log('[partitura] step4b scoreVisible check, scoreVisible=', scoreVisible);
+  const sl=document.getElementById('score-loading');
+  if(sl){sl.style.display='block';sl.textContent='Cargando…'}
+  console.log('[partitura] step4c score-loading set');
+
+  const reader=new FileReader();
+  console.log('[partitura] step4d FileReader created');
+  let aborted=false;
+  let stage='read'; // read | parse | render
+
+  console.log('[partitura] step4e about to create progress toast');
+  const progress=showProgressToast({
+    title:'Cargando partitura',
+    body:`${file.name} · ${(file.size/1024/1024).toFixed(1)} MB`,
+    onCancel:()=>{
+      aborted=true;
+      try{reader.abort()}catch(e){}
+      showToast({type:'info',title:'Carga cancelada',body:stage==='render'?'El renderizado ya había iniciado; descartado al terminar.':'Lectura interrumpida.'});
+      document.getElementById('score-loading').textContent='Carga cancelada.';
+    },
+  });
+  console.log('[partitura] step4f progress toast created, progress=', !!progress);
+
+  _activeXmlReader={cancel:()=>progress.cancel()};
+  console.log('[partitura] step4g _activeXmlReader set');
+
+  reader.onprogress=(e)=>{
+    if(aborted)return;
+    if(e.lengthComputable){
+      // 0-50% = lectura del archivo
+      progress.setProgress((e.loaded/e.total)*0.5);
+      progress.setMessage(null,`Leyendo ${(e.loaded/1024/1024).toFixed(1)} / ${(e.total/1024/1024).toFixed(1)} MB`);
+    }
+  };
+
+  reader.onerror=()=>{
+    if(aborted)return;
+    progress.dismiss();
+    showToast({type:'error',title:'Error de lectura',body:'No se pudo leer el archivo.'});
+    document.getElementById('score-loading').textContent='Error de lectura.';
+    _activeXmlReader=null;
+  };
+  reader.onabort=()=>{ _activeXmlReader=null };
+
+  reader.onload=async (e)=>{
+    if(aborted || myToken!==_xmlLoadToken){console.log('[partitura] flujo obsoleto, abortando (token)');return}
+
+    stage='parse';
+    progress.setProgress(0.5);
+    progress.setMessage(null, isMxl?'Descomprimiendo…':'Parseando…');
+    await yieldToBrowser();
+    if(aborted || myToken!==_xmlLoadToken){_activeXmlReader=null;return}
+
+    let content;
+    try{
+      if(isMxl){
+        // ArrayBuffer → JSZip → XML string. Bypassa el parser MXL interno de OSMD.
+        const buf=e.target.result;
+        if(!buf || buf.byteLength===0)throw new Error('Archivo vacío');
+        // Verificar header ZIP "PK"
+        const view=new Uint8Array(buf, 0, 2);
+        if(view[0]!==0x50 || view[1]!==0x4B){
+          throw new Error('No parece un archivo .mxl válido (falta cabecera ZIP)');
+        }
+        progress.setIndeterminate('extrayendo ZIP…');
+        await yieldToBrowser();
+        content=await unzipMxl(buf);
+      }else{
+        content=e.target.result;
+        if(!content || content.length===0)throw new Error('Archivo vacío');
+      }
+      // Sanity check final: debe ser MusicXML
+      if(!/<score-(partwise|timewise)/i.test(content.slice(0, Math.min(5000, content.length)))){
+        throw new Error('El XML no contiene <score-partwise> ni <score-timewise>');
+      }
+    }catch(prepErr){
+      progress.dismiss();
+      console.error('[partitura] preparación falló:', prepErr);
+      document.getElementById('score-loading').textContent='Archivo no válido.';
+      showToast({type:'error',title:'Archivo no válido',body:prepErr.message,duration:null});
+      _activeXmlReader=null;
+      return;
+    }
+
+    // FASE 1: parseo XML (osmd.load) — necesario para extraer la lección
+    try{
+      progress.setIndeterminate('parseando MusicXML…');
+      await yieldToBrowser();
+      await osmd.load(content);
+      if(aborted || myToken!==_xmlLoadToken){_activeXmlReader=null;return}
+    }catch(loadErr){
+      progress.dismiss();
+      console.error('[partitura] osmd.load falló:', loadErr);
+      document.getElementById('score-loading').textContent='Archivo no válido.';
+      const msg=(loadErr&&loadErr.message)||'falló el parser';
+      showToast({type:'error',title:'No se pudo parsear el XML',body:msg+'. Abre F12 → Consola.',duration:null});
+      _activeXmlReader=null;
+      return;
+    }
+
+    // FASE 2: render (puede fallar por notación que VexFlow no soporta — la lección sigue OK)
+    let renderOk=false;
+    stage='render';
+    progress.setMessage(null,'Renderizando partitura…');
+    progress.setIndeterminate('renderizando…');
+    await yieldToBrowser();
+    try{
+      await osmd.render();
+      renderOk=true;
+    }catch(renderErr){
+      console.error('[partitura] osmd.render falló (la lección sigue disponible):', renderErr);
+      const rmsg=(renderErr&&renderErr.message)||'';
+      showToast({
+        type:'warn',
+        title:'Partitura visual no se pudo dibujar',
+        body:'OSMD parseó el XML pero VexFlow no pudo renderizar ('+rmsg.slice(0,80)+'). La lección sí está disponible.',
+        duration:8000,
+      });
+    }
+    if(aborted || myToken!==_xmlLoadToken){
+      try{osmd.clear()}catch(e){}
+      document.getElementById('score-loading').textContent='Carga cancelada.';
+      _activeXmlReader=null;
+      return;
+    }
+
+    // FASE 3: éxito (parcial o total) — extraer lección desde el sheet
+    console.log('[partitura] FASE 3 — extrayendo lección. renderOk=', renderOk, 'token=', myToken, 'current=', _xmlLoadToken);
+    try{progress.dismiss()}catch(e){console.warn('[partitura] progress.dismiss:',e)}
+    const title=file.name.replace(/\.[^.]+$/,'');
+    try{
+      const sl=document.getElementById('score-loading');
+      if(sl){
+        sl.style.display = renderOk?'none':'block';
+        if(!renderOk)sl.textContent='(Partitura no se pudo renderizar; lección OK)';
+      }
+      const st=document.getElementById('score-title');
+      if(st)st.textContent=title;
+    }catch(e){console.warn('[partitura] DOM updates:',e)}
+    console.log('[partitura] FASE 3.1 DOM updated');
+    if(renderOk){
+      try{showToast({type:'success',title:'Partitura cargada',body:title})}catch(e){console.warn(e)}
+      try{showOsmdCursor()}catch(e){console.warn('[partitura] showOsmdCursor:',e)}
+    }
+    console.log('[partitura] FASE 3.2 calling loadLessonFromOsmd');
+    try{
+      loadLessonFromOsmd(title);
+    }catch(e){
+      console.error('[partitura] loadLessonFromOsmd lanzó:', e);
+      showToast({type:'error',title:'Error generando lección',body:(e&&e.message)||'Excepción al extraer notas.'});
+    }
+    console.log('[partitura] FASE 3.3 done');
+    _activeXmlReader=null;
+  };
+
+  console.log('[partitura] step5 about to read file');
+  if(isMxl) reader.readAsArrayBuffer(file);
+  else reader.readAsText(file);
+  console.log('[partitura] step6 read started');
+
+  input.value='';
+ }catch(outerErr){
+  console.error('[partitura] loadXmlFile lanzó excepción:', outerErr);
+  showToast({type:'error',title:'Error al cargar partitura',body:(outerErr&&outerErr.message)||'Excepción desconocida. Mira F12.',duration:null});
+ }
+}
+function toggleScore(){scoreVisible=!scoreVisible;document.getElementById('score-section').classList.toggle('hidden',!scoreVisible);document.getElementById('btn-score').textContent=scoreVisible?'Ocultar partitura':'Ver partitura'}
+
+// ============================================================
+//   SCORE-FOLLOWING (cursor sincronizado con la lección)
+// ============================================================
+function osmdHasCursor(){
+  return !!(osmd && osmd.cursor && osmd.IsReadyToRender && osmd.IsReadyToRender());
+}
+function showOsmdCursor(){
+  if(!osmdHasCursor())return;
+  try{
+    osmd.cursor.show();
+    osmd.cursor.reset();
+    scrollOsmdToCursor();
+  }catch(e){console.warn('cursor show:',e)}
+}
+function resetOsmdCursor(){
+  if(!osmdHasCursor())return;
+  try{osmd.cursor.reset();scrollOsmdToCursor()}catch(e){}
+}
+function hideOsmdCursor(){
+  if(!osmdHasCursor())return;
+  try{osmd.cursor.hide()}catch(e){}
+}
+function advanceOsmdCursor(){
+  if(!osmdHasCursor())return;
+  try{
+    if(osmd.cursor.iterator && osmd.cursor.iterator.endReached)return;
+    osmd.cursor.next();
+    scrollOsmdToCursor();
+  }catch(e){}
+}
+function scrollOsmdToCursor(){
+  if(!osmdHasCursor())return;
+  try{
+    const container=document.getElementById('osmd-container');
+    const cursorEl=osmd.cursor.cursorElement;
+    if(!cursorEl||!container)return;
+    const cursorTop=cursorEl.offsetTop;
+    const cursorHeight=cursorEl.offsetHeight||40;
+    const viewTop=container.scrollTop;
+    const viewBottom=viewTop+container.clientHeight;
+    if(cursorTop<viewTop+20 || cursorTop+cursorHeight>viewBottom-20){
+      container.scrollTo({top:Math.max(0, cursorTop - container.clientHeight/2 + cursorHeight/2), behavior:'smooth'});
+    }
+  }catch(e){}
+}
+
+// ============================================================
+//   Extracción de lección desde OSMD (XML/MXL → notas tocables)
+// ============================================================
+const STEP_TO_MIDI=[0,2,4,5,7,9,11]; // C D E F G A B
+
+let _extractLogCount=0;
+function _extractFromVoiceEntry(ve, time, quarterDurSec, numParts, accumulator){
+  const staffEntry = ve.parentStaffEntry || ve.ParentStaffEntry;
+  const staff = (staffEntry && (staffEntry.parentStaff || staffEntry.ParentStaff)) || null;
+  let staffIdx = 0;
+  if(staff){
+    staffIdx = staff.idInMusicSheet ?? staff.IdInMusicSheet
+            ?? staff.staffNumber ?? staff.StaffNumber
+            ?? staff.id ?? staff.Id ?? 0;
+  }
+  if(staffIdx===0 && staffEntry){
+    staffIdx = staffEntry.parentStaffNumber ?? staffEntry.ParentStaffNumber
+            ?? staffEntry.staffNumber ?? staffEntry.StaffNumber
+            ?? 0;
+  }
+  const arr = ve.Notes || ve.notes || [];
+  arr.forEach(note=>{
+    const isRest = (note.isRest && note.isRest()) || (note.IsRest && note.IsRest()) || note.isRestNote || note.IsRestNote;
+    if(isRest)return;
+    const pitch = note.Pitch || note.pitch;
+    if(!pitch)return;
+    let midi;
+    let viaFreq=false;
+    // Camino preferido: frequency en Hz → MIDI (independiente del sistema de octavas de OSMD)
+    const freq = pitch.frequency ?? pitch.Frequency ?? pitch.frequencyInHz ?? pitch.FrequencyInHz;
+    if(typeof freq==='number' && isFinite(freq) && freq>0){
+      midi = Math.round(12 * Math.log2(freq/440) + 69);
+      viaFreq=true;
+    }else{
+      const fundamental = pitch.FundamentalNote ?? pitch.fundamentalNote;
+      const octave = pitch.Octave ?? pitch.octave;
+      const accidental = pitch.AccidentalHalfTones ?? pitch.accidentalHalfTones ?? 0;
+      if(fundamental==null || octave==null)return;
+      if(!Number.isFinite(fundamental) || !Number.isFinite(octave))return;
+      if(fundamental<0 || fundamental>6)return;
+      midi = (octave+1)*12 + STEP_TO_MIDI[fundamental] + (Number.isFinite(accidental)?accidental:0);
+    }
+    if(!Number.isFinite(midi) || midi<21 || midi>108)return; // rango piano A0-C8
+
+    // Diagnóstico: las primeras 3 notas con todos sus valores raw
+    if(_extractLogCount<3){
+      const noteName=NOTE_NAMES_EN[midi%12]+(Math.floor(midi/12)-1);
+      console.log(`[lección] muestra #${_extractLogCount}: midi=${midi} (${noteName}) viaFreq=${viaFreq}`,{
+        rawFreq:freq,
+        rawFundamental: pitch.FundamentalNote ?? pitch.fundamentalNote,
+        rawOctave: pitch.Octave ?? pitch.octave,
+        rawAccidental: pitch.AccidentalHalfTones ?? pitch.accidentalHalfTones,
+      });
+      _extractLogCount++;
+    }
+
+    const lengthFr = note.Length || note.length;
+    const durQ = lengthFr ? lengthFr.RealValue : 0.25;
+    const durSec = Math.max(0.05, durQ*4*quarterDurSec);
+    const hand = numParts>2 ? (midi<60?'left':'right') : (staffIdx>0?'left':'right');
+    accumulator.push({midi, time, duration:durSec, velocity:0.7, hand});
+  });
+}
+
+function extractNotesFromOsmd(){
+  if(!osmd || !osmd.sheet){console.warn('OSMD sheet vacío'); return null}
+  const sheet = osmd.sheet;
+  _extractLogCount=0;
+  console.log('[lección] extrayendo notas — sheet:', sheet);
+
+  let bpm = sheet.DefaultStartTempoInBpm
+         || sheet.defaultStartTempoInBpm
+         || sheet.userStartTempoInBPM
+         || sheet.UserStartTempoInBPM
+         || 80;
+  if(!isFinite(bpm) || bpm<=0) bpm = 80;
+  const quarterDurSec = 60 / bpm;
+  const numParts = (sheet.Parts || sheet.parts || sheet.Instruments || []).length;
+  console.log('[lección] BPM=', bpm, 'numParts=', numParts);
+
+  const notes = [];
+
+  // ---- Camino 1: iterator (API CamelCase y lowercase) ----
+  try{
+    const pm = sheet.MusicPartManager || sheet.musicPartManager || osmd.MusicPartManager || osmd.musicPartManager;
+    if(pm && pm.getIterator){
+      const it = pm.getIterator();
+      if(it){
+        let safety = 0;
+        while(safety < 500000){
+          safety++;
+          const end = it.EndReached ?? it.endReached;
+          if(end) break;
+          const ts = it.CurrentSourceTimestamp || it.currentTimeStamp || it.CurrentTimeStamp;
+          const timeSec = (ts ? ts.RealValue : 0) * 4 * quarterDurSec;
+          const ves = it.CurrentVoiceEntries || it.currentVoiceEntries;
+          if(ves && ves.length){
+            ves.forEach(ve=>_extractFromVoiceEntry(ve, timeSec, quarterDurSec, numParts, notes));
+          }
+          if(typeof it.moveToNext==='function') it.moveToNext();
+          else if(typeof it.MoveToNext==='function') it.MoveToNext();
+          else break;
+        }
+        console.log('[lección] iterator devolvió', notes.length, 'notas');
+      }
+    }
+  }catch(e){console.warn('[lección] iterator falló:', e)}
+
+  // ---- Camino 2: lectura directa de SourceMeasures (fallback) ----
+  if(!notes.length){
+    try{
+      const measures = sheet.SourceMeasures || sheet.sourceMeasures || [];
+      console.log('[lección] fallback SourceMeasures, total compases:', measures.length);
+      measures.forEach(measure=>{
+        const mts = measure.AbsoluteTimestamp || measure.absoluteTimestamp;
+        const baseT = (mts ? mts.RealValue : 0) * 4 * quarterDurSec;
+        const containers = measure.VerticalSourceStaffEntryContainers
+                       || measure.verticalSourceStaffEntryContainers || [];
+        containers.forEach(container=>{
+          const cts = container.Timestamp || container.timestamp;
+          const innerT = (cts ? cts.RealValue : 0) * 4 * quarterDurSec;
+          const t = baseT + innerT;
+          const entries = container.StaffEntries || container.staffEntries || [];
+          entries.forEach(staffEntry=>{
+            if(!staffEntry) return;
+            const ves = staffEntry.VoiceEntries || staffEntry.voiceEntries || [];
+            ves.forEach(ve=>_extractFromVoiceEntry(ve, t, quarterDurSec, numParts, notes));
+          });
+        });
+      });
+      console.log('[lección] SourceMeasures devolvió', notes.length, 'notas');
+    }catch(e){console.warn('[lección] SourceMeasures falló:', e)}
+  }
+
+  if(!notes.length){
+    console.warn('[lección] No se pudo extraer ni una nota. Estructura del primer measure:', sheet.SourceMeasures?.[0] || sheet.sourceMeasures?.[0]);
+    return null;
+  }
+
+  notes.sort((a,b)=>a.time-b.time);
+
+  // Post-process: si todas las notas tienen el mismo hand (heurística de staff falló),
+  // repartir por pitch — más útil para falling notes con dos colores
+  const handsUsed=new Set(notes.map(n=>n.hand));
+  if(handsUsed.size===1){
+    console.log('[lección] todas las notas en mismo staff, repartiendo por pitch (midi<60=izq)');
+    notes.forEach(n=>{ n.hand = n.midi<60 ? 'left' : 'right' });
+  }
+
+  console.log('[lección] OK', notes.length, 'notas, primera:', notes[0], 'última:', notes[notes.length-1]);
+  return {notes, bpm};
+}
+
+function loadLessonFromOsmd(title){
+  console.log('[lección] loadLessonFromOsmd inicio para:', title);
+  const result=extractNotesFromOsmd();
+  if(!result){
+    console.warn('[lección] extracción retornó null — no hay notas');
+    showToast({
+      type:'warn',
+      title:'Sin lección automática',
+      body:'No pude extraer notas tocables del XML. Abre F12 → Consola y comparte los logs marcados [lección] para diagnosticar.',
+      duration:null,
+    });
+    return false;
+  }
+  console.log('[lección] extracción OK, llamando loadSong con', result.notes.length, 'notas');
+  loadSong(result.notes, title || 'Lección', result.bpm);
+  showToast({type:'success',title:'Lección lista',body:`${result.notes.length} notas · ${Math.round(result.bpm)} bpm. Pulsa ▶.`});
+  return true;
+}
+
+// ============================================================
+//   LECCIÓN: FALLING NOTES + WAIT MODE
+// ============================================================
+
+const songState = {
+  loaded:false,
+  playing:false,
+  startPerf:0,         // performance.now() del último resume
+  pausedAt:0,          // tiempo de canción acumulado al pausar
+  tempo:1.0,
+  waitMode:true,
+  notes:[],            // [{midi, time, duration, velocity, hand, played}]
+  groups:[],           // [{time, midis:Set, played:Set}]
+  nextGroup:0,
+  hits:0, misses:0,
+  duration:0,
+  bpm:80,
+  name:'',
+};
+
+const highlightedKeys={}; // midi -> 'left' | 'right' (próxima nota a tocar)
+const LOOK_AHEAD = 2.8; // segundos visibles cayendo
+const _pendingAutoTimeouts = new Set(); // timeouts de note-off del autoplay (se cancelan al cargar otra lección)
+
+// ---------- LOOP A-B ----------
+const loopState = {
+  active:false,
+  pointA:null,        // tiempo en s
+  pointB:null,        // tiempo en s
+  iteration:0,
+  hitsAtStart:0,      // snapshot de songState.hits al iniciar la iteración
+  missesAtStart:0,
+  bestAccuracy:-1,
+  lastAccuracy:-1,
+  progressive:false,  // sube tempo +5% al completar con ≥85%
+  autoExtend:false,   // extiende +1 compás al dominar a tempo 100%
+};
+
+function markPointA(){
+  if(!songState.loaded){showToast({type:'warn',title:'Sin lección cargada'});return}
+  loopState.pointA = getSongTime();
+  // Si B está antes que el nuevo A, lo limpiamos
+  if(loopState.pointB!==null && loopState.pointB <= loopState.pointA) loopState.pointB = null;
+  showToast({type:'info',title:'Punto A',body:fmtTime(loopState.pointA),duration:1500});
+  updateLoopUI();
+}
+function markPointB(){
+  if(!songState.loaded){showToast({type:'warn',title:'Sin lección cargada'});return}
+  loopState.pointB = getSongTime();
+  // Si A no está marcado o está después, lo ponemos al inicio
+  if(loopState.pointA===null || loopState.pointA >= loopState.pointB) loopState.pointA = 0;
+  showToast({type:'info',title:'Punto B',body:fmtTime(loopState.pointB),duration:1500});
+  updateLoopUI();
+}
+function clearLoop(){
+  loopState.pointA = null;
+  loopState.pointB = null;
+  loopState.active = false;
+  loopState.iteration = 0;
+  loopState.bestAccuracy = -1;
+  loopState.lastAccuracy = -1;
+  updateLoopUI();
+}
+function toggleLoopActive(){
+  if(loopState.pointA===null || loopState.pointB===null){
+    showToast({type:'warn',title:'Marca A y B primero',body:'Pulsa A en un punto y B en otro durante la reproducción.'});
+    return;
+  }
+  if(loopState.pointB - loopState.pointA < 0.2){
+    showToast({type:'warn',title:'Tramo demasiado corto',body:'B debe estar al menos 0.2s después de A.'});
+    return;
+  }
+  loopState.active = !loopState.active;
+  if(loopState.active){
+    loopState.iteration = 0;
+    loopState.bestAccuracy = -1;
+    loopState.lastAccuracy = -1;
+    loopState.hitsAtStart = songState.hits;
+    loopState.missesAtStart = songState.misses;
+    // Saltar al inicio del loop
+    seekTo(loopState.pointA);
+    showToast({type:'success',title:'Loop activado',body:`${fmtTime(loopState.pointA)} → ${fmtTime(loopState.pointB)}`});
+  }else{
+    showToast({type:'info',title:'Loop desactivado'});
+  }
+  updateLoopUI();
+}
+
+function seekTo(t){
+  // mueve el cursor de reproducción a t segundos
+  songState.pausedAt = Math.max(0, Math.min(songState.duration, t));
+  songState.startPerf = performance.now();
+
+  // Cancelar pending note-offs del autoplay anterior — si no, apagarían notas nuevas
+  _pendingAutoTimeouts.forEach(tid=>clearTimeout(tid));
+  _pendingAutoTimeouts.clear();
+
+  // Liberar notas que estuvieran sonando en el sampler
+  if(sampler && samplerReady){
+    liveNotes.forEach(m=>{
+      try{sampler.triggerRelease(midiToToneName(m))}catch(e){}
+    });
+  }
+  liveNotes.clear();
+  sustainedReleases.clear();
+
+  // All-notes-off al MIDI out por seguridad (si estaba "Enviar a Yamaha")
+  if(sendToExternalMidi && midiOutput){
+    for(let m=21;m<=108;m++){
+      try{midiOutput.send([0x80,m,0])}catch(e){}
+    }
+  }
+
+  // Limpiar teclas activas visualmente
+  for(const k in activeKeys)delete activeKeys[k];
+  draw();
+
+  // recalcular nextGroup al primer grupo a partir de t
+  songState.nextGroup = songState.groups.findIndex(g => g.time >= songState.pausedAt - 0.001);
+  if(songState.nextGroup < 0) songState.nextGroup = songState.groups.length;
+  // resetear played flags de notas en o después de t
+  songState.notes.forEach(n => { if(n.time >= songState.pausedAt - 0.001) n.played = false });
+  // limpiar grupos played
+  songState.groups.forEach(g => { if(g.time >= songState.pausedAt - 0.001) g.played.clear() });
+  updateHighlight();
+}
+
+function completeLoopIteration(){
+  loopState.iteration++;
+  const dHits = songState.hits - loopState.hitsAtStart;
+  const dMiss = songState.misses - loopState.missesAtStart;
+  const total = dHits + dMiss;
+  const hasData = total > 0;
+  const acc = hasData ? (dHits / total * 100) : -1;
+
+  loopState.lastAccuracy = acc;
+  if(hasData && acc > loopState.bestAccuracy) loopState.bestAccuracy = acc;
+
+  let msg = hasData ? `Loop ${loopState.iteration}: ${Math.round(acc)}% precisión` : `Loop ${loopState.iteration} · sin notas tocadas`;
+  let toastType = 'info';
+
+  // Subida progresiva: solo si HAY datos reales (tocaste al menos algo) y acc >= 85%
+  if(hasData && loopState.progressive && acc >= 85 && songState.tempo < 1.0){
+    const newTempoPct = Math.min(100, Math.round((songState.tempo + 0.05) * 100));
+    setTempo(newTempoPct);
+    document.getElementById('tempo-slider').value = newTempoPct;
+    msg += ` · tempo ↑ ${newTempoPct}%`;
+    toastType = 'success';
+  }
+
+  // Auto-extender: solo si HAY datos y tempo 100% y acc alta
+  if(hasData && loopState.autoExtend && acc >= 85 && songState.tempo >= 1.0){
+    const measureSec = 4 * 60 / songState.bpm; // asumimos 4/4
+    const newB = Math.min(songState.duration, loopState.pointB + measureSec);
+    if(newB > loopState.pointB){
+      loopState.pointB = newB;
+      msg += ` · B → ${fmtTime(newB)}`;
+      toastType = 'success';
+      // Si extendimos hasta el final, salir del loop
+      if(loopState.pointB >= songState.duration - 0.1){
+        loopState.active = false;
+        msg += ' · ¡Pieza completa!';
+      }
+    }
+  }
+
+  // Hint en la primera iteración sin datos: explicar al usuario que active wait mode o toque
+  if(loopState.iteration===1 && !hasData && (loopState.progressive || loopState.autoExtend)){
+    msg += ' — activa «Esperar» y toca, o las subidas no se aplicarán';
+    toastType = 'warn';
+  }
+
+  showToast({type:toastType,title:loopState.iteration===1?'Primera vuelta':'Vuelta '+loopState.iteration,body:msg,duration:2500});
+
+  // Reset counters para la siguiente iteración
+  loopState.hitsAtStart = songState.hits;
+  loopState.missesAtStart = songState.misses;
+}
+
+function updateLoopUI(){
+  const btnLoop = document.getElementById('btn-loop-toggle');
+  const markA = document.getElementById('loop-mark-a');
+  const markB = document.getElementById('loop-mark-b');
+  const region = document.getElementById('loop-region');
+  const stats = document.getElementById('loop-stats');
+  const dur = songState.duration || 1;
+
+  if(btnLoop){
+    btnLoop.textContent = loopState.active ? 'Loop ON' : 'Activar';
+    btnLoop.classList.toggle('toggle-on', loopState.active);
+  }
+  if(markA){
+    if(loopState.pointA !== null){
+      markA.style.display = 'block';
+      markA.style.left = (loopState.pointA / dur * 100) + '%';
+    }else markA.style.display = 'none';
+  }
+  if(markB){
+    if(loopState.pointB !== null){
+      markB.style.display = 'block';
+      markB.style.left = (loopState.pointB / dur * 100) + '%';
+    }else markB.style.display = 'none';
+  }
+  if(region){
+    if(loopState.pointA !== null && loopState.pointB !== null){
+      region.style.display = 'block';
+      region.style.left = (loopState.pointA / dur * 100) + '%';
+      region.style.width = ((loopState.pointB - loopState.pointA) / dur * 100) + '%';
+    }else region.style.display = 'none';
+  }
+  if(stats){
+    stats.style.display = loopState.active ? 'flex' : 'none';
+    document.getElementById('loop-iter').textContent = loopState.iteration;
+    document.getElementById('loop-best').textContent = loopState.bestAccuracy < 0 ? '—' : Math.round(loopState.bestAccuracy)+'%';
+    document.getElementById('loop-last').textContent = loopState.lastAccuracy < 0 ? '— sin tocar' : Math.round(loopState.lastAccuracy)+'%';
+  }
+}
+
+function cleanupCurrentLesson(){
+  // 1) Parar autoplay (siempre, no solo si playing)
+  songState.playing=false;
+  songState.pausedAt=0;
+  songState.startPerf=0;
+  songState.nextGroup=0;
+  const playBtn=document.getElementById('play-btn');
+  if(playBtn)playBtn.textContent='▶';
+  // 2) Cancelar todos los note-off pendientes del autoplay anterior
+  _pendingAutoTimeouts.forEach(tid=>clearTimeout(tid));
+  _pendingAutoTimeouts.clear();
+  // 3) Resetear estado del acorde acumulador
+  clearTimeout(_chordCloseTimer);
+  clearTimeout(_chordClearTimer);
+  _chord.notes.clear();
+  _chord.open=false;
+  const ndd=document.getElementById('note-name-display');
+  if(ndd){ndd.classList.remove('show','hint','chord-2','chord-3','chord-many');ndd.innerHTML=''}
+  const nidle=document.getElementById('note-idle');
+  if(nidle)nidle.classList.remove('hidden');
+  clearStaffNote();
+  // 4) Liberar todas las notas activas del sampler
+  if(sampler && samplerReady){
+    liveNotes.forEach(m=>{
+      try{sampler.triggerRelease(midiToToneName(m))}catch(e){}
+    });
+  }
+  liveNotes.clear();
+  sustainedReleases.clear();
+  // 5) All-notes-off al Yamaha si estaba activo el envío externo
+  if(midiOutput){
+    for(let m=21;m<=108;m++){
+      try{midiOutput.send([0x80,m,0])}catch(e){}
+    }
+  }
+  // 6) Limpiar teclas activas y resaltadas
+  for(const k in activeKeys)delete activeKeys[k];
+  for(const k in highlightedKeys)delete highlightedKeys[k];
+  draw();
+}
+
+function getSongTime(){
+  if(!songState.playing)return songState.pausedAt;
+  return songState.pausedAt + (performance.now()-songState.startPerf)/1000 * songState.tempo;
+}
+
+function buildGroups(notes){
+  // agrupa notas que ocurren ~simultáneamente (≤30ms)
+  const groups=[];
+  const sorted=notes.slice().sort((a,b)=>a.time-b.time);
+  let cur=null;
+  for(const n of sorted){
+    if(!cur || n.time - cur.time > 0.03){
+      cur={time:n.time, midis:new Set(), played:new Set()};
+      groups.push(cur);
+    }
+    cur.midis.add(n.midi);
+  }
+  return groups;
+}
+
+function loadSong(notes, name, bpmVal){
+  console.log('[lección] loadSong llamado:', {name, notes: notes.length, bpm: bpmVal});
+  cleanupCurrentLesson();
+  // Limpiar loop A-B al cambiar de canción
+  loopState.pointA=null;loopState.pointB=null;loopState.active=false;
+  loopState.iteration=0;loopState.bestAccuracy=-1;loopState.lastAccuracy=-1;
+  songState.notes = notes.map(n=>({...n,played:false}));
+  songState.groups = buildGroups(songState.notes);
+  songState.nextGroup=0;
+  songState.hits=0;songState.misses=0;
+  songState.pausedAt=0;songState.playing=false;
+  songState.duration = Math.max(...songState.notes.map(n=>n.time+n.duration));
+  songState.name = name;
+  songState.bpm = bpmVal||80;
+  songState.loaded = true;
+
+  document.getElementById('lesson-panel').classList.add('show');
+  document.getElementById('lesson-name').textContent=name;
+  document.getElementById('lesson-notes').textContent=songState.notes.length+' notas';
+  document.getElementById('lesson-bpm').textContent=Math.round(songState.bpm)+' bpm';
+  document.getElementById('lesson-dur').textContent=fmtTime(songState.duration);
+  fcanvas.classList.add('show');
+  layout();
+  updateHighlight();
+  renderFallingFrame();
+  updateStats();
+  resetOsmdCursor();
+  updateLoopUI();
+  // Si el toggle estaba checked de la sesión anterior, resetear visualmente
+  const cp=document.getElementById('chk-loop-progressive'); if(cp)cp.checked=loopState.progressive;
+  const ce=document.getElementById('chk-loop-extend'); if(ce)ce.checked=loopState.autoExtend;
+  console.log('[lección] DOM actualizado: lesson-name=', document.getElementById('lesson-name').textContent, 'loaded=', songState.loaded);
+}
+
+function fmtTime(s){const m=Math.floor(s/60);const r=Math.floor(s%60);return m+':'+(r<10?'0':'')+r}
+
+function togglePlay(){
+  if(!songState.loaded)return;
+  if(songState.playing){
+    songState.pausedAt = getSongTime();
+    songState.playing = false;
+    document.getElementById('play-btn').textContent='▶';
+  }else{
+    if(songState.pausedAt >= songState.duration){songState.pausedAt=0;songState.nextGroup=0;resetPlayedFlags()}
+    songState.startPerf = performance.now();
+    songState.playing = true;
+    document.getElementById('play-btn').textContent='⏸';
+    if(Tone && Tone.context.state==='suspended')Tone.context.resume();
+  }
+}
+function restartSong(){
+  songState.pausedAt=0;songState.nextGroup=0;songState.playing=false;
+  songState.hits=0;songState.misses=0;
+  resetPlayedFlags();
+  document.getElementById('play-btn').textContent='▶';
+  updateStats();updateHighlight();
+  resetOsmdCursor();
+}
+function resetPlayedFlags(){
+  songState.notes.forEach(n=>n.played=false);
+  songState.groups.forEach(g=>g.played.clear());
+}
+
+// ===== Page Visibility: pausar limpio cuando la pestaña se oculta =====
+// El navegador detiene requestAnimationFrame en pestañas ocultas, pero performance.now()
+// sigue corriendo. Sin esto, al volver getSongTime() saltó adelante y el modo auto dispara
+// todas las notas perdidas en ráfaga = sonido abrupto. Capturamos pausedAt en el instante
+// exacto del ocultamiento (antes del drift) y pausamos.
+let _metroWasActiveBeforeHide=false;
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){
+    // 1) Congelar la lección en el punto real (performance.now aún es correcto aquí)
+    if(songState.playing){
+      songState.pausedAt = getSongTime();
+      songState.playing = false;
+      const pb=document.getElementById('play-btn'); if(pb)pb.textContent='▶';
+    }
+    // 2) Soltar notas activas del sampler
+    if(sampler && samplerReady){
+      try{liveNotes.forEach(m=>sampler.triggerRelease(midiToToneName(m)))}catch(e){}
+      liveNotes.clear(); sustainedReleases.clear();
+    }
+    // 3) Cancelar note-offs pendientes del autoplay (si no, disparan al volver)
+    _pendingAutoTimeouts.forEach(tid=>clearTimeout(tid));
+    _pendingAutoTimeouts.clear();
+    // 4) AllNotesOff al Yamaha por si quedaron notas sonando
+    if(midiOutput && _sendMidi()){
+      for(let m=21;m<=108;m++){try{midiOutput.send([0x80,m,0])}catch(e){}}
+    }
+    // 5) Parar el scheduler del metrónomo (se throttlea en background)
+    _metroWasActiveBeforeHide = metroActivo;
+    if(metroActivo){ clearTimeout(_metroSchedulerId); _metroSchedulerId=null; }
+    // 6) Limpiar teclas activas visualmente
+    for(const k in activeKeys)delete activeKeys[k];
+    draw();
+  }else{
+    // Volvió a ser visible: reanudar metrónomo si estaba activo (re-anclado, sin salto)
+    if(_metroWasActiveBeforeHide && metroActivo){
+      _metroBeat=0;
+      _metroNextNoteTime=Tone.now()+0.05;
+      _metroScheduler();
+    }
+    _metroWasActiveBeforeHide=false;
+    // La lección queda EN PAUSA: el usuario pulsa play para reanudar desde pausedAt
+    // (sin auto-reanudar evitamos cualquier salto y le damos control)
+  }
+});
+function setTempo(pct){
+  // ajustar pausedAt para que el tempo cambie sin saltar el cursor
+  const t=getSongTime();
+  songState.pausedAt=t;
+  songState.startPerf=performance.now();
+  songState.tempo=pct/100;
+  document.getElementById('tempo-val').textContent=pct;
+}
+
+function updateHighlight(){
+  // borra y añade highlight de la siguiente group
+  for(const k in highlightedKeys)delete highlightedKeys[k];
+  if(songState.loaded && songState.waitMode && songState.nextGroup<songState.groups.length){
+    const g=songState.groups[songState.nextGroup];
+    g.midis.forEach(m=>{
+      const note=songState.notes.find(n=>n.midi===m && Math.abs(n.time-g.time)<0.01);
+      highlightedKeys[m]= (note&&note.hand==='left')?'left':'right';
+    });
+  }
+  draw();
+  showNextNoteHint();  // refresca la pista de próxima nota en el hero
+}
+
+function registerUserHit(midi, fromUser){
+  if(!songState.loaded)return;
+  // si modo wait y aún no completaste el grupo actual
+  if(songState.waitMode){
+    const g=songState.groups[songState.nextGroup];
+    if(g && g.midis.has(midi) && !g.played.has(midi)){
+      g.played.add(midi);
+      songState.hits++;
+      if(g.played.size >= g.midis.size){
+        // grupo completo: avanza
+        const t=g.time + 0.04;
+        songState.pausedAt=t;
+        songState.startPerf=performance.now();
+        songState.nextGroup++;
+        // marcar notas como played
+        songState.notes.forEach(n=>{
+          if(n.midi && Math.abs(n.time-g.time)<0.01)n.played=true;
+        });
+        updateHighlight();
+        advanceOsmdCursor();
+        // si estaba pausado por wait, asegurarse de seguir tocando
+        if(!songState.playing && fromUser){
+          // no auto-play si el user no le dio play
+        }
+      }
+      updateStats();
+      return true;
+    }else if(g && fromUser){
+      songState.misses++;
+      updateStats();
+      return false;
+    }
+  }
+  return null;
+}
+
+function updateStats(){
+  document.getElementById('stat-hits').textContent=songState.hits;
+  document.getElementById('stat-miss').textContent=songState.misses;
+  const tot=songState.hits+songState.misses;
+  document.getElementById('stat-acc').textContent = tot? Math.round(songState.hits/tot*100)+'%' : '—';
+}
+
+// ----- main playback loop -----
+let rafId=null;
+function playLoop(){
+  if(songState.loaded){
+    const t=getSongTime();
+
+    // Loop A-B: si estamos reproduciendo y llegamos a B, registrar iteración y volver a A
+    if(loopState.active && songState.playing && loopState.pointA!==null && loopState.pointB!==null){
+      if(t >= loopState.pointB){
+        completeLoopIteration();
+        if(loopState.active){ // puede haberse desactivado al llegar al final de la pieza
+          seekTo(loopState.pointA);
+          // CRÍTICO: t ya está obsoleto (apunta a B+). Si seguimos al modo auto en este frame,
+          // dispararíamos todos los grupos entre A y t en ráfaga. Cortamos el frame y dejamos
+          // que el próximo RAF empiece limpio con t = pointA.
+          rafId=requestAnimationFrame(playLoop);
+          return;
+        }
+      }
+    }
+
+    // Modo auto: dispara notas que pasaron por el playhead
+    if(songState.playing && !songState.waitMode){
+      let groupsAdvanced=0;
+      while(songState.nextGroup < songState.groups.length){
+        const g=songState.groups[songState.nextGroup];
+        if(g.time > t)break;
+        g.midis.forEach(m=>{
+          const note=songState.notes.find(n=>n.midi===m && Math.abs(n.time-g.time)<0.01 && !n.played);
+          if(note){
+            note.played=true;
+            const v127=Math.round(note.velocity*127);
+            // Si Modo Silencio: solo visual, sin sonido (autoplay deja al user tocar lo que ve)
+            if(!lessonMute){
+              if(_playLocal()) audioNoteOn(note.midi, v127);
+              if(_sendMidi()){
+                try{midiOutput.send([0x90,note.midi,v127])}catch(e){}
+              }
+            }
+            activeKeys[note.midi]=true;
+            const dur=note.duration/songState.tempo*1000;
+            const tid=setTimeout(()=>{
+              _pendingAutoTimeouts.delete(tid);
+              if(!lessonMute){
+                if(_playLocal()) audioNoteOff(note.midi);
+                if(_sendMidi()){
+                  try{midiOutput.send([0x80,note.midi,0])}catch(e){}
+                }
+              }
+              activeKeys[note.midi]=false; draw();
+            }, Math.min(2500,dur));
+            _pendingAutoTimeouts.add(tid);
+          }
+        });
+        songState.nextGroup++;
+        groupsAdvanced++;
+      }
+      // Sincroniza cursor de OSMD: un step por grupo MIDI avanzado
+      for(let i=0;i<groupsAdvanced;i++)advanceOsmdCursor();
+    }
+
+    // Modo wait: pausa visual cuando llega al grupo y no se ha completado
+    if(songState.playing && songState.waitMode){
+      const g=songState.groups[songState.nextGroup];
+      if(g && t >= g.time && g.played.size < g.midis.size){
+        // congelar tiempo
+        songState.pausedAt = g.time;
+        songState.startPerf = performance.now();
+      }
+    }
+
+    // Final
+    if(songState.nextGroup >= songState.groups.length && songState.playing){
+      songState.playing=false;
+      document.getElementById('play-btn').textContent='▶';
+    }
+
+    // progreso — si loop está activo, la barra ocupa solo el tramo A→B
+    const fill=document.getElementById('progress-fill');
+    if(loopState.active && loopState.pointA!==null && loopState.pointB!==null && songState.duration>0){
+      const startPct = (loopState.pointA / songState.duration) * 100;
+      const within = Math.max(0, Math.min(loopState.pointB - loopState.pointA, t - loopState.pointA));
+      const widthPct = (within / songState.duration) * 100;
+      fill.style.left = startPct + '%';
+      fill.style.width = widthPct + '%';
+    }else{
+      fill.style.left = '0%';
+      fill.style.width = Math.min(100,(t/(songState.duration||1))*100)+'%';
+    }
+
+    renderFallingFrame();
+  }
+  rafId=requestAnimationFrame(playLoop);
+}
+
+function renderFallingFrame(){
+  if(!fcanvas.classList.contains('show'))return;
+  const W=fcanvas.width, H=fcanvas.height;
+  fctx.clearRect(0,0,W,H);
+
+  if(!songState.loaded){return}
+
+  const t=getSongTime();
+  const playheadY = H - 4;
+
+  // playhead glow line
+  const grad=fctx.createLinearGradient(0,playheadY-30,0,playheadY);
+  grad.addColorStop(0,'rgba(251,191,36,0)');grad.addColorStop(1,'rgba(251,191,36,0.25)');
+  fctx.fillStyle=grad;
+  fctx.fillRect(0,playheadY-30,W,30);
+  fctx.fillStyle='rgba(251,191,36,0.85)';
+  fctx.fillRect(0,playheadY,W,2);
+
+  // dibuja notas en ventana [t, t+LOOK_AHEAD]
+  for(const n of songState.notes){
+    if(n.time + n.duration < t - 0.2)continue;
+    if(n.time > t + LOOK_AHEAD)continue;
+
+    const yTop = playheadY - ((n.time + n.duration) - t)/LOOK_AHEAD * H;
+    const yBot = playheadY - (n.time - t)/LOOK_AHEAD * H;
+    const x = keyXLeft(n.midi);
+    const w = keyWidth(n.midi);
+    const h = Math.max(8, yBot - yTop);
+
+    const isLeft = n.hand==='left';
+    const isBlack = getNoteInfo(n.midi).isBlack;
+    const baseW = isBlack ? w : w-2;
+    const baseX = isBlack ? x : x+1;
+
+    // gradient fill
+    const g=fctx.createLinearGradient(0,yTop,0,yTop+h);
+    if(n.played){
+      g.addColorStop(0,'rgba(34,197,94,0.5)');g.addColorStop(1,'rgba(34,197,94,0.15)');
+    }else if(isLeft){
+      g.addColorStop(0,'rgba(125,211,252,0.95)');g.addColorStop(1,'rgba(6,182,212,0.55)');
+    }else{
+      g.addColorStop(0,'rgba(251,113,133,0.95)');g.addColorStop(1,'rgba(236,72,153,0.55)');
+    }
+    fctx.fillStyle=g;
+    if(fctx.roundRect){fctx.beginPath();fctx.roundRect(baseX,yTop,baseW,h,[6,6,3,3]);fctx.fill()}
+    else fctx.fillRect(baseX,yTop,baseW,h);
+
+    // glow when near playhead
+    const distance=Math.abs(yBot-playheadY);
+    if(distance < 50 && !n.played){
+      fctx.shadowColor = isLeft?'#06b6d4':'#ec4899';
+      fctx.shadowBlur = 18;
+      fctx.fillStyle = 'rgba(255,255,255,0.6)';
+      if(fctx.roundRect){fctx.beginPath();fctx.roundRect(baseX,Math.max(yTop,playheadY-h),baseW,Math.min(h,playheadY-yTop+h),[6,6,3,3]);fctx.fill()}
+      fctx.shadowBlur=0;
+    }
+
+    // top stripe
+    fctx.fillStyle = isLeft?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.85)';
+    fctx.fillRect(baseX, yTop, baseW, 2);
+  }
+
+  // vertical guides for octaves (C notes)
+  fctx.strokeStyle='rgba(255,255,255,0.05)';
+  fctx.lineWidth=1;
+  for(let m=24;m<=108;m+=12){
+    const x=keyXLeft(m);
+    fctx.beginPath();fctx.moveTo(x,0);fctx.lineTo(x,playheadY);fctx.stroke();
+  }
+}
+
+// ----- carga MIDI desde archivo -----
+async function loadMidiFile(input){
+  const file=input.files[0]; if(!file)return;
+  if(!/\.(mid|midi)$/i.test(file.name)){
+    showToast({type:'error',title:'Formato no soportado',body:'Solo se aceptan archivos .mid o .midi'});
+    input.value='';return;
+  }
+  if(file.size>5*1024*1024){
+    showToast({type:'warn',title:'Archivo grande',body:'MIDI de '+(file.size/1024/1024).toFixed(1)+'MB. Puede tardar.'});
+  }
+  if(typeof Midi==='undefined'){
+    showToast({type:'error',title:'Parser MIDI no disponible',body:'No se pudo cargar la librería @tonejs/midi.'});
+    input.value='';return;
+  }
+  const loading=showToast({type:'info',title:'Procesando MIDI',body:file.name,id:'midi-loading',duration:null});
+  try{
+    const buf=await file.arrayBuffer();
+    const midi=new Midi(buf);
+    const ok=parseAndLoad(midi, file.name.replace(/\.[^.]+$/,''));
+    loading.dismiss();
+    if(ok)showToast({type:'success',title:'MIDI cargado',body:file.name});
+  }catch(e){
+    loading.dismiss();
+    showToast({type:'error',title:'MIDI inválido',body:(e&&e.message)?e.message:'No se pudo parsear el archivo.'});
+  }
+  input.value='';
+}
+
+function parseAndLoad(midi, name){
+  const notes=[];
+  midi.tracks.forEach(track=>{
+    const trackName=(track.name||'').toLowerCase();
+    let trackHand=null;
+    if(trackName.includes('left')||trackName.includes('bass')||trackName.includes('izquierda'))trackHand='left';
+    else if(trackName.includes('right')||trackName.includes('treble')||trackName.includes('derecha'))trackHand='right';
+    track.notes.forEach(n=>{
+      const hand = trackHand || (n.midi < 60 ? 'left' : 'right');
+      notes.push({midi:n.midi, time:n.time, duration:n.duration, velocity:n.velocity, hand});
+    });
+  });
+  if(!notes.length){
+    showToast({type:'warn',title:'MIDI sin notas',body:'Este archivo no contiene notas tocables.'});
+    return false;
+  }
+  const bpm = midi.header.tempos[0]?.bpm || 80;
+  loadSong(notes, name, bpm);
+  return true;
+}
+
+// ----- Für Elise: descarga el XML; la lección se genera automáticamente desde OSMD -----
+async function loadFurEliseLesson(){
+  // Detener reproducción anterior sin ocultar paneles (loadSong los actualizará)
+  if(songState.loaded){
+    cleanupCurrentLesson();
+    songState.loaded=false;
+  }
+  const ctl=new AbortController();
+  const timeout=setTimeout(()=>ctl.abort(),8000);
+  const loading=showToast({type:'info',title:'Descargando Für Elise',body:'Beethoven · Für Elise',id:'fur-elise',duration:null});
+  try{
+    const res=await fetch('https://raw.githubusercontent.com/musetrainer/library/main/F%C3%BCr%20Elise.xml',{signal:ctl.signal});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const xml=await res.text();
+    loading.dismiss();
+    await loadScoreXml(xml,'Für Elise — Beethoven');
+    // loadScoreXml dispara loadLessonFromOsmd automáticamente al terminar
+  }catch(e){
+    loading.dismiss();
+    const reason=e.name==='AbortError'?'tiempo de espera agotado':(e.message||'sin conexión');
+    showToast({type:'error',title:'No se pudo descargar Für Elise',body:reason+'. Carga manualmente un .xml/.mxl.',duration:null});
+  }finally{
+    clearTimeout(timeout);
+  }
+}
+
+// ============================================================
+//   MIDI INPUT (Yamaha)
+// ============================================================
+let _lastMidiDevice=null;
+function initMIDI(){
+  const dot=document.getElementById('status-dot'),txt=document.getElementById('status-text');
+  dot.className='dot searching';txt.textContent='Buscando MIDI…';
+  if(!navigator.requestMIDIAccess){
+    dot.className='dot';txt.textContent='Web MIDI no soportado';
+    showToast({type:'warn',title:'Sin Web MIDI',body:'Este navegador no soporta MIDI. Usa Chrome o Edge para conectar tu Yamaha.',duration:8000});
+    return;
+  }
+  navigator.requestMIDIAccess({sysex:false}).then(midi=>{
+    function update(){
+      const inputs=[...midi.inputs.values()],outputs=[...midi.outputs.values()];
+      if(inputs.length){
+        const name=inputs[0].name||'Dispositivo MIDI';
+        dot.className='dot connected';txt.textContent=name;
+        inputs.forEach(inp=>{
+          inp.onmidimessage=e=>{
+            const[cmd,d1,d2]=e.data;
+            const ch=cmd&0xF0;
+            const channel=cmd&0x0F;
+            if(ch===0x90 && d2>0){_checkArpeggioRate(); noteOn(d1,d2,'midi-in')}
+            else if(ch===0x80 || (ch===0x90 && d2===0)){noteOff(d1,'midi-in')}
+            else if(ch===0xB0 && d1===64){setSustain(d2>=64)} // sustain pedal
+            else if(ch===0xC0){
+              // Program Change: cambio de voz en el Yamaha
+              const program=d1;
+              const bankCh=_yamahaBankByCh[channel];
+              const isDrum=bankCh.msb===127;
+              // Reverse lookup en la tabla específica del PSR-E363 (con Bank Select del canal correcto)
+              const yamahaVoice=findYamahaVoiceName(bankCh.msb, bankCh.lsb, program);
+              const gmName=GM_INSTRUMENTS[program]||('Programa '+program);
+              let yamahaLabel;
+              if(isDrum){
+                yamahaLabel=`Drum Kit (XG #${program})`;
+              }else if(yamahaVoice){
+                yamahaLabel=yamahaVoice.name;
+              }else{
+                const bankInfo=(bankCh.msb||bankCh.lsb)?` (bank ${bankCh.msb}/${bankCh.lsb})`:'';
+                yamahaLabel=gmName+bankInfo;
+              }
+              console.log('[MIDI] Program Change · canal=', channel+1, 'program=', program, '· bank=', bankCh.msb+'/'+bankCh.lsb, '→', yamahaLabel);
+              // Lock: si el user acaba de seleccionar manualmente algo, ignoramos PC entrantes por 1.5s
+              if(performance.now()<_userSelectionLock){
+                console.log('[MIDI] PC entrante ignorado (selección manual reciente)');
+                return;
+              }
+              // Solo actualizamos UI con canal 1 (Right Voice / Main); canal 2 es Dual Voice
+              if(channel===0 && autoSwitchInstrument){
+                // 1) Setear estado ANTES de cualquier UI update
+                yamahaVoiceName=yamahaLabel;
+                _lastYamahaPC=program;
+                _lastYamahaBank.msb=bankCh.msb;
+                _lastYamahaBank.lsb=bankCh.lsb;
+                // 2) Asegurar que el dropdown tiene la opción
+                ensureYamahaOption(bankCh.msb, bankCh.lsb, program, yamahaLabel);
+                // 3) Cambiar preset interno (sin tocar UI por fromMidiIn=true)
+                const preset=isDrum?'drum-kit':programToPreset(program);
+                switchInstrument(preset, true);
+                // 4) Actualizar UI
+                updateInstrumentUI();
+                // 5) AUTO-SYNC: el PSR-E363 separa Main Voice (botones) del canal 1 MIDI (autoplay).
+                //    Para que las notas que la app envía suenen con la misma voz que tus dedos,
+                //    re-enviamos el Bank+PC al canal 1 inmediatamente.
+                if(_sendMidi() && !isDrum){
+                  _userSelectionLock=performance.now()+800; // evita eco si Yamaha re-emite
+                  sendYamahaProgramChange(bankCh.msb, bankCh.lsb, program);
+                  console.log('[MIDI out] auto-sync canal 1 MIDI con Main Voice:', yamahaLabel);
+                }
+                // 6) Toast informativo
+                const presetName=INSTRUMENT_PRESETS[preset]?INSTRUMENT_PRESETS[preset].name:preset;
+                const subtitle=outputMode==='yamaha'?'Sync canal 1 + Main':'App: '+presetName;
+                showToast({type:'info',title:'🎹 '+yamahaLabel, body:subtitle, duration:2500});
+              }
+            }
+            else if(ch===0xB0 && d1===0){
+              _yamahaBankByCh[channel].msb=d2;
+              console.log('[MIDI] Bank Select MSB · canal=', channel+1, 'bank=', d2);
+            }
+            else if(ch===0xB0 && d1===32){
+              _yamahaBankByCh[channel].lsb=d2;
+              console.log('[MIDI] Bank Select LSB · canal=', channel+1, 'bank=', d2);
+            }
+            // CC 67=soft, 66=sostenuto, 1=mod wheel — pendientes
+          };
+        });
+        if(_lastMidiDevice!==name){
+          showToast({type:'success',title:'MIDI conectado',body:name});
+          _lastMidiDevice=name;
+        }
+      }else{
+        dot.className='dot';txt.textContent='Sin MIDI';midiOutput=null;
+        if(_lastMidiDevice){
+          showToast({type:'warn',title:'MIDI desconectado',body:_lastMidiDevice+' ya no está disponible.'});
+          _lastMidiDevice=null;
+        }
+        // Si estábamos en modo Yamaha sin Yamaha disponible → fallback a PC
+        if(outputMode==='yamaha'){
+          console.log('[audio] sin Yamaha, fallback a PC');
+          outputMode='pc';
+          const sel=document.getElementById('output-mode');
+          if(sel)sel.value='pc';
+          showToast({type:'info',title:'Cambio a PC',body:'Sin Yamaha conectado, el sonido sale por el navegador.',duration:3500});
+        }
+      }
+      if(outputs.length){
+        midiOutput=outputs[0];
+        // Auto-set inicial: si no hay preferencia guardada y hay Yamaha → modo Yamaha
+        const savedMode=localStorage.getItem('pianopro:outputMode');
+        if(!savedMode && outputMode==='pc'){
+          outputMode='yamaha';
+          const sel=document.getElementById('output-mode');
+          if(sel)sel.value='yamaha';
+          showToast({type:'info',title:'Yamaha como salida',body:'Modo MIDI directo · sin descargar samples del navegador. Cambia a "PC" si prefieres los samples.',duration:5000});
+        }
+      }
+    }
+    update(); midi.onstatechange=()=>update();
+  }).catch(err=>{
+    dot.className='dot';txt.textContent='Error MIDI';
+    const msg=(err&&err.message)?err.message:'Permiso denegado o no disponible.';
+    showToast({type:'error',title:'No se pudo acceder a MIDI',body:msg,duration:null});
+  });
+}
+
+// ============================================================
+//   BOOT
+// ============================================================
+function checkBrowserSupport(){
+  const issues=[];
+  if(!window.AudioContext && !window.webkitAudioContext)issues.push('Web Audio');
+  if(!window.HTMLCanvasElement)issues.push('Canvas');
+  if(typeof Tone==='undefined')issues.push('Tone.js');
+  if(typeof Midi==='undefined')issues.push('@tonejs/midi');
+  if(typeof opensheetmusicdisplay==='undefined')issues.push('OSMD');
+  if(issues.length){
+    showToast({type:'error',title:'Capacidades faltantes',body:'No se cargó: '+issues.join(', ')+'. Recarga o usa Chrome/Edge actualizado.',duration:null});
+    return false;
+  }
+  return true;
+}
+
+window.addEventListener('load', async ()=>{
+  layout(); draw();
+  buildYamahaVoiceOptions(); // popula dropdown con las 115 voces PSR-E363
+  const supported=checkBrowserSupport();
+  // Restaurar modo de salida persistido
+  try{
+    const savedMode=localStorage.getItem('pianopro:outputMode');
+    if(savedMode && ['pc','yamaha','both'].includes(savedMode)){
+      outputMode=savedMode;
+      sendToExternalMidi=_sendMidi();
+      const sel=document.getElementById('output-mode');
+      if(sel)sel.value=savedMode;
+    }
+    const savedMute=localStorage.getItem('pianopro:lessonMute');
+    if(savedMute==='1'){
+      lessonMute=true;
+      const chk=document.getElementById('chk-mute-lesson');
+      if(chk)chk.checked=true;
+    }
+    const savedPractice=localStorage.getItem('pianopro:practice');
+    if(savedPractice==='1'){
+      practiceMode=true;
+      const chk=document.getElementById('chk-practice');
+      if(chk)chk.checked=true;
+    }
+  }catch(e){}
+  initMIDI();
+
+  // arrancar carga de samples
+  const audioDot=document.getElementById('audio-dot');
+  const audioTxt=document.getElementById('audio-text');
+  audioDot.className='dot searching';audioTxt.textContent='Cargando samples…';
+
+  if(!supported){
+    audioDot.className='dot';audioTxt.textContent='No disponible';
+    document.getElementById('splash').querySelector('p').textContent='Capacidades del navegador insuficientes';
+    return;
+  }
+
+  initAudio(
+    pct=>{
+      document.getElementById('splash-progress').style.width=Math.round(pct*100)+'%';
+      if(pct>=1){
+        audioDot.className='dot connected';
+        audioTxt.textContent='Salamander Grand listo';
+        document.getElementById('splash').classList.add('ready');
+        updateInstrumentUI();
+        // Restaurar último instrumento elegido (si era distinto del piano)
+        try{
+          const saved=localStorage.getItem('pianopro:instrument');
+          if(saved && saved!=='piano' && INSTRUMENT_PRESETS[saved]){
+            console.log('[audio] restaurando instrumento previo:',saved);
+            // Esperamos a que el user pulse "Comenzar" (gesto de audio) antes de cargar otro sampler
+            setTimeout(()=>switchInstrument(saved),100);
+          }
+        }catch(e){}
+      }
+    },
+    reason=>{
+      // fallo: dejamos visible el splash pero sin botón Comenzar; el toast persiste
+      audioDot.className='dot';audioTxt.textContent='Audio no disponible';
+      document.getElementById('splash').querySelector('p').textContent='No se pudieron cargar los samples';
+    }
+  );
+
+  rafId=requestAnimationFrame(playLoop);
+});
+
+function startApp(){
+  document.getElementById('splash').classList.add('gone');
+  if(typeof Tone!=='undefined' && Tone.context.state==='suspended'){
+    Tone.context.resume().catch(e=>{
+      showToast({type:'warn',title:'Audio bloqueado',body:'El navegador bloqueó el audio. Toca cualquier tecla para activarlo.'});
+    });
+  }
+}
+
+window.addEventListener('resize',()=>{layout();draw();renderFallingFrame()});
+</script>
+</body>
+</html>
