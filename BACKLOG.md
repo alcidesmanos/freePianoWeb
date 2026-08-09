@@ -182,9 +182,11 @@
   - Niveles: intervalos simples → acordes triada → 7ths → modos
   - Persiste progreso
 
-- [ ] **Análisis armónico (Roman numerals)** `[L]`
-  - Mientras tocas una progresión, mostrar I-V-vi-IV o ii-V-I
-  - Requiere detección de tonalidad estable + chord detection
+- [x] **Análisis armónico (Roman numerals)** `[L]` — **HECHO 2026-08-09**
+  - `romanNumeralFor`: mayúsc/minúsc por calidad, ° y ø, cromáticos con bemol (bVII, bVI…); chip violeta bajo el de acordes con la progresión rodante (últimos 4 grados)
+  - Tonalidad: la escala fijada manda (menor → relativa mayor); si no, la detectada por el círculo. Cambio de tonalidad resetea la progresión
+  - Solo los noteOn alimentan la progresión (los acordes transitorios al soltar no la ensucian); completar un acorde refina el grado en vez de duplicarlo
+  - `test/armonia.test.js` (8 casos, incl. I–V–vi–IV tocado de verdad)
 
 - [x] **Biblioteca de escalas** `[M]` — **HECHO 2026-08-09**
   - 12 formas (mayor, 3 menores, modos griegos, 2 pentatónicas, blues) en `SCALE_SHAPES`; selector tónica + tipo + toggle en toolbar

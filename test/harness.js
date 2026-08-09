@@ -35,6 +35,8 @@ const EXPORTS = [
   // círculo de quintas
   'detectKeyFromCounts', 'CIRCLE_ORDER', 'CIRCLE_LABELS_MAJ', 'CIRCLE_LABELS_MIN',
   'onCircleClick',
+  // análisis armónico
+  'romanNumeralFor', 'currentKeyPc',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   // integración Yamaha

@@ -597,6 +597,18 @@ label.btn{cursor:pointer}
   pointer-events:none;
 }
 #chord-display.show{opacity:1;transform:translateY(0)}
+/* Progresión en números romanos — chip violeta bajo el de acordes */
+#roman-display{
+  position:absolute;bottom:2px;right:6px;
+  font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;
+  color:#c4b5fd;letter-spacing:0.05em;
+  background:rgba(139,92,246,0.12);
+  border:1px solid rgba(139,92,246,0.4);
+  border-radius:8px;padding:0.2rem 0.55rem;
+  opacity:0;transition:opacity 0.2s;
+  pointer-events:none;
+}
+#roman-display.show{opacity:1}
 
 /* ---------- CÍRCULO DE QUINTAS ---------- */
 #circle-section{
@@ -1026,6 +1038,7 @@ input[type=range]:focus{outline:none}
       <div id="note-idle">— pulsa una tecla —</div>
       <div id="note-name-display"></div>
       <div id="chord-display" title="Acorde detectado en tiempo real"></div>
+      <div id="roman-display" title="Progresión en números romanos (según la escala fijada o la tonalidad detectada)"></div>
     </div>
     <div id="staff-block">
       <svg id="staff-svg" viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg">
@@ -2326,7 +2339,7 @@ function noteOn(midi, vel, source='virtual'){
   showNote(midi, vel, modoNotaActivo?'es':'en');
   _chordPressed.add(midi);
   _chordSustained.delete(midi);
-  updateChordDisplay();
+  updateChordDisplay(true);
   _registerKeyDetection(midi);
   if(songState.loaded && songState.waitMode) registerUserHit(midi, true);
 }
@@ -2402,19 +2415,86 @@ function detectChord(midis, mode){
   return {label, rootPc:best.rootPc, bassPc, suffix:best.shape.name};
 }
 
+// ---------- ANÁLISIS ARMÓNICO (números romanos) ----------
+// Grado romano de un acorde dentro de una tonalidad mayor. Convención:
+// mayúsculas para calidades mayores (I, V7, IVmaj7), minúsculas para menores
+// (ii7, vi), ° para disminuidos, ø para semidisminuidos, y raíces cromáticas
+// con bemol (bVII, bVI — las prestadas típicas del pop/rock).
+const DEGREE_BY_OFFSET={0:'I',2:'II',4:'III',5:'IV',7:'V',9:'VI',11:'VII'};
+const CHROMATIC_BY_OFFSET={1:'bII',3:'bIII',6:'bV',8:'bVI',10:'bVII'};
+
+function romanNumeralFor(rootPc, suffix, keyPc){
+  if(!Number.isFinite(rootPc)||!Number.isFinite(keyPc))return null;
+  const off=(rootPc-keyPc+12)%12;
+  const base=DEGREE_BY_OFFSET[off]||CHROMATIC_BY_OFFSET[off];
+  if(!base)return null;
+  suffix=suffix||'';
+  const isDim=suffix==='dim'||suffix==='dim7';
+  const isHalfDim=suffix==='m7b5';
+  const isMinorQ=/^m(?!aj)/.test(suffix);
+  let tail;
+  if(isDim)tail='°'+(suffix==='dim7'?'7':'');
+  else if(isHalfDim)tail='ø7';
+  else if(suffix==='m')tail='';
+  else if(isMinorQ)tail=suffix.replace(/^m/,'');
+  else if(suffix==='aug')tail='+';
+  else tail=suffix;
+  const numeral=(isMinorQ||isDim||isHalfDim)?base.toLowerCase():base;
+  return numeral+tail;
+}
+
+// Tonalidad de referencia para el análisis: la escala fijada por el usuario
+// manda (mayor directa; menor → su relativa mayor); si no hay, la detectada
+// en vivo por el círculo de quintas. null = aún no se sabe.
+function currentKeyPc(){
+  if(scaleState.active){
+    if(scaleState.shapeId==='major')return scaleState.rootPc;
+    if(scaleState.shapeId==='minor')return (scaleState.rootPc+3)%12;
+  }
+  return _detectedMajorPc;
+}
+
+// Progresión rodante (últimos 4 grados). Si vuelves a tocar un acorde con la
+// MISMA fundamental que el último (p.ej. C5 que se completa a C, o un re-toque),
+// se refina en su lugar en vez de duplicarse.
+const _romanHistory=[];
+let _romanKeyPc=null;
+function _pushRoman(chord){
+  const el=document.getElementById('roman-display');
+  const keyPc=currentKeyPc();
+  if(keyPc==null){ if(el)el.classList.remove('show'); return; }
+  if(_romanKeyPc!==keyPc){ _romanHistory.length=0; _romanKeyPc=keyPc; }
+  const rn=romanNumeralFor(chord.rootPc, chord.suffix, keyPc);
+  if(!rn)return;
+  const last=_romanHistory[_romanHistory.length-1];
+  if(last && last.rootPc===chord.rootPc){ last.label=rn; }
+  else{
+    _romanHistory.push({label:rn, rootPc:chord.rootPc});
+    if(_romanHistory.length>4)_romanHistory.shift();
+  }
+  if(el){
+    el.textContent=_romanHistory.map(h=>h.label).join(' – ');
+    el.classList.add('show');
+  }
+}
+
 // Notas "sonando" a efectos de detección: presionadas + retenidas por sustain.
 // Independiente de liveNotes (que solo existe en salida PC) — funciona igual
 // tocando en modo Yamaha.
 const _chordPressed=new Set();
 const _chordSustained=new Set();
 
-function updateChordDisplay(){
+// registerProgression=true solo desde noteOn: los acordes transitorios que
+// aparecen al SOLTAR notas (p.ej. C→C5 al soltar la tercera) no deben
+// reescribir la progresión de números romanos.
+function updateChordDisplay(registerProgression){
   const el=document.getElementById('chord-display');
   if(!el)return;
   const chord=detectChord([..._chordPressed, ..._chordSustained], modoNotaActivo?'es':'en');
   if(!chord){el.classList.remove('show');return}
   el.textContent=chord.label;
   el.classList.add('show');
+  if(registerProgression)_pushRoman(chord);
 }
 
 // ============================================================
