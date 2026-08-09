@@ -3377,6 +3377,7 @@ function loadSong(notes, name, bpmVal){
   // Si el toggle estaba checked de la sesión anterior, resetear visualmente
   const cp=document.getElementById('chk-loop-progressive'); if(cp)cp.checked=loopState.progressive;
   const ce=document.getElementById('chk-loop-extend'); if(ce)ce.checked=loopState.autoExtend;
+  saveSession();
   console.log('[lección] DOM actualizado: lesson-name=', document.getElementById('lesson-name').textContent, 'loaded=', songState.loaded);
 }
 
@@ -3424,6 +3425,7 @@ function setHandFilter(filter){
   songState.handFilter=filter;
   rebuildActiveNotes();
   updateHandFilterUI();
+  saveSession();
   const msg={
     both:'Ambas manos activas.',
     left:'Solo mano izquierda — la derecha se atenúa en gris.',
@@ -3474,12 +3476,133 @@ function transposeSong(delta){
   updateTransposeUI();
   const label=target===0?'Tono original':(target>0?'+':'')+target+' semitono'+(Math.abs(target)===1?'':'s');
   showToast({type:'info',title:'♫ Transposición',body:label,duration:2000});
+  saveSession();
 }
 
 function updateTransposeUI(){
   const el=document.getElementById('transpose-val');
   if(el)el.textContent=(songState.transpose>0?'+':'')+songState.transpose;
 }
+
+// ============================================================
+//   PERSISTENCIA DE SESIÓN (IndexedDB)
+// ============================================================
+// Recargar el navegador no debe tirar lo que estabas practicando: se guarda
+// la última canción (notas ya extraídas + nombre + bpm) y los ajustes de
+// práctica, y se restauran al abrir. IndexedDB (no localStorage) porque una
+// pieza larga supera cómodamente el límite de ~5MB de localStorage.
+const IDB_NAME='pianopro', IDB_STORE='session', IDB_KEY='last';
+
+function idbOpen(){
+  return new Promise((resolve,reject)=>{
+    if(typeof indexedDB==='undefined'||!indexedDB)return reject(new Error('IndexedDB no disponible'));
+    const rq=indexedDB.open(IDB_NAME,1);
+    rq.onupgradeneeded=()=>{rq.result.createObjectStore(IDB_STORE)};
+    rq.onsuccess=()=>resolve(rq.result);
+    rq.onerror=()=>reject(rq.error);
+  });
+}
+async function idbSet(key,val){
+  const db=await idbOpen();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).put(val,key);
+    tx.oncomplete=()=>{db.close();resolve()};
+    tx.onerror=()=>{db.close();reject(tx.error)};
+  });
+}
+async function idbGet(key){
+  const db=await idbOpen();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(IDB_STORE,'readonly');
+    const rq=tx.objectStore(IDB_STORE).get(key);
+    rq.onsuccess=()=>{db.close();resolve(rq.result)};
+    rq.onerror=()=>{db.close();reject(rq.error)};
+  });
+}
+
+// Foto serializable del estado de práctica actual (null si no hay lección).
+function buildSessionSnapshot(){
+  if(!songState.loaded||!songState.allNotes.length)return null;
+  return {
+    v:1,
+    savedAt:Date.now(),
+    song:{
+      name:songState.name,
+      bpm:songState.bpm,
+      // Se guarda origMidi como midi: al restaurar, loadSong lo vuelve a
+      // tomar como fuente de verdad y la transposición se re-aplica encima.
+      notes:songState.allNotes.map(n=>{
+        const r={midi:(n.origMidi!==undefined?n.origMidi:n.midi), time:n.time, duration:n.duration, velocity:n.velocity, hand:n.hand};
+        if(n.finger)r.finger=n.finger;
+        return r;
+      }),
+    },
+    transpose:songState.transpose,
+    handFilter:songState.handFilter,
+    tempoPct:Math.round(songState.tempo*100),
+    waitMode:songState.waitMode,
+    modoNota:modoNotaActivo,
+    bpmMetro:bpm,
+  };
+}
+
+// Aplica una foto guardada (defensivo: ignora campos corruptos).
+// Devuelve true si restauró una lección.
+function applySessionSnapshot(snap){
+  if(!snap||!snap.song||!Array.isArray(snap.song.notes)||!snap.song.notes.length)return false;
+  loadSong(snap.song.notes, snap.song.name||'Sesión anterior', snap.song.bpm||80);
+  if(Number.isFinite(snap.transpose)&&snap.transpose!==0&&Math.abs(snap.transpose)<=12){
+    songState.transpose=snap.transpose;
+    songState.allNotes.forEach(n=>{n.midi=n.origMidi+snap.transpose});
+  }
+  if((snap.handFilter==='left'||snap.handFilter==='right') && songState.allNotes.some(n=>n.hand===snap.handFilter)){
+    songState.handFilter=snap.handFilter;
+  }
+  rebuildActiveNotes();
+  updateTransposeUI();
+  updateHandFilterUI();
+  if(Number.isFinite(snap.tempoPct)){
+    const t=Math.max(40,Math.min(150,Math.round(snap.tempoPct)));
+    setTempo(t);
+    const s=document.getElementById('tempo-slider'); if(s)s.value=t;
+  }
+  if(typeof snap.waitMode==='boolean'){
+    songState.waitMode=snap.waitMode;
+    const c=document.getElementById('chk-wait'); if(c)c.checked=snap.waitMode;
+  }
+  if(typeof snap.modoNota==='boolean'){
+    modoNotaActivo=snap.modoNota;
+    const c=document.getElementById('chk-nota'); if(c)c.checked=snap.modoNota;
+  }
+  if(Number.isFinite(snap.bpmMetro)){
+    const b=Math.max(40,Math.min(200,Math.round(snap.bpmMetro)));
+    setBPM(b);
+    const s=document.getElementById('bpm-slider'); if(s)s.value=b;
+  }
+  updateHighlight();
+  return true;
+}
+
+let _saveSessionPending=false;
+function saveSession(){
+  if(_saveSessionPending)return;
+  const snap=buildSessionSnapshot();
+  if(!snap)return;
+  _saveSessionPending=true;
+  idbSet(IDB_KEY,snap)
+    .catch(e=>console.warn('[sesión] no se pudo guardar:',e&&e.message))
+    .finally(()=>{_saveSessionPending=false});
+}
+function restoreSession(){
+  idbGet(IDB_KEY).then(snap=>{
+    if(songState.loaded)return; // el usuario ya cargó otra cosa más rápido
+    if(applySessionSnapshot(snap)){
+      showToast({type:'info',title:'Sesión restaurada',body:snap.song.name+' · como la dejaste',duration:3500});
+    }
+  }).catch(()=>{/* primera visita o IndexedDB no disponible */});
+}
+window.addEventListener('pagehide',()=>{try{saveSession()}catch(e){}});
 
 // ---------- ATAJOS DE TECLADO ----------
 // Espacio=play/pausa · R=reiniciar · W=modo esperar · M=metrónomo · +/-=tempo ±5%
@@ -3557,6 +3680,8 @@ document.addEventListener('visibilitychange', ()=>{
     // 6) Limpiar teclas activas visualmente
     for(const k in activeKeys)delete activeKeys[k];
     draw();
+    // 7) Guardar la sesión (momento ideal: el usuario se fue de la pestaña)
+    saveSession();
   }else{
     // Volvió a ser visible: reanudar metrónomo si estaba activo (re-anclado, sin salto)
     if(_metroWasActiveBeforeHide && metroActivo){
@@ -4124,6 +4249,7 @@ window.addEventListener('load', async ()=>{
     }
   }catch(e){}
   initMIDI();
+  restoreSession();
 
   // arrancar carga de samples
   const audioDot=document.getElementById('audio-dot');
