@@ -704,6 +704,23 @@ input[type=range]:focus{outline:none}
 
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 
+/* ---------- DRAG & DROP ---------- */
+#drop-overlay{
+  position:fixed;inset:10px;z-index:900;
+  display:none;place-items:center;
+  background:rgba(10,8,20,0.72);backdrop-filter:blur(10px);
+  border:3px dashed var(--cyan);border-radius:22px;
+  pointer-events:none;
+  box-shadow:0 0 60px rgba(6,182,212,0.25) inset;
+}
+#drop-overlay.show{display:grid}
+#drop-overlay .msg{text-align:center}
+#drop-overlay .msg .t{
+  font-family:'Fraunces',serif;font-size:28px;font-weight:400;letter-spacing:-0.02em;
+  background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;
+}
+#drop-overlay .msg .s{margin-top:0.5rem;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);letter-spacing:0.06em}
+
 @media (max-width:1100px){
   #info-panel{grid-template-columns:auto 1fr auto auto}
 }
@@ -728,6 +745,7 @@ input[type=range]:focus{outline:none}
 <body>
 <div class="grain"></div>
 <div id="toast-container"></div>
+<div id="drop-overlay"><div class="msg"><div class="t">Suelta el archivo</div><div class="s">.mid · .midi · .xml · .musicxml · .mxl</div></div></div>
 
 <!-- LOADING SPLASH -->
 <div id="splash">
@@ -2505,8 +2523,12 @@ let _activeXmlReader=null;
 let _xmlLoadToken=0;
 
 async function loadXmlFile(input){
+  const file=input.files[0];
+  input.value='';
+  if(file)await loadXmlFromFile(file);
+}
+async function loadXmlFromFile(file){
  try{
-  const file=input.files[0];if(!file){return}
   const myToken=++_xmlLoadToken;
   console.log('[partitura] loadXmlFile START — file:', file.name, 'token:', myToken);
 
@@ -2516,7 +2538,7 @@ async function loadXmlFile(input){
 
   if(!isMxl && !isPlain){
     showToast({type:'error',title:'Formato no soportado',body:'Solo se aceptan .xml, .musicxml o .mxl'});
-    input.value='';return;
+    return;
   }
 
   // Hard reject para XML enormes (en .mxl es comprimido, no aplica)
@@ -2528,7 +2550,7 @@ async function loadXmlFile(input){
       body:`XML de ${sizeMB}MB excede el límite de 30MB. Convierte a .mxl (es ~10× más pequeño) o exporta solo la parte de piano desde MuseScore.`,
       duration:null,
     });
-    input.value='';return;
+    return;
   }
   if(isPlain && file.size > 10*1024*1024){
     showToast({type:'warn',title:'Archivo grande',body:`${(file.size/1024/1024).toFixed(1)}MB sin comprimir. Recomendamos .mxl para mejor rendimiento.`});
@@ -2553,7 +2575,7 @@ async function loadXmlFile(input){
 
   initOSMD();
   console.log('[partitura] step4 initOSMD done');
-  if(!osmd){input.value='';return}
+  if(!osmd){return}
   console.log('[partitura] step4a osmd OK');
   if(!scoreVisible)toggleScore();
   console.log('[partitura] step4b scoreVisible check, scoreVisible=', scoreVisible);
@@ -2715,10 +2737,8 @@ async function loadXmlFile(input){
   if(isMxl) reader.readAsArrayBuffer(file);
   else reader.readAsText(file);
   console.log('[partitura] step6 read started');
-
-  input.value='';
  }catch(outerErr){
-  console.error('[partitura] loadXmlFile lanzó excepción:', outerErr);
+  console.error('[partitura] loadXmlFromFile lanzó excepción:', outerErr);
   showToast({type:'error',title:'Error al cargar partitura',body:(outerErr&&outerErr.message)||'Excepción desconocida. Mira F12.',duration:null});
  }
 }
@@ -3730,17 +3750,21 @@ function renderFallingFrame(){
 
 // ----- carga MIDI desde archivo -----
 async function loadMidiFile(input){
-  const file=input.files[0]; if(!file)return;
+  const file=input.files[0];
+  input.value='';
+  if(file)await loadMidiFromFile(file);
+}
+async function loadMidiFromFile(file){
   if(!/\.(mid|midi)$/i.test(file.name)){
     showToast({type:'error',title:'Formato no soportado',body:'Solo se aceptan archivos .mid o .midi'});
-    input.value='';return;
+    return;
   }
   if(file.size>5*1024*1024){
     showToast({type:'warn',title:'Archivo grande',body:'MIDI de '+(file.size/1024/1024).toFixed(1)+'MB. Puede tardar.'});
   }
   if(typeof Midi==='undefined'){
     showToast({type:'error',title:'Parser MIDI no disponible',body:'No se pudo cargar la librería @tonejs/midi.'});
-    input.value='';return;
+    return;
   }
   const loading=showToast({type:'info',title:'Procesando MIDI',body:file.name,id:'midi-loading',duration:null});
   try{
@@ -3753,7 +3777,6 @@ async function loadMidiFile(input){
     loading.dismiss();
     showToast({type:'error',title:'MIDI inválido',body:(e&&e.message)?e.message:'No se pudo parsear el archivo.'});
   }
-  input.value='';
 }
 
 function parseAndLoad(midi, name){
@@ -3802,6 +3825,47 @@ async function loadFurEliseLesson(){
     clearTimeout(timeout);
   }
 }
+
+// ============================================================
+//   DRAG & DROP DE ARCHIVOS
+// ============================================================
+// Clasifica un archivo por extensión: 'midi' | 'xml' | null (no soportado)
+function classifyPianoFile(name){
+  const ext=(String(name||'').match(/\.[^.]+$/)||[''])[0].toLowerCase();
+  if(ext==='.mid'||ext==='.midi')return 'midi';
+  if(ext==='.xml'||ext==='.musicxml'||ext==='.mxl')return 'xml';
+  return null;
+}
+
+// dragenter/leave se disparan por cada hijo del DOM: el contador evita que
+// el overlay parpadee al mover el cursor entre elementos.
+let _dragDepth=0;
+function _setDropOverlay(on){
+  const ov=document.getElementById('drop-overlay');
+  if(ov)ov.classList.toggle('show',on);
+}
+window.addEventListener('dragenter',e=>{
+  if(!e.dataTransfer)return;
+  e.preventDefault();
+  _dragDepth++;
+  _setDropOverlay(true);
+});
+window.addEventListener('dragover',e=>{e.preventDefault()});
+window.addEventListener('dragleave',()=>{
+  _dragDepth=Math.max(0,_dragDepth-1);
+  if(_dragDepth===0)_setDropOverlay(false);
+});
+window.addEventListener('drop',e=>{
+  e.preventDefault();
+  _dragDepth=0;
+  _setDropOverlay(false);
+  const file=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
+  if(!file)return;
+  const kind=classifyPianoFile(file.name);
+  if(kind==='midi')loadMidiFromFile(file);
+  else if(kind==='xml')loadXmlFromFile(file);
+  else showToast({type:'warn',title:'Formato no soportado',body:file.name+' — usa .mid, .midi, .xml, .musicxml o .mxl',duration:4500});
+});
 
 // ============================================================
 //   MIDI INPUT (Yamaha)
