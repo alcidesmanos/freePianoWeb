@@ -2346,7 +2346,9 @@ function drawStaffChord(midis, mode){
 // Programa UN click en un tiempo absoluto de audio (segundos, base AudioContext).
 // Así el sonido cae clavado aunque el event loop tartamudee.
 function scheduleMetroClick(time){
-  if(!samplerReady)return;
+  // El click es un Oscillator puro: no depende de los samples del sampler,
+  // solo de que Tone esté cargado (modo Yamaha con CDN caído sigue teniendo metrónomo)
+  if(typeof Tone==='undefined')return;
   const tick=new Tone.Oscillator(880,'sine');   // sin .toDestination(): va por el env
   const env=new Tone.AmplitudeEnvelope({attack:0.002,decay:0.05,sustain:0,release:0.05}).toDestination();
   tick.connect(env);
@@ -2383,12 +2385,13 @@ function setBPM(val){
 function toggleMetronomo(on){
   metroActivo=on;
   if(on){
-    if(typeof Tone==='undefined' || !samplerReady){
-      showToast({type:'warn',title:'Audio no listo',body:'Espera a que cargue el motor de audio y reactiva el metrónomo.'});
+    if(typeof Tone==='undefined'){
+      showToast({type:'warn',title:'Audio no listo',body:'No se pudo cargar el motor de audio (Tone.js). Recarga la página.'});
       metroActivo=false;
       const chk=document.getElementById('chk-metro'); if(chk)chk.checked=false;
       return;
     }
+    if(Tone.context.state==='suspended')Tone.context.resume();
     _metroBeat=0;
     _metroNextNoteTime=Tone.now()+0.05;  // pequeño colchón para el primer click
     _metroScheduler();
