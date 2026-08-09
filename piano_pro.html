@@ -769,7 +769,7 @@ input[type=range]:focus{outline:none}
     <span class="spacer"></span>
     <label class="toggle"><input type="checkbox" id="chk-nota" onchange="modoNotaActivo=this.checked"><span class="switch"></span><span>Modo nota</span></label>
     <label class="toggle" title="Muestra Do Re Mi... sobre cada tecla blanca del piano"><input type="checkbox" id="chk-practice" onchange="setPracticeMode(this.checked)"><span class="switch"></span><span>Notas en teclas</span></label>
-    <label class="toggle"><input type="checkbox" id="chk-metro" onchange="toggleMetronomo(this.checked)"><span class="switch"></span><span>Metrónomo</span></label>
+    <label class="toggle" title="Metrónomo (M)"><input type="checkbox" id="chk-metro" onchange="toggleMetronomo(this.checked)"><span class="switch"></span><span>Metrónomo</span></label>
     <select id="output-mode" onchange="setOutputMode(this.value)" title="Por dónde sale el sonido">
       <option value="pc">Salida: PC</option>
       <option value="yamaha">Salida: Yamaha</option>
@@ -833,9 +833,9 @@ input[type=range]:focus{outline:none}
       <div class="meta"><span id="lesson-notes">0 notas</span><span class="sep">·</span><span id="lesson-bpm">— bpm</span><span class="sep">·</span><span id="lesson-dur">0:00</span></div>
     </div>
     <div class="transport">
-      <button class="tbtn" onclick="restartSong()" title="Reiniciar">⟲</button>
-      <button class="tbtn play" id="play-btn" onclick="togglePlay()" title="Play / Pausa">▶</button>
-      <label class="toggle" style="margin-left:0.4rem"><input type="checkbox" id="chk-wait" checked onchange="songState.waitMode=this.checked"><span class="switch"></span><span>Esperar</span></label>
+      <button class="tbtn" onclick="restartSong()" title="Reiniciar (R)">⟲</button>
+      <button class="tbtn play" id="play-btn" onclick="togglePlay()" title="Play / Pausa (Espacio)">▶</button>
+      <label class="toggle" style="margin-left:0.4rem" title="Pausa hasta que toques la nota correcta (W)"><input type="checkbox" id="chk-wait" checked onchange="songState.waitMode=this.checked"><span class="switch"></span><span>Esperar</span></label>
       <label class="toggle" title="La lección avanza visualmente sin sonido. Tú tocas lo que ves."><input type="checkbox" id="chk-mute-lesson" onchange="setLessonMute(this.checked)"><span class="switch"></span><span>Silencio</span></label>
       <div class="hand-filter" title="Manos separadas: practica una sola mano; la otra se atenúa en las notas que caen">
         <button id="hand-both" class="active" onclick="setHandFilter('both')">Ambas</button>
@@ -3394,6 +3394,50 @@ function updateTransposeUI(){
   const el=document.getElementById('transpose-val');
   if(el)el.textContent=(songState.transpose>0?'+':'')+songState.transpose;
 }
+
+// ---------- ATAJOS DE TECLADO ----------
+// Espacio=play/pausa · R=reiniciar · W=modo esperar · M=metrónomo · +/-=tempo ±5%
+// Devuelve true si consumió la tecla (el listener hace preventDefault).
+function handleKeyboardShortcut(e){
+  // nunca interceptar mientras se escribe en un input/select (filtro de instrumentos, sliders)
+  const tag=((e.target&&e.target.tagName)||'').toLowerCase();
+  if(tag==='input'||tag==='select'||tag==='textarea')return false;
+  if(e.ctrlKey||e.metaKey||e.altKey)return false;
+  const k=e.key;
+  if(k===' '){
+    if(!songState.loaded)return false;
+    togglePlay();
+    return true;
+  }
+  if(k==='r'||k==='R'){
+    if(!songState.loaded)return false;
+    restartSong();
+    return true;
+  }
+  if(k==='w'||k==='W'){
+    songState.waitMode=!songState.waitMode;
+    const c=document.getElementById('chk-wait'); if(c)c.checked=songState.waitMode;
+    updateHighlight();
+    return true;
+  }
+  if(k==='m'||k==='M'){
+    const on=!metroActivo;
+    const c=document.getElementById('chk-metro'); if(c)c.checked=on;
+    toggleMetronomo(on);
+    return true;
+  }
+  if(k==='+'||k==='=')return nudgeTempo(5);
+  if(k==='-'||k==='_')return nudgeTempo(-5);
+  return false;
+}
+function nudgeTempo(delta){
+  if(!songState.loaded)return false;
+  const next=Math.max(40,Math.min(150,Math.round(songState.tempo*100)+delta));
+  setTempo(next);
+  const s=document.getElementById('tempo-slider'); if(s)s.value=next;
+  return true;
+}
+window.addEventListener('keydown',e=>{ if(handleKeyboardShortcut(e))e.preventDefault(); });
 
 // ===== Page Visibility: pausar limpio cuando la pestaña se oculta =====
 // El navegador detiene requestAnimationFrame en pestañas ocultas, pero performance.now()

@@ -24,7 +24,7 @@ const EXPORTS = [
   // motor de lección
   'buildGroups', 'registerUserHit', 'seekTo', 'getSongTime', 'setTempo',
   'updateHighlight', 'resetPlayedFlags', 'fmtTime', 'setHandFilter',
-  'transposeSong',
+  'transposeSong', 'handleKeyboardShortcut', 'nudgeTempo',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   // integración Yamaha
@@ -122,6 +122,7 @@ function loadPiano() {
       getElementById: getEl,
       createElement: () => fakeEl(),
       createElementNS: () => fakeEl(),
+      querySelectorAll: () => [],
       addEventListener() {},
       hidden: false,
     },
@@ -131,8 +132,11 @@ function loadPiano() {
     localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
     console,
     setTimeout, clearTimeout, setInterval, clearInterval,
-    // Tone/Midi/JSZip/OSMD quedan undefined a propósito: el motor los
-    // guarda con typeof en cada uso; los tests unitarios no los tocan.
+    // Librerías CDN declaradas como undefined (no ausentes): así tanto los
+    // guards con typeof como las referencias directas (if(Tone && ...)) se
+    // comportan como "no cargada" en vez de lanzar ReferenceError.
+    Tone: undefined, Midi: undefined, JSZip: undefined,
+    opensheetmusicdisplay: undefined, indexedDB: undefined,
   };
   sandbox.globalThis = sandbox;
 
