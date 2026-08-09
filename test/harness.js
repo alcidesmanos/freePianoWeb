@@ -23,7 +23,7 @@ const EXPORTS = [
   'songState', 'loopState', 'highlightedKeys', 'activeKeys',
   // motor de lección
   'buildGroups', 'registerUserHit', 'seekTo', 'getSongTime', 'setTempo',
-  'updateHighlight', 'resetPlayedFlags', 'fmtTime',
+  'updateHighlight', 'resetPlayedFlags', 'fmtTime', 'setHandFilter',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   // integración Yamaha

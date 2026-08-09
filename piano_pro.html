@@ -330,6 +330,20 @@ label.btn{cursor:pointer}
 }
 .tbtn.play:hover{box-shadow:0 12px 32px rgba(236,72,153,0.55)}
 
+/* Manos separadas: control segmentado Ambas/Izq/Der */
+.hand-filter{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-left:0.4rem}
+.hand-filter button{
+  font-family:inherit;font-size:11px;font-weight:600;letter-spacing:0.03em;
+  padding:0.35rem 0.7rem;
+  background:var(--glass-2);color:var(--text-dim);
+  border:none;cursor:pointer;transition:all 0.2s;
+}
+.hand-filter button:not(:last-child){border-right:1px solid var(--border)}
+.hand-filter button:hover{color:var(--text)}
+.hand-filter button.active{color:#fff;background:linear-gradient(135deg,rgba(139,92,246,0.6),rgba(6,182,212,0.5))}
+.hand-filter button.left.active{background:linear-gradient(135deg,rgba(6,182,212,0.75),rgba(45,212,191,0.6));box-shadow:0 0 14px rgba(6,182,212,0.35)}
+.hand-filter button.right.active{background:linear-gradient(135deg,rgba(236,72,153,0.75),rgba(168,85,247,0.6));box-shadow:0 0 14px rgba(236,72,153,0.35)}
+
 .tempo-control{display:flex;flex-direction:column;gap:0.3rem;min-width:180px}
 .tempo-control .head{display:flex;justify-content:space-between;font-size:11px;color:var(--text-mute);letter-spacing:0.12em;text-transform:uppercase;font-weight:600}
 .tempo-control .head .val{font-family:'JetBrains Mono',monospace;color:var(--cyan);font-size:13px;letter-spacing:0;text-transform:none}
@@ -811,6 +825,11 @@ input[type=range]:focus{outline:none}
       <button class="tbtn play" id="play-btn" onclick="togglePlay()" title="Play / Pausa">▶</button>
       <label class="toggle" style="margin-left:0.4rem"><input type="checkbox" id="chk-wait" checked onchange="songState.waitMode=this.checked"><span class="switch"></span><span>Esperar</span></label>
       <label class="toggle" title="La lección avanza visualmente sin sonido. Tú tocas lo que ves."><input type="checkbox" id="chk-mute-lesson" onchange="setLessonMute(this.checked)"><span class="switch"></span><span>Silencio</span></label>
+      <div class="hand-filter" title="Manos separadas: practica una sola mano; la otra se atenúa en las notas que caen">
+        <button id="hand-both" class="active" onclick="setHandFilter('both')">Ambas</button>
+        <button id="hand-left" class="left" onclick="setHandFilter('left')">Izq</button>
+        <button id="hand-right" class="right" onclick="setHandFilter('right')">Der</button>
+      </div>
     </div>
     <div class="tempo-control">
       <div class="head"><span>Tempo</span><span class="val"><span id="tempo-val">100</span>%</span></div>
@@ -2894,8 +2913,10 @@ const songState = {
   pausedAt:0,          // tiempo de canción acumulado al pausar
   tempo:1.0,
   waitMode:true,
-  notes:[],            // [{midi, time, duration, velocity, hand, played}]
-  groups:[],           // [{time, midis:Set, played:Set}]
+  handFilter:'both',   // 'both' | 'left' | 'right' — modo manos separadas
+  allNotes:[],         // todas las notas de la pieza (sin filtrar)
+  notes:[],            // notas ACTIVAS según handFilter [{midi, time, duration, velocity, hand, played}]
+  groups:[],           // [{time, midis:Set, played:Set, notes:[]}]
   nextGroup:0,
   hits:0, misses:0,
   duration:0,
@@ -3174,12 +3195,14 @@ function loadSong(notes, name, bpmVal){
   // Limpiar loop A-B al cambiar de canción
   loopState.pointA=null;loopState.pointB=null;loopState.active=false;
   loopState.iteration=0;loopState.bestAccuracy=-1;loopState.lastAccuracy=-1;
-  songState.notes = notes.map(n=>({...n,played:false}));
+  songState.allNotes = notes.map(n=>({...n,played:false}));
+  songState.handFilter='both';
+  songState.notes = songState.allNotes;
   songState.groups = buildGroups(songState.notes);
   songState.nextGroup=0;
   songState.hits=0;songState.misses=0;
   songState.pausedAt=0;songState.playing=false;
-  songState.duration = Math.max(...songState.notes.map(n=>n.time+n.duration));
+  songState.duration = Math.max(...songState.allNotes.map(n=>n.time+n.duration));
   songState.name = name;
   songState.bpm = bpmVal||80;
   songState.loaded = true;
@@ -3196,6 +3219,7 @@ function loadSong(notes, name, bpmVal){
   updateStats();
   resetOsmdCursor();
   updateLoopUI();
+  updateHandFilterUI();
   // Si el toggle estaba checked de la sesión anterior, resetear visualmente
   const cp=document.getElementById('chk-loop-progressive'); if(cp)cp.checked=loopState.progressive;
   const ce=document.getElementById('chk-loop-extend'); if(ce)ce.checked=loopState.autoExtend;
@@ -3227,8 +3251,41 @@ function restartSong(){
   resetOsmdCursor();
 }
 function resetPlayedFlags(){
-  songState.notes.forEach(n=>n.played=false);
+  // allNotes cubre también la mano filtrada (comparten referencias con notes)
+  (songState.allNotes.length ? songState.allNotes : songState.notes).forEach(n=>n.played=false);
   songState.groups.forEach(g=>g.played.clear());
+}
+
+// ---------- MANOS SEPARADAS ----------
+// Practica una sola mano: la otra desaparece del wait mode y del autoplay,
+// pero sigue visible atenuada en las notas que caen. El progreso se conserva
+// (los flags played viven en los objetos de allNotes, compartidos por referencia).
+function setHandFilter(filter){
+  if(!['both','left','right'].includes(filter))filter='both';
+  if(!songState.loaded){showToast({type:'warn',title:'Sin lección cargada'});return}
+  if(filter!=='both' && !songState.allNotes.some(n=>n.hand===filter)){
+    showToast({type:'warn',title:'Esta pieza no tiene mano '+(filter==='left'?'izquierda':'derecha'),body:'Se mantiene «Ambas».',duration:3500});
+    filter='both';
+  }
+  songState.handFilter=filter;
+  songState.notes = filter==='both' ? songState.allNotes
+                  : songState.allNotes.filter(n=>n.hand===filter);
+  songState.groups = buildGroups(songState.notes);
+  seekTo(getSongTime()); // recalcula nextGroup y highlight sin perder posición ni stats
+  updateHandFilterUI();
+  const msg={
+    both:'Ambas manos activas.',
+    left:'Solo mano izquierda — la derecha se atenúa en gris.',
+    right:'Solo mano derecha — la izquierda se atenúa en gris.',
+  }[filter];
+  showToast({type:'info',title:'🤲 Manos separadas',body:msg,duration:2500});
+}
+
+function updateHandFilterUI(){
+  ['both','left','right'].forEach(h=>{
+    const b=document.getElementById('hand-'+h);
+    if(b)b.classList.toggle('active', songState.handFilter===h);
+  });
 }
 
 // ===== Page Visibility: pausar limpio cuando la pestaña se oculta =====
@@ -3450,8 +3507,10 @@ function renderFallingFrame(){
   fctx.fillStyle='rgba(251,191,36,0.85)';
   fctx.fillRect(0,playheadY,W,2);
 
-  // dibuja notas en ventana [t, t+LOOK_AHEAD]
-  for(const n of songState.notes){
+  // dibuja notas en ventana [t, t+LOOK_AHEAD]; la mano filtrada se atenúa en gris
+  const pool = songState.allNotes.length ? songState.allNotes : songState.notes;
+  for(const n of pool){
+    const isMuted = songState.handFilter!=='both' && n.hand!==songState.handFilter;
     if(n.time + n.duration < t - 0.2)continue;
     if(n.time > t + LOOK_AHEAD)continue;
 
@@ -3468,7 +3527,9 @@ function renderFallingFrame(){
 
     // gradient fill
     const g=fctx.createLinearGradient(0,yTop,0,yTop+h);
-    if(n.played){
+    if(isMuted){
+      g.addColorStop(0,'rgba(148,163,184,0.30)');g.addColorStop(1,'rgba(148,163,184,0.08)');
+    }else if(n.played){
       g.addColorStop(0,'rgba(34,197,94,0.5)');g.addColorStop(1,'rgba(34,197,94,0.15)');
     }else if(isLeft){
       g.addColorStop(0,'rgba(125,211,252,0.95)');g.addColorStop(1,'rgba(6,182,212,0.55)');
@@ -3479,9 +3540,9 @@ function renderFallingFrame(){
     if(fctx.roundRect){fctx.beginPath();fctx.roundRect(baseX,yTop,baseW,h,[6,6,3,3]);fctx.fill()}
     else fctx.fillRect(baseX,yTop,baseW,h);
 
-    // glow when near playhead
+    // glow when near playhead (nunca para la mano atenuada)
     const distance=Math.abs(yBot-playheadY);
-    if(distance < 50 && !n.played){
+    if(distance < 50 && !n.played && !isMuted){
       fctx.shadowColor = isLeft?'#06b6d4':'#ec4899';
       fctx.shadowBlur = 18;
       fctx.fillStyle = 'rgba(255,255,255,0.6)';
@@ -3490,7 +3551,7 @@ function renderFallingFrame(){
     }
 
     // top stripe
-    fctx.fillStyle = isLeft?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.85)';
+    fctx.fillStyle = isMuted?'rgba(255,255,255,0.15)':'rgba(255,255,255,0.85)';
     fctx.fillRect(baseX, yTop, baseW, 2);
   }
 
