@@ -599,9 +599,15 @@ label.btn{cursor:pointer}
 
 /* ---------- BOTTOM ---------- */
 #bottom-bar{
-  display:grid;grid-template-columns:1fr 1fr;gap:1rem;
+  display:grid;grid-template-columns:1fr 1fr 1.25fr;gap:1rem;
   animation:rise 1000ms cubic-bezier(.2,.7,.2,1) both;animation-delay:400ms;
 }
+.mixer-row{display:flex;align-items:center;gap:0.5rem}
+.mixer-row .mlab{font-size:10px;color:var(--text-mute);letter-spacing:0.08em;text-transform:uppercase;font-weight:600;width:52px;flex-shrink:0}
+.mixer-row .mval{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);width:26px;text-align:right;flex-shrink:0}
+.mixer-row input[type=range]{height:14px}
+.mixer-row input[type=range]::-webkit-slider-thumb{width:13px;height:13px;margin-top:-3.5px}
+.mixer-row input[type=range]::-moz-range-thumb{width:13px;height:13px}
 .control{
   padding:0.6rem 1rem;
   background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
@@ -1003,6 +1009,12 @@ input[type=range]:focus{outline:none}
         <span class="val"><span id="bpm-val">80</span><span class="unit">bpm</span></span>
       </div>
       <input type="range" id="bpm-slider" min="40" max="200" value="80" oninput="setBPM(+this.value)">
+    </div>
+    <div class="control" title="Volúmenes independientes: tu piano, el click del metrónomo y el autoplay de la lección">
+      <div class="head"><span class="lab">Mezclador</span></div>
+      <div class="mixer-row"><span class="mlab">Piano</span><input type="range" id="mix-piano" min="0" max="100" value="100" oninput="setMixVolume('piano',this.value)"><span class="mval" id="mix-piano-val">100</span></div>
+      <div class="mixer-row"><span class="mlab">Metró.</span><input type="range" id="mix-metro" min="0" max="100" value="70" oninput="setMixVolume('metro',this.value)"><span class="mval" id="mix-metro-val">70</span></div>
+      <div class="mixer-row"><span class="mlab">Lección</span><input type="range" id="mix-lesson" min="0" max="100" value="100" oninput="setMixVolume('lesson',this.value)"><span class="mval" id="mix-lesson-val">100</span></div>
     </div>
   </div>
 
@@ -1662,6 +1674,7 @@ async function switchInstrument(presetKey, fromMidiIn=false, forceReload=false){
     sampler=newSampler;
     currentInstrument=presetKey;
     samplerPreset=presetKey;
+    applyPianoMix();
     if(old){try{old.dispose()}catch(e){}}
 
     loadingToast.dismiss();
@@ -1929,6 +1942,26 @@ function setOutputMode(mode){
 
   // Persistir
   try{localStorage.setItem('pianopro:outputMode',mode)}catch(e){}
+}
+
+// ---------- MEZCLADOR ----------
+// Volúmenes independientes 0-100: piano (sampler local), metrónomo (click) y
+// lección (autoplay — escala la velocity, aplica también al MIDI out).
+// Razón: en BPM altos el metrónomo tapaba al piano sin forma de equilibrarlos.
+const mixVolumes={piano:100, metro:70, lesson:100};
+function setMixVolume(chan,val){
+  if(!(chan in mixVolumes))return;
+  val=Math.max(0,Math.min(100,Math.round(+val||0)));
+  mixVolumes[chan]=val;
+  const lbl=document.getElementById('mix-'+chan+'-val');
+  if(lbl)lbl.textContent=val;
+  if(chan==='piano')applyPianoMix();
+  try{localStorage.setItem('pianopro:mix',JSON.stringify(mixVolumes))}catch(e){}
+}
+function applyPianoMix(){
+  if(sampler && typeof Tone!=='undefined'){
+    sampler.volume.value = mixVolumes.piano<=0 ? -Infinity : Tone.gainToDb(mixVolumes.piano/100);
+  }
 }
 
 function setSustain(on){
@@ -2457,6 +2490,7 @@ function scheduleMetroClick(time){
   // solo de que Tone esté cargado (modo Yamaha con CDN caído sigue teniendo metrónomo)
   if(typeof Tone==='undefined')return;
   const tick=new Tone.Oscillator(880,'sine');   // sin .toDestination(): va por el env
+  tick.volume.value = mixVolumes.metro<=0 ? -Infinity : Tone.gainToDb(mixVolumes.metro/100);
   const env=new Tone.AmplitudeEnvelope({attack:0.002,decay:0.05,sustain:0,release:0.05}).toDestination();
   tick.connect(env);
   tick.start(time).stop(time+0.1);
@@ -3630,9 +3664,9 @@ function playLoop(){
         g.notes.forEach(note=>{
           if(!note.played){
             note.played=true;
-            const v127=Math.round(note.velocity*127);
-            // Si Modo Silencio: solo visual, sin sonido (autoplay deja al user tocar lo que ve)
-            if(!lessonMute){
+            const v127=Math.round(note.velocity*127*(mixVolumes.lesson/100));
+            // Modo Silencio o mezclador de lección a 0: solo visual, sin sonido
+            if(!lessonMute && v127>0){
               if(_playLocal()) audioNoteOn(note.midi, v127);
               if(_sendMidi()){
                 try{midiOutput.send([0x90,note.midi,v127])}catch(e){}
@@ -3642,7 +3676,7 @@ function playLoop(){
             const dur=note.duration/songState.tempo*1000;
             const tid=setTimeout(()=>{
               _pendingAutoTimeouts.delete(tid);
-              if(!lessonMute){
+              if(!lessonMute && v127>0){
                 if(_playLocal()) audioNoteOff(note.midi);
                 if(_sendMidi()){
                   try{midiOutput.send([0x80,note.midi,0])}catch(e){}
@@ -4077,6 +4111,17 @@ window.addEventListener('load', async ()=>{
       const chk=document.getElementById('chk-practice');
       if(chk)chk.checked=true;
     }
+    const savedMix=localStorage.getItem('pianopro:mix');
+    if(savedMix){
+      const m=JSON.parse(savedMix);
+      ['piano','metro','lesson'].forEach(c=>{
+        if(m && Number.isFinite(m[c])){
+          mixVolumes[c]=Math.max(0,Math.min(100,Math.round(m[c])));
+          const s=document.getElementById('mix-'+c); if(s)s.value=mixVolumes[c];
+          const l=document.getElementById('mix-'+c+'-val'); if(l)l.textContent=mixVolumes[c];
+        }
+      });
+    }
   }catch(e){}
   initMIDI();
 
@@ -4099,6 +4144,7 @@ window.addEventListener('load', async ()=>{
         audioTxt.textContent='Salamander Grand listo';
         document.getElementById('splash').classList.add('ready');
         updateInstrumentUI();
+        applyPianoMix();
         // Restaurar último instrumento elegido (si era distinto del piano)
         try{
           const saved=localStorage.getItem('pianopro:instrument');

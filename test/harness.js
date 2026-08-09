@@ -25,6 +25,7 @@ const EXPORTS = [
   'buildGroups', 'registerUserHit', 'seekTo', 'getSongTime', 'setTempo',
   'updateHighlight', 'resetPlayedFlags', 'fmtTime', 'setHandFilter',
   'transposeSong', 'handleKeyboardShortcut', 'nudgeTempo', 'classifyPianoFile',
+  'setMixVolume', 'mixVolumes',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   // integración Yamaha
