@@ -43,6 +43,8 @@ const EXPORTS = [
   'setEarLevel', 'toggleEarTraining', 'revealEarExercise',
   // grabadora MIDI
   'recState', 'toggleRecording', 'stopRecording', 'useTakeAsLesson', 'exportTakeAsMidi',
+  // modo rendimiento
+  'setPerfMode',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   'layout', 'getMidiFromPoint',
@@ -144,6 +146,7 @@ function loadPiano() {
       querySelectorAll: () => [],
       addEventListener() {},
       hidden: false,
+      body: fakeEl(),
     },
     window: { addEventListener() {}, innerWidth: 1200 },
     navigator: {},
@@ -165,6 +168,7 @@ function loadPiano() {
   const api = sandbox.__exports;
   api.__setNow = ms => { nowMs = ms; };
   api.__getElement = getEl; // para inspeccionar DOM falso si un test lo necesita
+  api.__body = sandbox.document.body;
   return api;
 }
 

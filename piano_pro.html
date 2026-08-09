@@ -812,6 +812,16 @@ input[type=range]:focus{outline:none}
 
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 
+/* ---------- MODO RENDIMIENTO ----------
+   Auditoría 2026-08-09: el compositor de backdrop-filter + la aurora animada
+   eran el 100% del costo de frame en render por software (18→60 fps al
+   desactivarlos; el canvas solo cuesta 0.2ms). Este modo preserva el look
+   estático y elimina el costo por frame. */
+body.perf-mode *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+body.perf-mode::before{animation:none}
+body.perf-mode .grain{display:none}
+body.perf-mode .brand .logo{animation:none}
+
 /* ---------- DRAG & DROP ---------- */
 #drop-overlay{
   position:fixed;inset:10px;z-index:900;
@@ -896,6 +906,7 @@ input[type=range]:focus{outline:none}
     <span class="spacer"></span>
     <button class="btn active" id="btn-full" onclick="setMode('full')">Vista general</button>
     <button class="btn" id="btn-zoom" onclick="setMode('zoom')">Vista real</button>
+    <label class="toggle" title="Desactiva los efectos de cristal y la aurora animada para máxima fluidez (se activa solo si detecto fps bajos)"><input type="checkbox" id="chk-perf" onchange="setPerfMode(this.checked)"><span class="switch"></span><span>⚡</span></label>
     <span class="spacer"></span>
     <label class="toggle"><input type="checkbox" id="chk-nota" onchange="modoNotaActivo=this.checked"><span class="switch"></span><span>Modo nota</span></label>
     <label class="toggle" title="Muestra Do Re Mi... sobre cada tecla blanca del piano"><input type="checkbox" id="chk-practice" onchange="setPracticeMode(this.checked)"><span class="switch"></span><span>Notas en teclas</span></label>
@@ -2144,6 +2155,42 @@ const fctx=fcanvas.getContext('2d');
 
 let mode='full', fixedVel=80;
 let activeKeys={}, midiOutput=null;
+
+// ---------- MODO RENDIMIENTO ----------
+// La estética glass (backdrop-filter + aurora animada) puede hundir los fps
+// en equipos sin aceleración. Este modo la desactiva; playLoop lo enciende
+// solo si mide fluidez baja sostenida durante la reproducción.
+let perfMode=false;
+let _perfAutoDone=false;   // solo un auto-cambio por sesión (y respeta elección manual)
+let _lastFrameT=0;
+const _frameGaps=[];
+function setPerfMode(on, silent){
+  perfMode=!!on;
+  _perfAutoDone=true; // decisión tomada (manual o auto): no volver a auto-cambiar
+  if(document.body)document.body.classList.toggle('perf-mode',perfMode);
+  const chk=document.getElementById('chk-perf'); if(chk)chk.checked=perfMode;
+  try{localStorage.setItem('pianopro:perf',perfMode?'1':'0')}catch(e){}
+  if(!silent){
+    showToast({type:'info',title:perfMode?'⚡ Modo rendimiento':'✨ Efectos completos',
+      body:perfMode?'Efectos de cristal y aurora desactivados para máxima fluidez.':'Glass y aurora reactivados.',duration:2500});
+  }
+}
+function _monitorFps(){
+  const now=performance.now();
+  if(_lastFrameT){
+    _frameGaps.push(now-_lastFrameT);
+    if(_frameGaps.length>90)_frameGaps.shift();
+  }
+  _lastFrameT=now;
+  if(perfMode||_perfAutoDone||!songState.playing||_frameGaps.length<90)return;
+  const avg=_frameGaps.reduce((a,b)=>a+b,0)/_frameGaps.length;
+  if(avg>40){ // <25 fps sostenidos durante ~4s de reproducción
+    setPerfMode(true, true);
+    showToast({type:'info',title:'⚡ Modo rendimiento activado',
+      body:'Detecté fluidez baja ('+Math.round(1000/avg)+' fps) y desactivé los efectos de cristal. Reviértelo con el interruptor ⚡ si prefieres el look completo.',
+      duration:6000});
+  }
+}
 let WW,BW,WH,BH;
 let scoreVisible=true, osmd=null;
 let modoNotaActivo=false;
@@ -4628,6 +4675,7 @@ function updateStats(){
 // ----- main playback loop -----
 let rafId=null;
 function playLoop(){
+  _monitorFps(); // auto-activa el modo rendimiento si la fluidez cae
   // repintado del teclado: una sola vez por frame, solo si algo cambió
   if(_drawDirty){_drawDirty=false;_drawNow();}
   if(songState.loaded){
@@ -4772,14 +4820,18 @@ function renderFallingFrame(){
     if(fctx.roundRect){fctx.beginPath();fctx.roundRect(baseX,yTop,baseW,h,[6,6,3,3]);fctx.fill()}
     else fctx.fillRect(baseX,yTop,baseW,h);
 
-    // glow when near playhead (nunca para la mano atenuada)
+    // glow when near playhead (nunca para la mano atenuada).
+    // Sin shadowBlur (auditoría 2026-08-09: el blur gaussiano por nota hundía
+    // los fps bajo carga): halo de dos fills translúcidos, mismo efecto visual.
     const distance=Math.abs(yBot-playheadY);
     if(distance < 50 && !n.played && !isMuted){
-      fctx.shadowColor = isLeft?'#06b6d4':'#ec4899';
-      fctx.shadowBlur = 18;
-      fctx.fillStyle = 'rgba(255,255,255,0.6)';
-      if(fctx.roundRect){fctx.beginPath();fctx.roundRect(baseX,Math.max(yTop,playheadY-h),baseW,Math.min(h,playheadY-yTop+h),[6,6,3,3]);fctx.fill()}
-      fctx.shadowBlur=0;
+      const gy=Math.max(yTop,playheadY-h), gh=Math.min(h,playheadY-yTop+h);
+      fctx.fillStyle = isLeft?'rgba(6,182,212,0.28)':'rgba(236,72,153,0.28)';
+      if(fctx.roundRect){fctx.beginPath();fctx.roundRect(baseX-5,gy-5,baseW+10,gh+10,[9,9,6,6]);fctx.fill()}
+      else fctx.fillRect(baseX-5,gy-5,baseW+10,gh+10);
+      fctx.fillStyle='rgba(255,255,255,0.55)';
+      if(fctx.roundRect){fctx.beginPath();fctx.roundRect(baseX,gy,baseW,gh,[6,6,3,3]);fctx.fill()}
+      else fctx.fillRect(baseX,gy,baseW,gh);
     }
 
     // top stripe
@@ -5143,6 +5195,8 @@ window.addEventListener('load', async ()=>{
       const ck=document.getElementById('chk-scale'); if(ck)ck.checked=scaleState.active;
       applyScaleState();
     }
+    const savedPerf=localStorage.getItem('pianopro:perf');
+    if(savedPerf==='1')setPerfMode(true, true);
     const savedEar=localStorage.getItem('pianopro:ear');
     if(savedEar){
       const e0=JSON.parse(savedEar);
