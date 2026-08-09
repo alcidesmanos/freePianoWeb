@@ -29,6 +29,9 @@ const EXPORTS = [
   'buildSessionSnapshot', 'applySessionSnapshot', 'loadSong',
   // detección de acordes
   'detectChord', 'updateChordDisplay', 'noteOn', 'noteOff', 'setSustain',
+  // biblioteca de escalas
+  'SCALE_SHAPES', 'scaleState', 'getScalePitchClasses',
+  'setScaleActive', 'setScaleRoot', 'setScaleType', 'currentScaleLabel',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   // integración Yamaha

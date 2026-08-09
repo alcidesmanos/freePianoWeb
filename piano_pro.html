@@ -233,6 +233,22 @@ label.btn{cursor:pointer}
 #instrument-filter::placeholder{color:var(--text-mute)}
 #instrument-filter:focus{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(6,182,212,0.3);width:180px}
 
+/* Selects compactos de toolbar (salida + escala) */
+#output-mode,#scale-root,#scale-type{
+  font-family:inherit;font-size:12px;
+  padding:0.4rem 0.7rem;
+  background:var(--glass-2);
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:10px;cursor:pointer;transition:all 0.25s;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%23f5f5f7' stroke-width='1.5'><path d='M3 5l3 3 3-3'/></svg>");
+  background-repeat:no-repeat;background-position:right 0.5rem center;
+  padding-right:1.7rem;
+}
+#output-mode:hover,#scale-root:hover,#scale-type:hover{border-color:var(--border-hi)}
+#output-mode option,#scale-root option,#scale-type option{background:#15101e;color:var(--text)}
+
 /* Selector de instrumento */
 #instrument-select{
   font-family:inherit;font-size:12px;
@@ -827,6 +843,36 @@ input[type=range]:focus{outline:none}
     <label class="toggle"><input type="checkbox" id="chk-nota" onchange="modoNotaActivo=this.checked"><span class="switch"></span><span>Modo nota</span></label>
     <label class="toggle" title="Muestra Do Re Mi... sobre cada tecla blanca del piano"><input type="checkbox" id="chk-practice" onchange="setPracticeMode(this.checked)"><span class="switch"></span><span>Notas en teclas</span></label>
     <label class="toggle" title="Metrónomo (M)"><input type="checkbox" id="chk-metro" onchange="toggleMetronomo(this.checked)"><span class="switch"></span><span>Metrónomo</span></label>
+    <span class="spacer"></span>
+    <select id="scale-root" onchange="setScaleRoot(this.value)" title="Tónica de la escala">
+      <option value="0">C · Do</option>
+      <option value="1">C# · Do#</option>
+      <option value="2">D · Re</option>
+      <option value="3">D# · Re#</option>
+      <option value="4">E · Mi</option>
+      <option value="5">F · Fa</option>
+      <option value="6">F# · Fa#</option>
+      <option value="7">G · Sol</option>
+      <option value="8">G# · Sol#</option>
+      <option value="9">A · La</option>
+      <option value="10">A# · La#</option>
+      <option value="11">B · Si</option>
+    </select>
+    <select id="scale-type" onchange="setScaleType(this.value)" title="Tipo de escala">
+      <option value="major">Mayor (jónico)</option>
+      <option value="minor">Menor natural</option>
+      <option value="harmonic-minor">Menor armónica</option>
+      <option value="melodic-minor">Menor melódica</option>
+      <option value="dorian">Dórico</option>
+      <option value="phrygian">Frigio</option>
+      <option value="lydian">Lidio</option>
+      <option value="mixolydian">Mixolidio</option>
+      <option value="locrian">Locrio</option>
+      <option value="major-pent">Pentatónica mayor</option>
+      <option value="minor-pent">Pentatónica menor</option>
+      <option value="blues">Blues</option>
+    </select>
+    <label class="toggle" title="Resalta las teclas de la escala en el piano (tónica en dorado)"><input type="checkbox" id="chk-scale" onchange="setScaleActive(this.checked)"><span class="switch"></span><span>Escala</span></label>
     <select id="output-mode" onchange="setOutputMode(this.value)" title="Por dónde sale el sonido">
       <option value="pc">Salida: PC</option>
       <option value="yamaha">Salida: Yamaha</option>
@@ -2104,6 +2150,12 @@ function draw(){
       const g=ctx.createLinearGradient(0,0,0,WH);
       g.addColorStop(0,'#fff');g.addColorStop(1, highlight==='left'?'#06b6d4':'#ec4899');
       ctx.fillStyle=g;
+    }else if(_scalePcs && _scalePcs.has(midi%12)){
+      // Tecla de la escala activa: teal; la tónica en dorado
+      const g=ctx.createLinearGradient(0,0,0,WH);
+      if(midi%12===scaleState.rootPc){g.addColorStop(0,'#fff8e1');g.addColorStop(1,'#f2c14e')}
+      else{g.addColorStop(0,'#f0fffb');g.addColorStop(1,'#9fe8d8')}
+      ctx.fillStyle=g;
     }else{
       const g=ctx.createLinearGradient(0,0,0,WH);
       g.addColorStop(0,'#fafafa');g.addColorStop(1,'#d6d6e0');
@@ -2156,6 +2208,12 @@ function draw(){
       const g=ctx.createLinearGradient(0,0,0,BH);
       const c=highlight==='left'?'#06b6d4':'#ec4899';
       g.addColorStop(0,c);g.addColorStop(1,'#1a1530');
+      ctx.fillStyle=g;
+    }else if(_scalePcs && _scalePcs.has(midi%12)){
+      // Negra de la escala: teal oscuro; tónica en dorado oscuro
+      const g=ctx.createLinearGradient(0,0,0,BH);
+      if(midi%12===scaleState.rootPc){g.addColorStop(0,'#8a6a15');g.addColorStop(0.6,'#4a3a0c');g.addColorStop(1,'#8a6a15')}
+      else{g.addColorStop(0,'#0f5a4e');g.addColorStop(0.6,'#0a332c');g.addColorStop(1,'#0f5a4e')}
       ctx.fillStyle=g;
     }else{
       const g=ctx.createLinearGradient(0,0,0,BH);
@@ -2324,6 +2382,64 @@ function updateChordDisplay(){
   if(!chord){el.classList.remove('show');return}
   el.textContent=chord.label;
   el.classList.add('show');
+}
+
+// ============================================================
+//   BIBLIOTECA DE ESCALAS
+// ============================================================
+// Formas como intervalos desde la tónica. Menor melódica en su forma
+// ascendente (la habitual para práctica).
+const SCALE_SHAPES=[
+  {id:'major',          name:'Mayor (jónico)',         intervals:[0,2,4,5,7,9,11]},
+  {id:'minor',          name:'Menor natural (eólico)', intervals:[0,2,3,5,7,8,10]},
+  {id:'harmonic-minor', name:'Menor armónica',         intervals:[0,2,3,5,7,8,11]},
+  {id:'melodic-minor',  name:'Menor melódica',         intervals:[0,2,3,5,7,9,11]},
+  {id:'dorian',         name:'Dórico',                 intervals:[0,2,3,5,7,9,10]},
+  {id:'phrygian',       name:'Frigio',                 intervals:[0,1,3,5,7,8,10]},
+  {id:'lydian',         name:'Lidio',                  intervals:[0,2,4,6,7,9,11]},
+  {id:'mixolydian',     name:'Mixolidio',              intervals:[0,2,4,5,7,9,10]},
+  {id:'locrian',        name:'Locrio',                 intervals:[0,1,3,5,6,8,10]},
+  {id:'major-pent',     name:'Pentatónica mayor',      intervals:[0,2,4,7,9]},
+  {id:'minor-pent',     name:'Pentatónica menor',      intervals:[0,3,5,7,10]},
+  {id:'blues',          name:'Blues',                  intervals:[0,3,5,6,7,10]},
+];
+
+const scaleState={active:false, rootPc:0, shapeId:'major'};
+let _scalePcs=null; // Set de pitch classes cacheado para draw()
+
+// Pitch classes de una escala dada (Set), o null si el tipo no existe.
+function getScalePitchClasses(rootPc, shapeId){
+  const shape=SCALE_SHAPES.find(s=>s.id===shapeId);
+  if(!shape || !Number.isFinite(rootPc) || rootPc<0 || rootPc>11)return null;
+  return new Set(shape.intervals.map(iv=>(iv+rootPc)%12));
+}
+
+function currentScaleLabel(){
+  const names=modoNotaActivo?NOTE_NAMES_ES:NOTE_NAMES_EN;
+  const shape=SCALE_SHAPES.find(s=>s.id===scaleState.shapeId);
+  return names[scaleState.rootPc]+' '+(shape?shape.name:'');
+}
+
+function applyScaleState(){
+  _scalePcs = scaleState.active ? getScalePitchClasses(scaleState.rootPc, scaleState.shapeId) : null;
+  draw();
+  try{localStorage.setItem('pianopro:scale',JSON.stringify(scaleState))}catch(e){}
+}
+function setScaleActive(on){
+  scaleState.active=!!on;
+  applyScaleState();
+  if(scaleState.active){
+    showToast({type:'info',title:'🎼 '+currentScaleLabel(),body:'Teclas de la escala resaltadas · tónica en dorado.',duration:3000});
+  }
+}
+function setScaleRoot(pc){
+  pc=+pc;
+  if(Number.isFinite(pc) && pc>=0 && pc<=11)scaleState.rootPc=pc;
+  applyScaleState();
+}
+function setScaleType(id){
+  if(SCALE_SHAPES.some(s=>s.id===id))scaleState.shapeId=id;
+  applyScaleState();
 }
 
 // ---------- Acumulador de acordes ----------
@@ -4344,6 +4460,17 @@ window.addEventListener('load', async ()=>{
           const l=document.getElementById('mix-'+c+'-val'); if(l)l.textContent=mixVolumes[c];
         }
       });
+    }
+    const savedScale=localStorage.getItem('pianopro:scale');
+    if(savedScale){
+      const s=JSON.parse(savedScale);
+      if(s && Number.isFinite(s.rootPc) && s.rootPc>=0 && s.rootPc<=11)scaleState.rootPc=s.rootPc;
+      if(s && SCALE_SHAPES.some(sh=>sh.id===s.shapeId))scaleState.shapeId=s.shapeId;
+      if(s && s.active===true)scaleState.active=true;
+      const sr=document.getElementById('scale-root'); if(sr)sr.value=String(scaleState.rootPc);
+      const st=document.getElementById('scale-type'); if(st)st.value=scaleState.shapeId;
+      const ck=document.getElementById('chk-scale'); if(ck)ck.checked=scaleState.active;
+      applyScaleState();
     }
   }catch(e){}
   initMIDI();

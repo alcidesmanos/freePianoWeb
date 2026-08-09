@@ -185,10 +185,11 @@
   - Mientras tocas una progresión, mostrar I-V-vi-IV o ii-V-I
   - Requiere detección de tonalidad estable + chord detection
 
-- [ ] **Biblioteca de escalas y voicings** `[M]`
-  - Selector: tonalidad + tipo (mayor, menor natural/armónica/melódica, dórico, frigio…, blues, pentatónica)
-  - Resaltar las teclas correspondientes en el piano
-  - Aplica a lección: "muéstrame las notas de la escala mientras toco"
+- [x] **Biblioteca de escalas** `[M]` — **HECHO 2026-08-09**
+  - 12 formas (mayor, 3 menores, modos griegos, 2 pentatónicas, blues) en `SCALE_SHAPES`; selector tónica + tipo + toggle en toolbar
+  - Teclas de la escala en teal, tónica en dorado; convive con el highlight de lección (solo pinta teclas libres) → funciona mientras practicas
+  - Persistido en localStorage — `test/escalas.test.js` (9 casos, incl. relativas Am=C y modal D dórico=C)
+  - Pendiente de la idea original: voicings (recortado de alcance)
 
 ---
 
