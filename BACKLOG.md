@@ -62,6 +62,7 @@
 - [x] **Fix cambio de instrumento tras fallo de carga** (bug reportado): supersede por token (último click gana), fallo total rechaza en ~14ms (antes 35s de silencio), timeout 12s con conteo real de buffers, dispose del sampler fallido — verificado con DevTools (red cortada)
 - [x] **Für Elise embebida en el HTML** (base64 de `Fur_Elise_fingered.mxl`, 219 digitaciones): la URL externa murió con 404; el demo de un click ahora funciona sin red, offline y desde file://
 - [x] **Docs**: manual de usuario (`ayuda.html`, botón ?), README técnico con arquitectura y decisiones, pieza pop original de práctica (`library/11-personal/Atardecer_balada_pop_original.musicxml`)
+- [x] **Guía de posición de manos** ⭐ (toggle "Posición manos"): banda cyan/magenta sobre el span de 5 blancas donde reposa cada mano, punto en el pulgar; con digitaciones ancla exacto (dedo N sobre tecla M), sin ellas estima por rango (marcada ~); sigue el wait mode y el autoplay, respeta manos separadas — `test/posicion.test.js` (9 casos)
 
 ---
 

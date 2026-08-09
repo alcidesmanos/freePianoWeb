@@ -47,6 +47,8 @@ const EXPORTS = [
   'setPerfMode',
   // instrumentos
   'switchInstrument', 'INSTRUMENT_PRESETS',
+  // guía de posición de manos
+  'computeHandPosition', 'updateHandPositions', 'setHandPosGuide',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   'layout', 'getMidiFromPoint',
@@ -169,6 +171,7 @@ function loadPiano() {
   const epilogue = ';__exports = {' + EXPORTS.join(',') +
     ',get __currentInstrument(){return currentInstrument}' +
     ',get __samplerPreset(){return samplerPreset}' +
+    ',get __handPos(){return _handPos}' +
     '};';
   vm.runInNewContext(script + epilogue, sandbox, { filename: 'piano_pro.html#inline-script' });
 

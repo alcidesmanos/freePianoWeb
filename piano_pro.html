@@ -910,6 +910,7 @@ body.perf-mode .brand .logo{animation:none}
     <span class="spacer"></span>
     <label class="toggle"><input type="checkbox" id="chk-nota" onchange="modoNotaActivo=this.checked"><span class="switch"></span><span>Modo nota</span></label>
     <label class="toggle" title="Muestra Do Re Mi... sobre cada tecla blanca del piano"><input type="checkbox" id="chk-practice" onchange="setPracticeMode(this.checked)"><span class="switch"></span><span>Notas en teclas</span></label>
+    <label class="toggle" title="Muestra dónde reposa cada mano (span de 5 dedos): con digitaciones ancla al pulgar; sin ellas estima (~)"><input type="checkbox" id="chk-handpos" onchange="setHandPosGuide(this.checked)"><span class="switch"></span><span>Posición manos</span></label>
     <label class="toggle" title="Metrónomo (M)"><input type="checkbox" id="chk-metro" onchange="toggleMetronomo(this.checked)"><span class="switch"></span><span>Metrónomo</span></label>
     <span class="spacer"></span>
     <select id="scale-root" onchange="setScaleRoot(this.value)" title="Tónica de la escala">
@@ -2400,6 +2401,36 @@ function _drawNow(){
       drawFingerBadge(x+BW/2, BH*0.62, Math.min(8,BW*0.35), highlightedFingers[midi], highlight);
     }
   }
+  _drawHandGuides();
+}
+
+// Dibuja las guías de posición: tinte suave sobre el span de 5 blancas, banda
+// superior con etiqueta IZQ/DER (~ = estimada) y punto en la tecla del pulgar.
+function _drawHandGuides(){
+  if(!handPosGuide)return;
+  [[_handPos.left,'rgba(6,182,212,','IZQ'],[_handPos.right,'rgba(236,72,153,','DER']].forEach(([pos,rgba,label])=>{
+    if(!pos)return;
+    const x0=pos.w0*WW, w=(pos.w1-pos.w0+1)*WW;
+    ctx.fillStyle=rgba+'0.09)';
+    ctx.fillRect(x0+1,0,w-2,WH);
+    ctx.fillStyle=rgba+'0.55)';
+    if(ctx.roundRect){ctx.beginPath();ctx.roundRect(x0+1,1,w-2,11,[0,0,5,5]);ctx.fill()}
+    else ctx.fillRect(x0+1,1,w-2,11);
+    if(w>34){
+      ctx.fillStyle='rgba(255,255,255,0.95)';
+      ctx.font='700 8px "JetBrains Mono", monospace';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(label+(pos.confident?'':' ~'), x0+w/2, 7);
+      ctx.textBaseline='alphabetic';
+    }
+    if(pos.confident && pos.thumbW!=null){
+      const cx=pos.thumbW*WW+WW/2;
+      ctx.beginPath();ctx.arc(cx,17,3.2,0,Math.PI*2);
+      ctx.fillStyle=rgba+'1)';
+      ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=1;ctx.stroke();
+    }
+  });
 }
 
 function getMidiFromPoint(x,y){
@@ -4313,6 +4344,7 @@ function loadSong(notes, name, bpmVal){
   updateLoopUI();
   updateHandFilterUI();
   updateTransposeUI();
+  updateHandPositions(true);
   // Si el toggle estaba checked de la sesión anterior, resetear visualmente
   const cp=document.getElementById('chk-loop-progressive'); if(cp)cp.checked=loopState.progressive;
   const ce=document.getElementById('chk-loop-extend'); if(ce)ce.checked=loopState.autoExtend;
@@ -4394,6 +4426,88 @@ function rebuildActiveNotes(){
                   : songState.allNotes.filter(n=>n.hand===songState.handFilter);
   songState.groups = buildGroups(songState.notes);
   seekTo(getSongTime());
+}
+
+// ---------- GUÍA DE POSICIÓN DE MANOS ----------
+// Muestra dónde REPOSA cada mano: el span de 5 teclas blancas que cubren los
+// dedos 1-5, calculado de las próximas notas. Con digitaciones ancla exacto
+// (dedo N sobre tecla M fija dónde está el pulgar); sin ellas estima por rango
+// y lo marca con "~". Independiente de las demás ayudas; toggle propio.
+let handPosGuide=false;
+let _handPos={left:null,right:null};
+
+function _whiteIdxOf(midi){
+  return getNoteInfo(midi).isBlack ? whiteIndex(midi-1) : whiteIndex(midi);
+}
+
+// Posición de una mano a partir del grupo startIdx: hasta 6 notas próximas de
+// esa mano dentro de 4s. Devuelve {w0,w1,thumbW,confident} en índices de
+// teclas blancas (0-51), o null si la mano no tiene notas próximas.
+function computeHandPosition(hand, startIdx, tRef){
+  const notas=[];
+  for(let gi=startIdx; gi<songState.groups.length && notas.length<6; gi++){
+    const g=songState.groups[gi];
+    if(g.time > tRef+4)break;
+    g.notes.forEach(n=>{ if(n.hand===hand && notas.length<6)notas.push(n); });
+  }
+  if(!notas.length)return null;
+  const fingered=notas.find(n=>n.finger);
+  let w0,w1,thumbW=null,confident=false;
+  if(fingered){
+    // el pulgar (1) queda en el extremo grave (derecha) o agudo (izquierda)
+    const wIdx=_whiteIdxOf(fingered.midi);
+    thumbW = hand==='right' ? wIdx-(fingered.finger-1) : wIdx+(fingered.finger-1);
+    if(hand==='right'){w0=thumbW; w1=thumbW+4}
+    else{w0=thumbW-4; w1=thumbW}
+    confident=true;
+  }else{
+    let lo=Infinity,hi=-Infinity;
+    notas.forEach(n=>{const w=_whiteIdxOf(n.midi); if(w<lo)lo=w; if(w>hi)hi=w});
+    while(hi-lo<4){ if(lo>0)lo--; if(hi-lo<4 && hi<51)hi++; } // mínimo 5 blancas
+    w0=lo; w1=hi;
+  }
+  w0=Math.max(0,Math.min(51,w0)); w1=Math.max(0,Math.min(51,w1));
+  if(w1<w0){const tmp=w0;w0=w1;w1=tmp}
+  if(thumbW!=null)thumbW=Math.max(w0,Math.min(w1,thumbW));
+  return {w0,w1,thumbW,confident,hand};
+}
+
+// Recalcula ambas manos y repinta SOLO si la posición cambió (barato: se llama
+// por frame durante reproducción). En wait mode ancla al grupo actual.
+function updateHandPositions(force){
+  if(!handPosGuide || !songState.loaded){
+    if(_handPos.left||_handPos.right){_handPos={left:null,right:null};draw();}
+    return;
+  }
+  let startIdx, tRef;
+  if(songState.waitMode){
+    startIdx=Math.min(songState.nextGroup, Math.max(0,songState.groups.length-1));
+    tRef=songState.groups[startIdx]?songState.groups[startIdx].time:getSongTime();
+  }else{
+    tRef=getSongTime();
+    startIdx=songState.groups.findIndex(g=>g.time>=tRef-0.05);
+    if(startIdx<0)startIdx=songState.groups.length;
+  }
+  const L=(songState.handFilter==='right')?null:computeHandPosition('left',startIdx,tRef);
+  const R=(songState.handFilter==='left')?null:computeHandPosition('right',startIdx,tRef);
+  const key=p=>p?p.w0+'-'+p.w1+'-'+(p.thumbW==null?'x':p.thumbW):'null';
+  if(force || key(L)!==key(_handPos.left) || key(R)!==key(_handPos.right)){
+    _handPos={left:L,right:R};
+    draw();
+  }
+}
+
+function setHandPosGuide(on, silent){
+  handPosGuide=!!on;
+  const chk=document.getElementById('chk-handpos'); if(chk)chk.checked=handPosGuide;
+  try{localStorage.setItem('pianopro:handpos',handPosGuide?'1':'0')}catch(e){}
+  updateHandPositions(true);
+  if(!silent){
+    showToast({type:'info',
+      title:handPosGuide?'✋ Posición de manos activada':'Posición de manos desactivada',
+      body:handPosGuide?'Banda cyan = izquierda, magenta = derecha; el punto marca el pulgar. La tilde ~ indica posición estimada (pieza sin digitaciones).':'Guía oculta.',
+      duration:4000});
+  }
 }
 
 // ---------- TRANSPOSICIÓN ----------
@@ -4662,6 +4776,7 @@ function updateHighlight(){
   }
   draw();
   showNextNoteHint();  // refresca la pista de próxima nota en el hero
+  updateHandPositions(); // y la guía de posición (wait mode ancla al grupo)
 }
 
 function registerUserHit(midi, fromUser){
@@ -4767,6 +4882,7 @@ function playLoop(){
   if(_drawDirty){_drawDirty=false;_drawNow();}
   if(songState.loaded){
     const t=getSongTime();
+    if(handPosGuide)updateHandPositions(); // sigue a la música; solo repinta si cambió
 
     // Loop A-B: si estamos reproduciendo y llegamos a B, registrar iteración y volver a A
     if(loopState.active && songState.playing && loopState.pointA!==null && loopState.pointB!==null){
@@ -5263,6 +5379,8 @@ window.addEventListener('load', async ()=>{
     }
     const savedPerf=localStorage.getItem('pianopro:perf');
     if(savedPerf==='1')setPerfMode(true, true);
+    const savedHandPos=localStorage.getItem('pianopro:handpos');
+    if(savedHandPos==='1')setHandPosGuide(true, true);
     const savedEar=localStorage.getItem('pianopro:ear');
     if(savedEar){
       const e0=JSON.parse(savedEar);
