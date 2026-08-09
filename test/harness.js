@@ -45,6 +45,8 @@ const EXPORTS = [
   'recState', 'toggleRecording', 'stopRecording', 'useTakeAsLesson', 'exportTakeAsMidi',
   // modo rendimiento
   'setPerfMode',
+  // instrumentos
+  'switchInstrument', 'INSTRUMENT_PRESETS',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   'layout', 'getMidiFromPoint',
@@ -162,13 +164,19 @@ function loadPiano() {
   };
   sandbox.globalThis = sandbox;
 
-  const epilogue = ';__exports = {' + EXPORTS.join(',') + '};';
+  // Getters en el epílogo: exponen en VIVO variables let internas (un export
+  // plano solo copiaría el valor del momento de la evaluación).
+  const epilogue = ';__exports = {' + EXPORTS.join(',') +
+    ',get __currentInstrument(){return currentInstrument}' +
+    ',get __samplerPreset(){return samplerPreset}' +
+    '};';
   vm.runInNewContext(script + epilogue, sandbox, { filename: 'piano_pro.html#inline-script' });
 
   const api = sandbox.__exports;
   api.__setNow = ms => { nowMs = ms; };
   api.__getElement = getEl; // para inspeccionar DOM falso si un test lo necesita
   api.__body = sandbox.document.body;
+  api.__set = (k, v) => { sandbox[k] = v; }; // inyectar globals (p.ej. un Tone falso)
   return api;
 }
 

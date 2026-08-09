@@ -1731,20 +1731,22 @@ async function initAudio(onProgress, onFail){
 
 // Carga un preset distinto y reemplaza el sampler activo. Cancela notas en vuelo del anterior.
 // fromMidiIn=true cuando el cambio vino de un Program Change del Yamaha (evita eco de vuelta).
-let _switchInProgress=false;
+// Token de supersede: cada selección invalida la anterior. Sin candado que
+// bloquee — si una carga falla o cuelga, el siguiente click del usuario GANA
+// (antes, un candado _switchInProgress ignoraba en silencio todo intento
+// durante los 35s que tardaba en declararse un fallo total de red).
+let _switchToken=0;
 // forceReload=true recarga los samples aunque presetKey===currentInstrument
 // (necesario al volver a salida local tras cambiar de voz en modo Yamaha).
 async function switchInstrument(presetKey, fromMidiIn=false, forceReload=false){
   const preset=INSTRUMENT_PRESETS[presetKey];
   if(!preset){console.warn('preset desconocido:',presetKey);return}
   if(presetKey===currentInstrument && !forceReload){return} // ya está cargado
-  if(_switchInProgress){console.log('switch en curso, ignorando');return}
-  _switchInProgress=true;
+  const myToken=++_switchToken;
 
   // === DRUM KIT: caso especial — solo funciona con Yamaha ===
   if(preset.isDrum){
     if(outputMode==='pc' || !midiOutput){
-      _switchInProgress=false;
       showToast({type:'warn',title:'Drum Kit requiere Yamaha',body:'Cambia a modo "Salida: Yamaha" o "Ambas" y conecta el teclado.',duration:5000});
       // Restaurar el selector al instrumento que sí está activo
       const sel=document.getElementById('instrument-select');
@@ -1758,7 +1760,6 @@ async function switchInstrument(presetKey, fromMidiIn=false, forceReload=false){
     try{localStorage.setItem('pianopro:instrument',presetKey)}catch(e){}
     updateInstrumentUI();
     showToast({type:'success',title:'🥁 Drum Kit',body:'Toca el Yamaha como batería. Cada nota MIDI = un sonido del kit.',duration:3500});
-    _switchInProgress=false;
     return;
   }
 
@@ -1779,7 +1780,6 @@ async function switchInstrument(presetKey, fromMidiIn=false, forceReload=false){
     }
     // updateInstrumentUI lo llama el caller; aquí no es necesario porque puede quedar en estado obsoleto
     // antes de que se hayan seteado las variables _lastYamaha* desde el handler.
-    _switchInProgress=false;
     return;
   }
 
@@ -1787,6 +1787,9 @@ async function switchInstrument(presetKey, fromMidiIn=false, forceReload=false){
   console.log('[audio] cambiando a preset:',presetKey,preset.name);
 
   let newSampler=null;
+  let pendingSampler=null; // el instance creado en el executor: si la carga
+                           // RECHAZA, newSampler nunca se asigna y sin esta
+                           // referencia el sampler fallido quedaba sin dispose
   try{
     // Soltar notas activas del sampler viejo (pero no lo desechamos hasta tener el nuevo OK)
     if(sampler){
@@ -1795,25 +1798,28 @@ async function switchInstrument(presetKey, fromMidiIn=false, forceReload=false){
       sustainedReleases.clear();
     }
 
-    // Crear el nuevo sampler. Tone.Sampler dispara onload cuando *intenta* cargar todos los samples,
-    // pero algunos pueden dar 404 silenciosamente. Usamos onload + Tone.loaded() + timeout para ser robustos.
-    let loadedSamples=0, failedSamples=0;
+    // Crear el nuevo sampler. onload solo dispara si TODOS los samples cargan;
+    // con fallos parciales no dispara nunca. Estrategia: fallo total → rechazo
+    // INMEDIATO (sin esperar timeout); timeout 12s → contar los buffers que sí
+    // cargaron (Tone interpola con los que haya) y decidir.
+    let failedSamples=0;
     const totalSamples=Object.keys(preset.urls).length;
 
     newSampler=await new Promise((resolve,reject)=>{
       let settled=false;
       const t=setTimeout(()=>{
-        if(!settled){
-          settled=true;
-          // Si al menos cargó UN sample, podemos seguir (Tone.Sampler interpola)
-          if(loadedSamples>0){
-            console.warn(`[audio] timeout pero ${loadedSamples}/${totalSamples} samples cargados, continuando`);
-            resolve(s);
-          }else{
-            reject(new Error(`timeout 35s — 0/${totalSamples} samples cargados`));
-          }
+        if(settled)return;
+        settled=true;
+        // ¿Cuántos buffers cargaron de verdad? (internals de Tone, con guarda)
+        let ok=0;
+        try{s._buffers._buffers.forEach(b=>{if(b&&b.loaded)ok++})}catch(e){}
+        if(ok>0){
+          console.warn(`[audio] timeout pero ${ok}/${totalSamples} samples cargados, continuando (Tone interpola)`);
+          resolve(s);
+        }else{
+          reject(new Error(`timeout 12s — 0/${totalSamples} samples cargados`));
         }
-      },35000);
+      },12000);
       const s=new Tone.Sampler({
         urls:preset.urls,
         release:preset.release,
@@ -1829,9 +1835,24 @@ async function switchInstrument(presetKey, fromMidiIn=false, forceReload=false){
         onerror:(err)=>{
           failedSamples++;
           console.warn('[audio] sample 404:', err && err.message);
+          // Fallo TOTAL: no hay nada que esperar — rechazo inmediato
+          if(!settled && failedSamples>=totalSamples){
+            settled=true;
+            clearTimeout(t);
+            reject(new Error('todos los samples fallaron (red o CDN caído)'));
+          }
         },
       });
+      pendingSampler=s;
     });
+
+    // ¿Llegó otra selección mientras esta cargaba? El último click gana.
+    if(myToken!==_switchToken){
+      try{newSampler.dispose()}catch(e){}
+      loadingToast.dismiss();
+      console.log('[audio] carga de',presetKey,'descartada: hay una selección más reciente');
+      return;
+    }
 
     // Conectar al bus de reverb
     newSampler.connect(reverbBus);
@@ -1861,13 +1882,13 @@ async function switchInstrument(presetKey, fromMidiIn=false, forceReload=false){
     }
   }catch(e){
     loadingToast.dismiss();
-    if(newSampler){try{newSampler.dispose()}catch(_){}}
+    const huerfano=newSampler||pendingSampler;
+    if(huerfano){try{huerfano.dispose()}catch(_){}}
+    if(myToken!==_switchToken)return; // superseded: sin toast de error confuso
     console.error('[audio] switchInstrument falló:',e);
-    showToast({type:'error',title:'No se pudo cargar instrumento',body:preset.name+': '+((e&&e.message)||'error desconocido')+'. Conexión lenta o samples no disponibles. Sigue activo el anterior.',duration:6000});
+    showToast({type:'error',title:'No se pudo cargar instrumento',body:preset.name+': '+((e&&e.message)||'error desconocido')+'. Sigue activo el anterior — puedes elegir otro cuando quieras.',duration:6000});
     // Restaurar el selector al instrumento que sí está activo
     updateInstrumentUI();
-  }finally{
-    _switchInProgress=false;
   }
 }
 
