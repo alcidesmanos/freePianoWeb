@@ -40,6 +40,7 @@ const EXPORTS = [
   'markLessonWithoutScore',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
+  'layout', 'getMidiFromPoint',
   // integración Yamaha
   'findYamahaVoiceName', 'programToPreset', 'PRESET_TO_GM',
   'GM_INSTRUMENTS', 'PSR_E363_VOICES',

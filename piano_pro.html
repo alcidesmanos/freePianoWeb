@@ -2287,7 +2287,9 @@ function getMidiFromPoint(x,y){
   for(let midi=21;midi<=108;midi++){
     if(getNoteInfo(midi).isBlack)continue;
     const wx=whiteIndex(midi)*WW;
-    if(x>=wx&&x<=wx+WW-1&&y<=WH)return{midi,vel:getVel(y,WH)};
+    // x<wx+WW (no -1): el borde dibujado es cosmético; con -1 quedaba una
+    // franja muerta de 1px entre teclas donde el click no sonaba
+    if(x>=wx&&x<wx+WW&&y<=WH)return{midi,vel:getVel(y,WH)};
   }
   return null;
 }

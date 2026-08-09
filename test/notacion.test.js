@@ -46,6 +46,24 @@ test('staffYFromMidi: posiciones clave en el pentagrama doble', () => {
   assert.equal(p.staffYFromMidi(59).useTreble, false);
 });
 
+test('getMidiFromPoint: sin zonas muertas — todo x sobre el teclado da una tecla', () => {
+  // Regresión del bug hallado por las pruebas de humo: el -1 del borde dejaba
+  // 1px inerte entre teclas blancas donde el click no sonaba.
+  const p = loadPiano();
+  p.layout(); // fija WW/WH con el wrapper falso (1200px)
+  const canvas = p.__getElement('piano-canvas');
+  const WH = canvas.height - 4;
+  const y = WH * 0.9; // zona baja: solo teclas blancas
+  let previo = 0;
+  for (let x = 0.25; x < canvas.width - 0.5; x += 0.5) {
+    const hit = p.getMidiFromPoint(x, y);
+    assert.ok(hit, 'zona muerta en x=' + x);
+    assert.ok(hit.midi >= previo, 'los midis crecen de izquierda a derecha');
+    previo = hit.midi;
+  }
+  assert.equal(p.getMidiFromPoint(1, WH * 0.3).midi >= 21, true, 'zona alta también responde');
+});
+
 // ---- Extracción desde OSMD con fixtures planos (sin cargar OSMD) ----
 
 function fixtureVoiceEntry(noteProps, staffId) {

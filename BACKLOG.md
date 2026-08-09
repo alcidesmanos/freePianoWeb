@@ -122,7 +122,7 @@
   - Se muestra en: falling notes (número al borde inferior de la barra) y badge circular sobre la tecla resaltada en wait mode (`highlightedFingers`), color por mano
   - Si el archivo NO trae digitación → no se muestra nada (sin heurística que enseñe mal)
   - Tests en `test/digitacion.test.js` (6 casos con fixtures OSMD)
-  - **PENDIENTE de validar en navegador** con `Fur_Elise_fingered` de la biblioteca (la forma exacta en que OSMD 1.9 expone fingering se cubrió con lectura defensiva de ambas variantes, pero falta la prueba real)
+  - **VALIDADO en navegador real** (2026-08-09, smoke test Playwright): OSMD 1.9 entrega las 37/37 digitaciones de `Atardecer_balada_pop_original.musicxml` a las notas de la lección
   - Pendiente menor: número también en el mini pentagrama (recortado de alcance)
   - **8 archivos de la biblioteca ya la traen marcada**: Fur_Elise_fingered (219), Chopin Ballade (858), The Entertainer (96), Chopin Nocturne Op9No2 (96), Canon in D easy (67), Marcha Turca fingered (57), Waltz A minor (46), Greensleeves (14)
 
