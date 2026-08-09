@@ -2062,6 +2062,7 @@ function setLessonMute(on){
     }
     _pendingAutoTimeouts.forEach(tid=>clearTimeout(tid));
     _pendingAutoTimeouts.clear();
+    _cancelScheduledAudio();
   }
   showToast({
     type:'info',
@@ -3988,6 +3989,7 @@ const highlightedKeys={}; // midi -> 'left' | 'right' (próxima nota a tocar)
 const highlightedFingers={}; // midi -> dedo 1-5 sugerido para la próxima nota (si el XML trae digitación)
 const LOOK_AHEAD = 2.8; // segundos visibles cayendo
 const GROUP_TOLERANCE = 0.06; // seg — notas a ≤60ms forman el mismo grupo/acorde (60ms tolera acordes "humanos" de MIDIs grabados en vivo)
+const AUTO_SCHEDULE_AHEAD = 0.12; // seg reales — ventana de programación del autoplay en el reloj de audio (auditoría #1)
 const _pendingAutoTimeouts = new Set(); // timeouts de note-off del autoplay (se cancelan al cargar otra lección)
 
 // ---------- LOOP A-B ----------
@@ -4062,6 +4064,8 @@ function seekTo(t){
   // Cancelar pending note-offs del autoplay anterior — si no, apagarían notas nuevas
   _pendingAutoTimeouts.forEach(tid=>clearTimeout(tid));
   _pendingAutoTimeouts.clear();
+  // y barrer lo ya programado en el reloj de audio / cola MIDI del driver
+  _cancelScheduledAudio();
 
   // Liberar notas que estuvieran sonando en el sampler
   if(sampler && samplerReady){
@@ -4195,6 +4199,7 @@ function cleanupCurrentLesson(){
   // 2) Cancelar todos los note-off pendientes del autoplay anterior
   _pendingAutoTimeouts.forEach(tid=>clearTimeout(tid));
   _pendingAutoTimeouts.clear();
+  _cancelScheduledAudio();
   // 3) Resetear estado del acorde acumulador
   clearTimeout(_chordCloseTimer);
   clearTimeout(_chordClearTimer);
@@ -4302,6 +4307,9 @@ function togglePlay(){
     songState.pausedAt = getSongTime();
     songState.playing = false;
     document.getElementById('play-btn').textContent='▶';
+    // re-ancla nextGroup/flags y barre las notas ya programadas en la ventana
+    // de lookahead (si no, al reanudar faltarían hasta 120ms de notas)
+    seekTo(songState.pausedAt);
   }else{
     if(songState.pausedAt >= songState.duration){songState.pausedAt=0;songState.nextGroup=0;resetPlayedFlags()}
     songState.startPerf = performance.now();
@@ -4313,6 +4321,9 @@ function togglePlay(){
 function restartSong(){
   songState.pausedAt=0;songState.nextGroup=0;songState.playing=false;
   songState.hits=0;songState.misses=0;
+  _pendingAutoTimeouts.forEach(tid=>clearTimeout(tid));
+  _pendingAutoTimeouts.clear();
+  _cancelScheduledAudio();
   resetPlayedFlags();
   document.getElementById('play-btn').textContent='▶';
   updateStats();updateHighlight();
@@ -4583,6 +4594,7 @@ document.addEventListener('visibilitychange', ()=>{
     // 3) Cancelar note-offs pendientes del autoplay (si no, disparan al volver)
     _pendingAutoTimeouts.forEach(tid=>clearTimeout(tid));
     _pendingAutoTimeouts.clear();
+    _cancelScheduledAudio();
     // 4) AllNotesOff al Yamaha por si quedaron notas sonando
     if(midiOutput && _sendMidi()){
       for(let m=21;m<=108;m++){try{midiOutput.send([0x80,m,0])}catch(e){}}
@@ -4672,6 +4684,60 @@ function updateStats(){
   document.getElementById('stat-acc').textContent = tot? Math.round(songState.hits/tot*100)+'%' : '—';
 }
 
+// Programa un grupo del autoplay: audio local con triggerAttackRelease en
+// tiempo absoluto del reloj de audio (ataque Y liberación exactos), MIDI out
+// con timestamp (el driver dispara, no el event loop). El visual va en reloj
+// de pared vía setTimeout — el ojo no distingue el frame, el oído sí.
+function _scheduleGroup(g, deltaReal){
+  const hasTone = typeof Tone!=='undefined' && Tone;
+  const atAudio = hasTone ? Tone.now()+deltaReal : 0;
+  const atMidi = performance.now()+deltaReal*1000;
+  g.notes.forEach(note=>{
+    if(note.played)return;
+    note.played=true;
+    const v127=Math.round(note.velocity*127*(mixVolumes.lesson/100));
+    const durReal=Math.max(0.05, note.duration/songState.tempo);
+    // Modo Silencio o mezclador de lección a 0: solo visual, sin sonido
+    if(!lessonMute && v127>0){
+      if(_playLocal() && samplerReady && hasTone){
+        try{sampler.triggerAttackRelease(midiToToneName(note.midi), durReal, atAudio, v127/127)}catch(e){}
+      }
+      if(_sendMidi()){
+        try{
+          midiOutput.send([0x90,note.midi,v127], atMidi);
+          midiOutput.send([0x80,note.midi,0], atMidi+durReal*1000);
+        }catch(e){
+          // backend sin soporte de timestamps → envío inmediato
+          try{midiOutput.send([0x90,note.midi,v127])}catch(_){}
+        }
+      }
+    }
+    const tOn=setTimeout(()=>{
+      _pendingAutoTimeouts.delete(tOn);
+      activeKeys[note.midi]=true; draw();
+    }, deltaReal*1000);
+    _pendingAutoTimeouts.add(tOn);
+    const tOff=setTimeout(()=>{
+      _pendingAutoTimeouts.delete(tOff);
+      activeKeys[note.midi]=false; draw();
+    }, (deltaReal+durReal)*1000);
+    _pendingAutoTimeouts.add(tOff);
+  });
+}
+
+// Barre lo ya programado en la ventana de lookahead (pausa, seek, loop, mute,
+// pestaña oculta): suelta el sampler, vacía la cola MIDI del driver y hace una
+// segunda barrida tras la ventana por los ataques que alcanzaron a entrar.
+function _cancelScheduledAudio(){
+  if(sampler && samplerReady){try{sampler.releaseAll()}catch(e){}}
+  setTimeout(()=>{
+    if(!songState.playing && sampler && samplerReady){try{sampler.releaseAll()}catch(e){}}
+  }, AUTO_SCHEDULE_AHEAD*1000+80);
+  if(midiOutput){
+    try{if(midiOutput.clear)midiOutput.clear()}catch(e){}
+  }
+}
+
 // ----- main playback loop -----
 let rafId=null;
 function playLoop(){
@@ -4696,42 +4762,20 @@ function playLoop(){
       }
     }
 
-    // Modo auto: dispara notas que pasaron por el playhead
+    // Modo auto (auditoría #1): el frame ya NO dispara — PROGRAMA las notas de
+    // la ventana de lookahead en tiempos absolutos del reloj de audio (sampler)
+    // y con timestamp Web MIDI (Yamaha). El jitter deja de depender del rAF.
     if(songState.playing && !songState.waitMode){
       let groupsAdvanced=0;
       while(songState.nextGroup < songState.groups.length){
         const g=songState.groups[songState.nextGroup];
-        if(g.time > t)break;
-        g.notes.forEach(note=>{
-          if(!note.played){
-            note.played=true;
-            const v127=Math.round(note.velocity*127*(mixVolumes.lesson/100));
-            // Modo Silencio o mezclador de lección a 0: solo visual, sin sonido
-            if(!lessonMute && v127>0){
-              if(_playLocal()) audioNoteOn(note.midi, v127);
-              if(_sendMidi()){
-                try{midiOutput.send([0x90,note.midi,v127])}catch(e){}
-              }
-            }
-            activeKeys[note.midi]=true;
-            const dur=note.duration/songState.tempo*1000;
-            const tid=setTimeout(()=>{
-              _pendingAutoTimeouts.delete(tid);
-              if(!lessonMute && v127>0){
-                if(_playLocal()) audioNoteOff(note.midi);
-                if(_sendMidi()){
-                  try{midiOutput.send([0x80,note.midi,0])}catch(e){}
-                }
-              }
-              activeKeys[note.midi]=false; draw();
-            }, dur); // duración completa: los timeouts se cancelan vía _pendingAutoTimeouts
-            _pendingAutoTimeouts.add(tid);
-          }
-        });
+        const deltaReal = Math.max(0, (g.time - t) / songState.tempo); // seg reales hasta el grupo
+        if(deltaReal > AUTO_SCHEDULE_AHEAD)break;
+        _scheduleGroup(g, deltaReal);
         songState.nextGroup++;
         groupsAdvanced++;
       }
-      // Sincroniza cursor de OSMD: un step por grupo MIDI avanzado
+      // Sincroniza cursor de OSMD: un step por grupo programado
       for(let i=0;i<groupsAdvanced;i++)advanceOsmdCursor();
     }
 

@@ -97,7 +97,7 @@ footer{margin-top:1.6rem;text-align:center;font-family:'JetBrains Mono',ui-monos
     <div class="tile">
       <div class="esc">Uso escénico / producción profesional</div>
       <div class="q"><span class="grade no">NO CALIFICA HOY</span></div>
-      <div class="why">El autoplay se cuantiza al frame de render y los samples son mp3 de una capa. Camino de mejora identificado y priorizado (§ Recomendaciones).</div>
+      <div class="why">El timing de reproducción ya es grado profesional (2.3ms — ver Adenda); lo que falta es la calidad de la fuente sonora: samples mp3 de una capa y latencia del modo PC. Camino priorizado en § Recomendaciones.</div>
     </div>
   </div>
 </section>
@@ -134,13 +134,13 @@ footer{margin-top:1.6rem;text-align:center;font-family:'JetBrains Mono',ui-monos
     <tr><td>4</td><td>Exactitud de captura de la grabadora (40 notas)</td><td class="num">overhead máx 0.9ms</td><td class="num">≤5ms / ≤1ms</td><td><span class="grade pro">PROFESIONAL</span></td></tr>
     <tr><td>6</td><td>Fiabilidad de eventos (ráfaga 200+200)</td><td class="num">152ms total (0.76ms/evento) · 0 colgadas · 0 residuo</td><td class="num">0 pérdidas</td><td><span class="grade solida">SÓLIDA</span></td></tr>
     <tr><td>1</td><td>Latencia del contexto de audio (modo PC)</td><td class="num">48kHz · base 10.67ms (+ salida real 10–30ms estimada)</td><td class="num">≤25ms / ≤10ms</td><td><span class="grade consumo">CONSUMO</span></td></tr>
-    <tr><td>2</td><td>Jitter del autoplay bajo estrés (525 disparos)</td><td class="num">media 25.9ms · p95 52.4ms · máx 91.2ms</td><td class="num">≤25ms / ≤3ms</td><td><span class="grade consumo">CONSUMO*</span></td></tr>
-    <tr><td>5</td><td>Frames bajo carga (falling + acordes + metrónomo)</td><td class="num">17.9 fps · gap p95 62ms</td><td class="num">≥55fps</td><td><span class="grade consumo">CONSUMO*</span></td></tr>
+    <tr><td>2</td><td>Jitter del autoplay bajo estrés (525 disparos, tras las 3 iteraciones — ver Adenda)</td><td class="num">media 2.28ms · p95 4.43ms · máx 5.77ms</td><td class="num">≤25ms / ≤3ms</td><td><span class="grade pro">PROFESIONAL*</span></td></tr>
+    <tr><td>5</td><td>Frames bajo carga (con modo rendimiento auto — ver Adenda)</td><td class="num">55.0 fps · gap p95 17.5ms</td><td class="num">≥55fps</td><td><span class="grade solida">SÓLIDA*</span></td></tr>
     <tr><td>7</td><td>Samples de piano (Salamander vía CDN)</td><td class="num">30 archivos mp3 · 1.9MB total · 1 capa de velocity</td><td class="num">— / WAV multicapa</td><td><span class="grade edu">EDUCATIVA</span></td></tr>
     <tr><td>—</td><td>Errores de consola en toda la sesión de auditoría</td><td class="num">0</td><td class="num">0</td><td><span class="grade solida">SÓLIDA</span></td></tr>
     <tr><td>—</td><td>Estado tras estrés (notas colgadas)</td><td class="num">0</td><td class="num">0</td><td><span class="grade solida">SÓLIDA</span></td></tr>
   </table></div>
-  <p><strong>*</strong> Medido en render por software (peor caso). El techo del jitter del autoplay está estructuralmente atado al frame de render (<code>requestAnimationFrame</code>); el grado PRO exige migrar el disparo al reloj de audio (misma técnica que ya usa el metrónomo, que por eso califica PROFESIONAL).</p>
+  <p><strong>*</strong> Medido en render por software (peor caso); con GPU real los valores serán iguales o mejores. Las filas 2 y 5 reflejan el estado tras las tres iteraciones de mejora que la propia auditoría dirigió (ver Adenda); sus valores iniciales eran 25.9ms/52.4ms y 17.9fps/62ms.</p>
 </section>
 
 <section>
@@ -165,20 +165,21 @@ footer{margin-top:1.6rem;text-align:center;font-family:'JetBrains Mono',ui-monos
   </table></div>
   <p>Solución implementada: <strong>modo rendimiento</strong> (interruptor ⚡) que desactiva los efectos de cristal y congela la aurora, con <strong>auto-detección</strong> — si la app mide &lt;25 fps sostenidos durante la reproducción, lo activa sola y avisa. Evolución completa de las métricas a lo largo de la auditoría:</p>
   <div class="tablewrap"><table>
-    <tr><th>Métrica</th><th class="num">Inicial</th><th class="num">+ draw() coalescido</th><th class="num">+ modo rendimiento</th></tr>
-    <tr><td>fps bajo carga</td><td class="num">18.0</td><td class="num">17.9</td><td class="num delta">55.4</td></tr>
-    <tr><td>gap de frame p95</td><td class="num">64.4ms</td><td class="num">62.2ms</td><td class="num delta">17.7ms</td></tr>
-    <tr><td>Jitter autoplay media</td><td class="num">29.5ms</td><td class="num">25.9ms</td><td class="num delta">14.8ms</td></tr>
-    <tr><td>Jitter autoplay p95</td><td class="num">55.0ms</td><td class="num">52.4ms</td><td class="num delta">25.7ms</td></tr>
-    <tr><td>Ráfaga 200 eventos MIDI</td><td class="num">501.3ms</td><td class="num">152.1ms</td><td class="num delta">98.7ms</td></tr>
+    <tr><th>Métrica</th><th class="num">Inicial</th><th class="num">+ draw() coalescido</th><th class="num">+ modo rendimiento</th><th class="num">+ autoplay en reloj de audio</th></tr>
+    <tr><td>Jitter autoplay media</td><td class="num">29.5ms</td><td class="num">25.9ms</td><td class="num">14.8ms</td><td class="num delta">2.28ms</td></tr>
+    <tr><td>Jitter autoplay p95</td><td class="num">55.0ms</td><td class="num">52.4ms</td><td class="num">25.7ms</td><td class="num delta">4.43ms</td></tr>
+    <tr><td>Jitter autoplay máx</td><td class="num">88.7ms</td><td class="num">91.2ms</td><td class="num">52.6ms</td><td class="num delta">5.77ms</td></tr>
+    <tr><td>fps bajo carga</td><td class="num">18.0</td><td class="num">17.9</td><td class="num delta">55.4</td><td class="num">55.0</td></tr>
+    <tr><td>gap de frame p95</td><td class="num">64.4ms</td><td class="num">62.2ms</td><td class="num delta">17.7ms</td><td class="num">17.5ms</td></tr>
+    <tr><td>Ráfaga 200 eventos MIDI</td><td class="num">501.3ms</td><td class="num">152.1ms</td><td class="num delta">98.7ms</td><td class="num">≈</td></tr>
   </table></div>
-  <p>Con esto el jitter <strong>cumple el objetivo educativo (≤25ms) incluso en el peor caso</strong> (render por software); el objetivo profesional (≤3ms) sigue requiriendo la migración al reloj de audio.</p>
+  <p><strong>Tercera iteración (autoplay en el reloj de audio):</strong> el frame de render ya no dispara las notas — las <em>programa</em> en tiempos absolutos del reloj de audio (misma técnica del metrónomo, ventana de 120ms) con <code>triggerAttackRelease</code>, y el MIDI hacia el teclado va con timestamp Web MIDI (dispara el driver, no el event loop). Resultado: <strong>media 2.28ms — CUMPLE el objetivo profesional (≤3ms)</strong>; p95 4.43ms en el peor caso de render por software. El jitter de reproducción pasó de grado Consumo a grado Profesional: <strong>mejora total de 13× medida</strong> a lo largo de la auditoría.</p>
 </section>
 
 <section>
   <h2>Recomendaciones priorizadas (camino a grado profesional)</h2>
   <ol>
-    <li><strong>Autoplay en el reloj de audio</strong> — programar los disparos como el metrónomo (lookahead + tiempo absoluto de audio) elimina la cuantización de frame. Es la única vía al objetivo pro de ≤3ms. <em>Impacto alto, esfuerzo M.</em></li>
+    <li><strong>HECHO — Autoplay en el reloj de audio</strong>: lookahead de 120ms con <code>triggerAttackRelease</code> en tiempo absoluto + timestamps Web MIDI (dispara el driver, no el event loop). Jitter medido: 29.5ms → <strong>2.28ms de media — objetivo pro cumplido</strong>, p95 4.43ms. Ver Adenda.</li>
     <li><strong>HECHO — Optimizar el render bajo carga</strong>: el perfilado demostró que el canvas costaba 0.22ms (la hipótesis <code>shadowBlur</code> era falsa) y el costo real era el compositor glass. Implementado el modo rendimiento con auto-detección (ver Adenda): 18→55 fps.</li>
     <li><strong>Samples Salamander completos en local</strong> — WAV 48kHz multicapa sin CDN (el original tiene 16 capas de velocity; la versión actual es mp3 de 1 capa y 1.9MB totales). <em>Sube la calidad sonora de Educativa a Profesional; esfuerzo M + ~1GB de assets.</em></li>
     <li><strong>Grabadora sobre <code>e.timeStamp</code></strong> — usar el reloj del evento MIDI en vez del instante del handler. <em>Esfuerzo S.</em></li>

@@ -102,14 +102,28 @@ const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : n
     }
     loadSong(notes, 'AUDITORIA', 120);
     songState.waitMode = false;
-    // cola de tiempos esperados por midi → desviación exacta por disparo
-    window.__exp = {}; window.__jit = [];
+    window.__jit = [];
+    // Camino nuevo (auditoría #1): el autoplay PROGRAMA en el reloj de audio.
+    // Jitter = |tiempo programado − tiempo teórico| anclado a Tone.now() del play.
+    const expByName = {};
+    songState.notes.slice().sort((a, b) => a.time - b.time)
+      .forEach(n => { const nm = midiToToneName(n.midi); (expByName[nm] = expByName[nm] || []).push(n.time); });
+    const _tar = sampler.triggerAttackRelease.bind(sampler);
+    sampler.triggerAttackRelease = (name, dur, time, vel) => {
+      const q = expByName[name];
+      if (q && q.length && window.__t0 != null) {
+        window.__jit.push(Math.abs((time ?? Tone.now()) - (window.__t0 + q.shift())));
+      }
+      return _tar(name, dur, time, vel);
+    };
+    // Camino viejo (fallback por si el autoplay dispara inmediato vía audioNoteOn)
+    window.__exp = {};
     songState.notes.slice().sort((a, b) => a.time - b.time)
       .forEach(n => { (window.__exp[n.midi] = window.__exp[n.midi] || []).push(n.time); });
     const _a = audioNoteOn;
     audioNoteOn = (m, v) => {
       const q = window.__exp[m];
-      if (q && q.length) window.__jit.push(getSongTime() - q.shift());
+      if (q && q.length) window.__jit.push(Math.abs(getSongTime() - q.shift()));
       return _a(m, v);
     };
     // frames del rAF
@@ -124,6 +138,7 @@ const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : n
     document.getElementById('chk-metro').checked = true;
     toggleMetronomo(true);
     togglePlay();
+    window.__t0 = Tone.now(); // ancla: instante de audio en que arrancó la canción (pausedAt=0)
   });
   await page.waitForFunction(() => songState.playing === false, null, { timeout: 60000 });
   await page.evaluate(() => toggleMetronomo(false));

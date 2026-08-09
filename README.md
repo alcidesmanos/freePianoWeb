@@ -151,10 +151,13 @@ profesional: no califica hoy, y es honesto documentar por qué.**
 
 ### Camino a "grado profesional" (si algún día se quisiera)
 
-En orden de impacto: (1) autoplay programado en el reloj de audio — elimina la cuantización
-de frame; (2) samples Salamander completos en local (WAV multi-capa, sin CDN); (3) reverb
-por convolución con IRs reales (backlog P1); (4) grabadora sobre `e.timeStamp`;
-(5) suite de métricas 1-6 automatizada como capa 4 del testing (los smoke ya dan la base).
+En orden de impacto: (1) **HECHO 2026-08-09** — autoplay programado en el reloj de audio
+(lookahead 120ms + `triggerAttackRelease` + timestamps Web MIDI): jitter 29.5→**2.28ms de
+media, objetivo pro cumplido**; (2) samples Salamander completos en local (WAV multi-capa,
+sin CDN); (3) reverb por convolución con IRs reales (backlog P1); (4) grabadora sobre
+`e.timeStamp`; (5) suite de métricas automatizada como capa 4 del testing.
+También HECHO: modo rendimiento con auto-detección de fps (18→55 fps bajo carga; el
+perfilado demostró que el costo era el compositor glass, no el canvas: 0.22ms/frame).
 
 Para el caso de uso real de este proyecto — **aprender piano con un PSR-E363** — el modo
 Yamaha ya ofrece latencia y sonido del instrumento físico, que es el techo de calidad
