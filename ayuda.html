@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pianoforte Aurora Pro — Manual de uso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --violet:#8b5cf6; --cyan:#06b6d4; --magenta:#ec4899; --teal:#2dd4bf; --gold:#fbbf24;
+  --bg:#0a0814;
+  --glass:rgba(255,255,255,0.04);
+  --glass-2:rgba(255,255,255,0.07);
+  --border:rgba(255,255,255,0.10);
+  --text:#f5f5f7;
+  --text-dim:rgba(245,245,247,0.68);
+  --text-mute:rgba(245,245,247,0.45);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  min-height:100vh;line-height:1.65;font-size:15px;
+}
+body::before{
+  content:'';position:fixed;inset:-30%;z-index:-1;
+  background:
+    radial-gradient(45% 55% at 18% 28%, rgba(139,92,246,0.4) 0%, transparent 60%),
+    radial-gradient(40% 50% at 82% 18%, rgba(6,182,212,0.3) 0%, transparent 60%),
+    radial-gradient(50% 45% at 72% 78%, rgba(236,72,153,0.3) 0%, transparent 60%);
+  filter:blur(60px);
+}
+.wrap{max-width:1100px;margin:0 auto;padding:2rem 1.2rem;display:grid;grid-template-columns:230px 1fr;gap:2rem;align-items:start}
+header.top{grid-column:1/-1;margin-bottom:0.5rem}
+header.top h1{font-family:'Fraunces',serif;font-weight:400;font-size:clamp(1.8rem,4vw,2.6rem);letter-spacing:-0.02em;
+  background:linear-gradient(135deg,#fff,var(--cyan) 60%,var(--magenta));-webkit-background-clip:text;background-clip:text;color:transparent}
+header.top p{color:var(--text-dim);margin-top:0.4rem;max-width:640px}
+header.top a.back{display:inline-block;margin-top:0.8rem;color:var(--cyan);text-decoration:none;font-size:13px;border:1px solid var(--border);border-radius:10px;padding:0.4rem 0.9rem;background:var(--glass-2)}
+header.top a.back:hover{border-color:var(--cyan)}
+nav.toc{
+  position:sticky;top:1.2rem;
+  background:var(--glass);border:1px solid var(--border);border-radius:14px;
+  padding:1rem;font-size:13px;
+  max-height:calc(100vh - 2.4rem);overflow-y:auto;
+}
+nav.toc .cap{font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--text-mute);font-weight:600;margin-bottom:0.6rem}
+nav.toc a{display:block;color:var(--text-dim);text-decoration:none;padding:0.22rem 0;border-left:2px solid transparent;padding-left:0.6rem;margin-left:-0.6rem}
+nav.toc a:hover{color:var(--text);border-left-color:var(--cyan)}
+main{min-width:0}
+section.card{
+  background:var(--glass);border:1px solid var(--border);border-radius:16px;
+  padding:1.4rem 1.6rem;margin-bottom:1.2rem;
+}
+h2{font-family:'Fraunces',serif;font-weight:400;font-size:1.5rem;letter-spacing:-0.01em;margin-bottom:0.7rem;color:var(--text)}
+h2 .ico{margin-right:0.4rem}
+h3{font-size:1rem;font-weight:600;margin:1.1rem 0 0.4rem;color:var(--cyan)}
+p{color:var(--text-dim);margin-bottom:0.6rem}
+ul,ol{color:var(--text-dim);padding-left:1.3rem;margin-bottom:0.6rem}
+li{margin-bottom:0.3rem}
+strong{color:var(--text);font-weight:600}
+kbd{
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  background:var(--glass-2);border:1px solid var(--border);border-bottom-width:2px;
+  border-radius:6px;padding:0.1rem 0.45rem;color:var(--gold);white-space:nowrap;
+}
+code{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--teal);background:var(--glass-2);border-radius:5px;padding:0.05rem 0.35rem}
+.chip{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:12px;border-radius:7px;padding:0.12rem 0.5rem;margin:0 0.15rem}
+.chip.cyan{background:rgba(6,182,212,0.15);color:#67e8f9;border:1px solid rgba(6,182,212,0.4)}
+.chip.mag{background:rgba(236,72,153,0.15);color:#f9a8d4;border:1px solid rgba(236,72,153,0.4)}
+.chip.green{background:rgba(34,197,94,0.15);color:#86efac;border:1px solid rgba(34,197,94,0.4)}
+.chip.gray{background:rgba(148,163,184,0.12);color:#cbd5e1;border:1px solid rgba(148,163,184,0.35)}
+.chip.gold{background:rgba(251,191,36,0.12);color:var(--gold);border:1px solid rgba(251,191,36,0.4)}
+.chip.violet{background:rgba(139,92,246,0.15);color:#c4b5fd;border:1px solid rgba(139,92,246,0.4)}
+table{width:100%;border-collapse:collapse;margin:0.6rem 0 0.8rem;font-size:13.5px}
+th,td{text-align:left;padding:0.45rem 0.7rem;border-bottom:1px solid var(--border);color:var(--text-dim)}
+th{color:var(--text-mute);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600}
+td:first-child{color:var(--text)}
+.tip{
+  border-left:3px solid var(--gold);background:rgba(251,191,36,0.07);
+  border-radius:0 10px 10px 0;padding:0.6rem 0.9rem;margin:0.7rem 0;color:var(--text-dim);font-size:13.5px;
+}
+.tip b{color:var(--gold)}
+.warn{border-left-color:#ef4444;background:rgba(239,68,68,0.07)}
+.warn b{color:#fca5a5}
+footer{grid-column:1/-1;text-align:center;color:var(--text-mute);font-size:12px;padding:1.5rem 0 0.5rem;font-family:'JetBrains Mono',monospace}
+@media (max-width:860px){
+  .wrap{grid-template-columns:1fr}
+  nav.toc{position:static;max-height:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1>Pianoforte Aurora Pro — Manual</h1>
+  <p>Piano de 88 teclas en el navegador con lecciones interactivas, integración total con el Yamaha PSR-E363, teoría musical en vivo, entrenamiento de oído y grabadora MIDI.</p>
+  <a class="back" href="piano_pro.html">← Volver a la aplicación</a>
+</header>
+
+<nav class="toc">
+  <div class="cap">Contenido</div>
+  <a href="#inicio">Primeros pasos</a>
+  <a href="#cargar">Cargar canciones</a>
+  <a href="#salida">Salida de sonido e instrumentos</a>
+  <a href="#leccion">La lección: notas que caen</a>
+  <a href="#loop">Loop A-B</a>
+  <a href="#manos">Manos separadas</a>
+  <a href="#transponer">Transponer</a>
+  <a href="#digitacion">Digitaciones</a>
+  <a href="#partitura">Partitura</a>
+  <a href="#visuales">Ayudas visuales</a>
+  <a href="#metronomo">Metrónomo y mezclador</a>
+  <a href="#atajos">Atajos de teclado</a>
+  <a href="#teoria">Teoría en vivo</a>
+  <a href="#escalas">Escalas y círculo de quintas</a>
+  <a href="#oido">Entrenamiento de oído</a>
+  <a href="#grabadora">Grabadora MIDI</a>
+  <a href="#persistencia">Qué se guarda solo</a>
+  <a href="#problemas">Problemas frecuentes</a>
+</nav>
+
+<main>
+
+<section class="card" id="inicio">
+  <h2><span class="ico">🚀</span>Primeros pasos</h2>
+  <ol>
+    <li>Abre <code>piano_pro.html</code> en <strong>Chrome o Edge</strong> (necesarios para Web MIDI; se requiere internet la primera vez para descargar los samples del piano).</li>
+    <li>Espera a que cargue el <strong>Salamander Grand</strong> (barra de progreso) y pulsa <strong>Comenzar</strong> — ese clic desbloquea el audio del navegador.</li>
+    <li>Si tu Yamaha está conectado por USB, la app lo detecta sola: verás su nombre en el pill superior y la salida cambia a modo Yamaha automáticamente.</li>
+    <li>Toca: con el teclado físico, con el ratón sobre las teclas, o por toque en pantalla táctil.</li>
+  </ol>
+  <p>Los tres pills del encabezado te dicen el estado: <strong>MIDI</strong> (dispositivo conectado), <strong>Audio</strong> (samples listos) e <strong>Instrumento activo</strong>.</p>
+</section>
+
+<section class="card" id="cargar">
+  <h2><span class="ico">📂</span>Cargar canciones</h2>
+  <h3>Tres maneras</h3>
+  <ul>
+    <li><strong>Arrastrar y soltar</strong> cualquier archivo sobre la página (aparece el marco punteado "Suelta el archivo").</li>
+    <li>Botones <strong>Cargar MIDI</strong> (<code>.mid</code>, <code>.midi</code>) y <strong>Cargar partitura</strong> (<code>.xml</code>, <code>.musicxml</code>, <code>.mxl</code>).</li>
+    <li>El botón <strong>★ Für Elise</strong> descarga la pieza de ejemplo de internet.</li>
+  </ul>
+  <h3>¿MIDI o MusicXML?</h3>
+  <table>
+    <tr><th></th><th>MusicXML (.xml/.mxl)</th><th>MIDI (.mid)</th></tr>
+    <tr><td>Partitura visual</td><td>✅ con cursor sincronizado</td><td>❌ (el formato no trae notación)</td></tr>
+    <tr><td>Digitaciones</td><td>✅ si el archivo las trae</td><td>❌</td></tr>
+    <tr><td>Manos separadas</td><td>✅ por pentagrama</td><td>por nombre de pista o altura</td></tr>
+    <tr><td>Dinámica y timing humanos</td><td>❌ (valores planos)</td><td>✅ tal como se interpretó</td></tr>
+  </table>
+  <p><strong>Para aprender, MusicXML</strong>; para escuchar interpretaciones o recargar tus grabaciones, MIDI. En musescore.com hay miles de arreglos gratuitos de la comunidad.</p>
+</section>
+
+<section class="card" id="salida">
+  <h2><span class="ico">🔊</span>Salida de sonido e instrumentos</h2>
+  <h3>Selector "Salida"</h3>
+  <ul>
+    <li><strong>PC</strong> — suena por los altavoces con los samples del navegador.</li>
+    <li><strong>Yamaha</strong> — todo va por MIDI al teclado; suena su motor interno (sin descargar samples).</li>
+    <li><strong>Ambas</strong> — los dos a la vez (útil para grabar; puede oírse doble).</li>
+  </ul>
+  <div class="tip warn"><b>¿Se oye doble al tocar?</b> Activa <strong>Local Off</strong> en el Yamaha (Function → Local) para que el teclado físico no suene por sí mismo cuando la app ya le envía las notas.</div>
+  <h3>Instrumentos</h3>
+  <p>El desplegable tiene <strong>20 instrumentos con samples</strong> (piano, cuerdas, vientos, metales…) y las <strong>115 voces del PSR-E363</strong> con su código Bank/PC (p. ej. <code>Grand Piano · 0/112/1</code>). El campo <code>🔍 filtrar</code> busca por nombre, categoría o código.</p>
+  <ul>
+    <li><strong>Auto-instrumento</strong>: cambias la voz con los botones del Yamaha → la app sincroniza su sampler y el canal MIDI 1 para que el autoplay suene con la misma voz que tus dedos.</li>
+    <li><strong>Drum Kit</strong>: convierte el teclado en batería (solo en modo Yamaha).</li>
+    <li>Si el Yamaha reporta una voz que no está en la tabla, se añade sola al desplegable con un asterisco.</li>
+  </ul>
+</section>
+
+<section class="card" id="leccion">
+  <h2><span class="ico">🎹</span>La lección: notas que caen</h2>
+  <p>Al cargar una canción aparecen el panel de lección y la cascada de notas. Colores:</p>
+  <p>
+    <span class="chip cyan">cyan = mano izquierda</span>
+    <span class="chip mag">magenta = mano derecha</span>
+    <span class="chip green">verde = ya tocada</span>
+    <span class="chip gray">gris = mano filtrada</span>
+  </p>
+  <p>La barra dorada inferior es el <strong>playhead</strong>: cuando una nota lo cruza, es su momento.</p>
+  <h3>Modos de práctica</h3>
+  <ul>
+    <li><strong>Esperar</strong> (recomendado para aprender): la canción se congela hasta que toques la(s) tecla(s) correcta(s) — resaltadas en el teclado con el color de su mano. Los acordes exigen todas sus notas.</li>
+    <li><strong>Autoplay</strong> (Esperar desactivado): la pieza se reproduce sola; útil para conocerla.</li>
+    <li><strong>Silencio</strong>: el autoplay avanza visualmente pero sin sonido — tú pones las notas tocando lo que ves.</li>
+  </ul>
+  <h3>Tempo y estadísticas</h3>
+  <p>El deslizador de <strong>Tempo (40-150%)</strong> ralentiza o acelera sin cambiar el tono. Los contadores de <strong>aciertos / fallos / precisión</strong> viven en el panel y se reinician con ⟲.</p>
+</section>
+
+<section class="card" id="loop">
+  <h2><span class="ico">🔁</span>Loop A-B</h2>
+  <p>Para machacar el compás difícil: pulsa <strong>A</strong> en un punto de la reproducción y <strong>B</strong> más adelante, luego <strong>Activar</strong>. El tramo se repite en bucle con sus marcas visibles en la barra de progreso.</p>
+  <ul>
+    <li><strong>Subida</strong>: cada vuelta con ≥85% de precisión sube el tempo +5% automáticamente — empiezas al 70% y terminas a velocidad real sin tocar nada.</li>
+    <li><strong>Extender</strong>: cuando dominas el tramo a tempo 100%, el punto B avanza un compás — la "ventana deslizante" clásica de estudio.</li>
+    <li>El panel muestra iteraciones, mejor precisión y última.</li>
+  </ul>
+</section>
+
+<section class="card" id="manos">
+  <h2><span class="ico">🤲</span>Manos separadas</h2>
+  <p>El control <strong>Ambas / Izq / Der</strong> filtra la lección a una sola mano — la técnica central de estudio pianístico:</p>
+  <ul>
+    <li>La mano filtrada desaparece del wait mode y del autoplay (no te la pide, no la toca).</li>
+    <li>Pero sigue <strong>visible en gris tenue</strong> en la cascada: ves el contexto completo sin obligación.</li>
+    <li>Cambiar de filtro conserva tu posición, aciertos y progreso.</li>
+  </ul>
+  <div class="tip"><b>Método sugerido:</b> Der hasta dominarla → Izq hasta dominarla → Ambas (con Loop A-B en el tramo difícil).</div>
+</section>
+
+<section class="card" id="transponer">
+  <h2><span class="ico">♫</span>Transponer</h2>
+  <p>Botones <strong>−1 / +1</strong> junto al tempo desplazan toda la pieza en semitonos (hasta ±12). Las teclas a tocar cambian de verdad — útil para tonalidades cómodas. La app rechaza transposiciones que saquen notas del piano.</p>
+</section>
+
+<section class="card" id="digitacion">
+  <h2><span class="ico">✋</span>Digitaciones</h2>
+  <p>Si el MusicXML trae digitación (etiquetas <code>&lt;fingering&gt;</code>), verás <strong>qué dedo usar (1=pulgar … 5=meñique)</strong>:</p>
+  <ul>
+    <li>En la <strong>barra que cae</strong>: el número junto al borde que cruza el playhead.</li>
+    <li>En la <strong>tecla resaltada</strong> (modo Esperar): un badge circular con el color de la mano.</li>
+  </ul>
+  <p>Si el archivo no trae digitación, no se muestra nada — la app nunca inventa dedos. En la biblioteca local hay varias piezas digitadas (Für Elise fingered, The Entertainer, Canon in D easy…).</p>
+</section>
+
+<section class="card" id="partitura">
+  <h2><span class="ico">🎼</span>Partitura</h2>
+  <p>Con MusicXML, la partitura real se dibuja arriba y un <strong>cursor luminoso la sigue</strong> mientras avanzas (wait mode o autoplay), con auto-scroll. El botón "Ocultar partitura" recupera espacio vertical.</p>
+  <p>Al cargar un MIDI, el visor lo indica: ese formato no incluye notación — la lección vive en la cascada de notas.</p>
+</section>
+
+<section class="card" id="visuales">
+  <h2><span class="ico">👁</span>Ayudas visuales</h2>
+  <ul>
+    <li><strong>Modo nota</strong>: los nombres cambian de C-D-E a Do-Re-Mi en toda la app.</li>
+    <li><strong>Notas en teclas</strong> (modo principiante): DO-RE-MI escrito sobre cada tecla blanca + <strong>pista tenue de la próxima nota</strong> en el display grande durante el wait mode.</li>
+    <li><strong>Display central</strong>: la nota o acorde que tocas, en grande, con octava.</li>
+    <li><strong>Mini pentagrama</strong>: dibuja en notación real lo que suena — con líneas adicionales, sostenidos y el nombre en una banderita.</li>
+    <li><strong>Indicador de sustain</strong>: se enciende dorado al pisar el pedal.</li>
+  </ul>
+</section>
+
+<section class="card" id="metronomo">
+  <h2><span class="ico">⏱</span>Metrónomo y mezclador</h2>
+  <p>El metrónomo (toggle o tecla <kbd>M</kbd>) usa el reloj de audio de alta precisión — no se desincroniza aunque el navegador esté ocupado. El BPM (40-200) se ajusta abajo y el punto visual parpadea en cada pulso.</p>
+  <p>El <strong>Mezclador</strong> da volúmenes independientes:</p>
+  <ul>
+    <li><strong>Piano</strong> — tu instrumento (sampler local).</li>
+    <li><strong>Metró.</strong> — el click (nace al 70% para no tapar al piano en BPM altos).</li>
+    <li><strong>Lección</strong> — el autoplay (afecta también lo que se envía al Yamaha).</li>
+  </ul>
+</section>
+
+<section class="card" id="atajos">
+  <h2><span class="ico">⌨️</span>Atajos de teclado</h2>
+  <table>
+    <tr><th>Tecla</th><th>Acción</th></tr>
+    <tr><td><kbd>Espacio</kbd></td><td>Play / pausa de la lección</td></tr>
+    <tr><td><kbd>R</kbd></td><td>Reiniciar la canción (y sus estadísticas)</td></tr>
+    <tr><td><kbd>W</kbd></td><td>Activar / desactivar modo Esperar</td></tr>
+    <tr><td><kbd>M</kbd></td><td>Metrónomo on/off</td></tr>
+    <tr><td><kbd>+</kbd> / <kbd>−</kbd></td><td>Tempo de la lección ±5%</td></tr>
+  </table>
+  <p>Los atajos nunca actúan mientras escribes en un campo de texto o selector.</p>
+</section>
+
+<section class="card" id="teoria">
+  <h2><span class="ico">🎓</span>Teoría en vivo: acordes y números romanos</h2>
+  <p>Mientras tocas, dos chips aparecen junto al display central:</p>
+  <ul>
+    <li><span class="chip gold">Chip dorado</span> — el <strong>acorde detectado</strong>: <code>C</code>, <code>Am7</code>, <code>G7</code>, <code>Csus4</code>… Reconoce 20 formas, las notas retenidas por el pedal cuentan, y las inversiones se nombran como slash chords (<code>C/E</code>). Con las mismas notas, decide el bajo: C-E-G-A con Do abajo es <code>C6</code>; con La abajo, <code>Am7</code>.</li>
+    <li><span class="chip violet">Chip violeta</span> — la <strong>progresión en números romanos</strong> (últimos 4 grados): toca Do→Sol→Lam→Fa en Do mayor y verás <code>I – V – vi – IV</code>. Mayúsculas para mayores, minúsculas para menores, <code>°</code>/<code>ø</code> para disminuidos, y los prestados con bemol (<code>bVII</code>).</li>
+  </ul>
+  <p>La tonalidad de referencia es la <strong>escala que tengas fijada</strong> (una menor se analiza en su relativa mayor, como en análisis real); sin escala fijada, la que se detecta de tu forma de tocar.</p>
+</section>
+
+<section class="card" id="escalas">
+  <h2><span class="ico">🎼</span>Escalas y círculo de quintas</h2>
+  <h3>Biblioteca de escalas</h3>
+  <p>Selector de <strong>tónica + tipo</strong> (mayor, tres menores, modos griegos, pentatónicas, blues) y el toggle <strong>Escala</strong>: las teclas de la escala se tiñen de <span class="chip" style="background:rgba(45,212,191,0.15);color:#7ff3df;border:1px solid rgba(45,212,191,0.4)">verde-teal</span> con la <span class="chip gold">tónica en dorado</span>. Funciona también durante una lección: practicas viendo el "mapa" de la tonalidad debajo de las notas.</p>
+  <h3>Círculo de quintas (botón "Círculo 5ªs")</h3>
+  <ul>
+    <li>Anillo exterior: las 12 mayores (C arriba, quintas en sentido horario). Interior: sus relativas menores.</li>
+    <li><strong>Detección en vivo</strong>: toca unas cuantas notas y el segmento de tu tonalidad se ilumina dorado (necesita al menos 6 notas para opinar).</li>
+    <li><strong>Click en cualquier segmento</strong>: fija esa escala en el teclado y la <strong>toca como preview</strong> ascendente.</li>
+  </ul>
+</section>
+
+<section class="card" id="oido">
+  <h2><span class="ico">🎧</span>Entrenamiento de oído</h2>
+  <p>Botón "Oído": la app toca algo <strong>solo con sonido</strong> (ninguna pista visual) y tú lo repites en el teclado. Es eco musical: mismas notas, misma octava — entrena el oído relativo y la geografía del teclado a la vez.</p>
+  <table>
+    <tr><th>Nivel</th><th>Qué suena</th><th>Cómo responder</th></tr>
+    <tr><td>1 · Intervalos</td><td>Dos notas seguidas</td><td>En el mismo orden</td></tr>
+    <tr><td>2 · Tríadas</td><td>Acorde en bloque (may/min/dim)</td><td>Las 3 notas, en cualquier orden</td></tr>
+    <tr><td>3 · Séptimas</td><td>Acorde de 4 notas</td><td>Las 4, en cualquier orden</td></tr>
+    <tr><td>4 · Escalas</td><td>La escala completa</td><td>Nota a nota, en orden</td></tr>
+  </table>
+  <ul>
+    <li><strong>Aciertas</strong> → suena el siguiente ejercicio solo, a los 1.6s: rondas encadenadas.</li>
+    <li><strong>Fallas</strong> → el mismo ejercicio se repite; la racha vuelve a 0.</li>
+    <li><strong>↻ Repetir</strong> re-escucha sin penalizar; <strong>Revelar</strong> muestra la respuesta pero cuenta como fallo.</li>
+    <li>Marcador persistente: aciertos/intentos, precisión, racha y mejor racha.</li>
+  </ul>
+  <div class="tip"><b>Con el Yamaha en modo Yamaha:</b> el ejercicio suena por el propio teclado físico — tu piano te pregunta y tú le respondes en las mismas teclas.</div>
+</section>
+
+<section class="card" id="grabadora">
+  <h2><span class="ico">⏺</span>Grabadora MIDI</h2>
+  <p>Botón "Grabadora": captura lo que tocas (velocity y timing reales) y te deja hacer tres cosas con la toma:</p>
+  <ol>
+    <li><strong>▶ Reproducir</strong> — la escuchas tal cual la tocaste.</li>
+    <li><strong>📚 Usar como lección</strong> — tu toma se convierte en una lección normal: cascada de notas, wait mode, loop A-B… <em>practicarte a ti mismo</em>.</li>
+    <li><strong>⬇ Exportar .mid</strong> — descarga un MIDI estándar que abre MuseScore, cualquier DAW, o la propia app con "Cargar MIDI".</li>
+  </ol>
+  <ul>
+    <li>Pulsar <strong>● Grabar</strong> solo "arma": el reloj arranca con tu <strong>primera nota</strong> (sin silencios iniciales).</li>
+    <li>El botón muestra en vivo cuántas notas llevas; <strong>■ Parar</strong> cierra la toma.</li>
+    <li>Exporta <code>.mid</code> y no <code>.mxl</code> a propósito: una interpretación es timing humano, que es lo que MIDI representa; para partitura, abre el .mid en MuseScore y deja que él cuantice.</li>
+  </ul>
+</section>
+
+<section class="card" id="persistencia">
+  <h2><span class="ico">💾</span>Qué se guarda solo</h2>
+  <p>Recargar el navegador no borra tu trabajo:</p>
+  <ul>
+    <li><strong>La última canción completa</strong> (notas, nombre, bpm) con su transposición, filtro de manos, tempo y modo Esperar — al abrir verás "Sesión restaurada".</li>
+    <li>Modo de salida, instrumento, modo nota, notas en teclas, modo silencio.</li>
+    <li>Volúmenes del mezclador, escala fijada, nivel y marcador del entrenamiento de oído.</li>
+  </ul>
+  <p>Todo vive en tu navegador (IndexedDB y localStorage) — nada sale de tu equipo.</p>
+</section>
+
+<section class="card" id="problemas">
+  <h2><span class="ico">🔧</span>Problemas frecuentes</h2>
+  <table>
+    <tr><th>Síntoma</th><th>Causa y solución</th></tr>
+    <tr><td>No suena nada</td><td>El navegador bloquea el audio hasta un gesto: pulsa <strong>Comenzar</strong> en la pantalla inicial o toca cualquier tecla.</td></tr>
+    <tr><td>Se oye doble al tocar</td><td>El Yamaha suena por sí mismo Y por la app. Activa <strong>Local Off</strong> en el teclado o usa "Salida: Yamaha".</td></tr>
+    <tr><td>No detecta el Yamaha</td><td>Solo Chrome/Edge soportan Web MIDI. Conecta el USB antes de abrir la página o reconéctalo (hay detección en caliente); acepta el permiso MIDI.</td></tr>
+    <tr><td>Las teclas "parpadean" solas</td><td>El Yamaha está enviando ARPEGGIO / STYLE / ACMP / SMART CHORD. Apágalos en el panel del teclado (la app te avisa cuando lo nota).</td></tr>
+    <tr><td>La partitura no se dibuja pero la lección sí</td><td>Algunas notaciones exóticas no se pueden renderizar; la lección se extrae igual. No es un error tuyo.</td></tr>
+    <tr><td>Los samples no cargan</td><td>Sin internet no hay CDN. En modo "Salida: Yamaha" puedes tocar igual (el sonido lo pone el teclado) y el metrónomo funciona.</td></tr>
+    <tr><td>Archivo .xml gigante</td><td>Más de 30MB se rechaza. Convierte a <code>.mxl</code> (es ~10× más pequeño) o exporta solo la parte de piano.</td></tr>
+  </table>
+</section>
+
+</main>
+
+<footer>— pianoforte aurora pro · manual — salamander grand · web midi · 2026 —</footer>
+</div>
+</body>
+</html>
