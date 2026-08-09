@@ -124,18 +124,19 @@
   - Si la pieza no tiene esa mano → revierte a Ambas con aviso
   - Tests en `test/manos.test.js` (7 casos)
 
-- [ ] **Digitaciones desde XML** `[L]` ⭐ **LEARNING LEVER #3**
-  - Extraer `<fingering>` del MusicXML (OSMD: `note.notations` / voice entries) → guardar `finger:1-5` en cada nota
-  - Mostrar el número en: falling notes (centro de la barra), pentagrama mini (arriba de la cabeza), sobre la tecla resaltada en wait mode
-  - Color por mano (cyan izq / magenta der) coherente con el resto
-  - Si el archivo NO trae digitación → no mostrar nada (sin heurística que enseñe mal)
+- [x] **Digitaciones desde XML** `[L]` ⭐ **LEARNING LEVER #3 — HECHO 2026-08-09**
+  - Extracción en `_extractFromVoiceEntry`: lee `note.Fingering` o `ve.TechnicalInstructions` (asociación por `sourceNote`; con acorde + instrucción ambigua NO adivina) → `finger:1-5` en la nota
+  - Se muestra en: falling notes (número al borde inferior de la barra) y badge circular sobre la tecla resaltada en wait mode (`highlightedFingers`), color por mano
+  - Si el archivo NO trae digitación → no se muestra nada (sin heurística que enseñe mal)
+  - Tests en `test/digitacion.test.js` (6 casos con fixtures OSMD)
+  - **PENDIENTE de validar en navegador** con `Fur_Elise_fingered` de la biblioteca (la forma exacta en que OSMD 1.9 expone fingering se cubrió con lectura defensiva de ambas variantes, pero falta la prueba real)
+  - Pendiente menor: número también en el mini pentagrama (recortado de alcance)
   - **8 archivos de la biblioteca ya la traen marcada**: Fur_Elise_fingered (219), Chopin Ballade (858), The Entertainer (96), Chopin Nocturne Op9No2 (96), Canon in D easy (67), Marcha Turca fingered (57), Waltz A minor (46), Greensleeves (14)
-  - Es la "guía de manos" que pidió el usuario
 
-- [ ] **Transponer canción** `[S]`
-  - Botones `+1` `-1` en el lesson-panel
-  - Aplicar offset a `note.midi` al renderizar y reproducir
-  - Útil para tonalidades cómodas
+- [x] **Transponer canción** `[S]` — **HECHO 2026-08-09**
+  - Botones `−1`/`+1` con indicador en el lesson-panel; acumulable hasta ±12
+  - `origMidi` como fuente de verdad; guarda de rango A0-C8; convive con manos separadas
+  - Tests en `test/transponer.test.js` (7 casos)
 
 ---
 

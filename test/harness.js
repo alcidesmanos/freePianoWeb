@@ -20,7 +20,7 @@ const HTML_PATH = path.join(__dirname, '..', 'piano_pro.html');
 // Símbolos internos del <script> que los tests necesitan alcanzar.
 const EXPORTS = [
   // estado global del motor
-  'songState', 'loopState', 'highlightedKeys', 'activeKeys',
+  'songState', 'loopState', 'highlightedKeys', 'highlightedFingers', 'activeKeys',
   // motor de lección
   'buildGroups', 'registerUserHit', 'seekTo', 'getSongTime', 'setTempo',
   'updateHighlight', 'resetPlayedFlags', 'fmtTime', 'setHandFilter',

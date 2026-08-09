@@ -1978,6 +1978,20 @@ function layout(){
   fcanvas.height = fh;
 }
 
+// Badge circular con el dedo sugerido (1-5) sobre una tecla resaltada.
+// Color según mano: cyan=izquierda, magenta=derecha (convención de toda la app).
+function drawFingerBadge(cx, cy, r, finger, hand){
+  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.fillStyle=hand==='left'?'#06b6d4':'#ec4899';
+  ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.75)';ctx.lineWidth=1;ctx.stroke();
+  ctx.fillStyle='#fff';
+  ctx.font=`700 ${Math.max(8,Math.round(r*1.25))}px 'JetBrains Mono', monospace`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(String(finger),cx,cy+0.5);
+  ctx.textBaseline='alphabetic';
+}
+
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   for(let midi=21;midi<=108;midi++){
@@ -2027,6 +2041,10 @@ function draw(){
       ctx.textAlign='center';
       ctx.fillText('C'+oct, x+WW/2, WH-6);
     }
+    // Digitación sugerida sobre la tecla resaltada (wait mode + XML con fingering)
+    if(highlight && highlightedFingers[midi] && WW>10){
+      drawFingerBadge(x+WW/2, WH*0.48, Math.min(9,WW*0.3), highlightedFingers[midi], highlight);
+    }
   }
   for(let midi=21;midi<=108;midi++){
     if(!getNoteInfo(midi).isBlack)continue;
@@ -2050,6 +2068,10 @@ function draw(){
     ctx.fill();
     ctx.fillStyle=active?'rgba(255,255,255,0.85)':'rgba(255,255,255,0.10)';
     ctx.fillRect(x+0.5,0.5,BW-1,1);
+    // Digitación sugerida sobre la tecla negra resaltada
+    if(highlight && highlightedFingers[midi] && BW>8){
+      drawFingerBadge(x+BW/2, BH*0.62, Math.min(8,BW*0.35), highlightedFingers[midi], highlight);
+    }
   }
 }
 
@@ -2808,7 +2830,30 @@ function _extractFromVoiceEntry(ve, time, quarterDurSec, numParts, accumulator){
     const durQ = lengthFr ? lengthFr.RealValue : 0.25;
     const durSec = Math.max(0.05, durQ*4*quarterDurSec);
     const hand = numParts>2 ? (midi<60?'left':'right') : (staffIdx>0?'left':'right');
-    accumulator.push({midi, time, duration:durSec, velocity:0.7, hand});
+
+    // Digitación (MusicXML <fingering>): OSMD la expone como note.Fingering
+    // (TechnicalInstruction) o en las TechnicalInstructions del voice entry,
+    // asociadas a su nota vía sourceNote. Solo dedos 1-5; si el archivo no
+    // trae digitación, el campo no existe (nunca inventar una).
+    let finger;
+    const fing = note.Fingering ?? note.fingering;
+    const fingVal = fing!=null ? (fing.value ?? fing.Value ?? fing) : null;
+    if(fingVal!=null && /^[1-5]$/.test(String(fingVal).trim()))finger=+String(fingVal).trim();
+    if(finger===undefined){
+      const tis = ve.TechnicalInstructions || ve.technicalInstructions || [];
+      for(const ti of tis){
+        const src = ti.sourceNote ?? ti.SourceNote;
+        const val = ti.value ?? ti.Value;
+        if((src===note || (src==null && arr.length===1)) && val!=null && /^[1-5]$/.test(String(val).trim())){
+          finger=+String(val).trim();
+          break;
+        }
+      }
+    }
+
+    const rec={midi, time, duration:durSec, velocity:0.7, hand};
+    if(finger!==undefined)rec.finger=finger;
+    accumulator.push(rec);
   });
 }
 
@@ -2944,6 +2989,7 @@ const songState = {
 };
 
 const highlightedKeys={}; // midi -> 'left' | 'right' (próxima nota a tocar)
+const highlightedFingers={}; // midi -> dedo 1-5 sugerido para la próxima nota (si el XML trae digitación)
 const LOOK_AHEAD = 2.8; // segundos visibles cayendo
 const GROUP_TOLERANCE = 0.06; // seg — notas a ≤60ms forman el mismo grupo/acorde (60ms tolera acordes "humanos" de MIDIs grabados en vivo)
 const _pendingAutoTimeouts = new Set(); // timeouts de note-off del autoplay (se cancelan al cargar otra lección)
@@ -3180,6 +3226,7 @@ function cleanupCurrentLesson(){
   // 6) Limpiar teclas activas y resaltadas
   for(const k in activeKeys)delete activeKeys[k];
   for(const k in highlightedKeys)delete highlightedKeys[k];
+  for(const k in highlightedFingers)delete highlightedFingers[k];
   draw();
 }
 
@@ -3404,10 +3451,12 @@ function setTempo(pct){
 function updateHighlight(){
   // borra y añade highlight de la siguiente group
   for(const k in highlightedKeys)delete highlightedKeys[k];
+  for(const k in highlightedFingers)delete highlightedFingers[k];
   if(songState.loaded && songState.waitMode && songState.nextGroup<songState.groups.length){
     const g=songState.groups[songState.nextGroup];
     g.notes.forEach(note=>{
       highlightedKeys[note.midi]= note.hand==='left'?'left':'right';
+      if(note.finger)highlightedFingers[note.midi]=note.finger;
     });
   }
   draw();
@@ -3613,6 +3662,17 @@ function renderFallingFrame(){
     // top stripe
     fctx.fillStyle = isMuted?'rgba(255,255,255,0.15)':'rgba(255,255,255,0.85)';
     fctx.fillRect(baseX, yTop, baseW, 2);
+
+    // Digitación en la barra (solo si el XML la trae), pegada al borde inferior
+    // — el extremo que cruza el playhead, que es donde miras al tocar
+    if(n.finger && !isMuted && h>=16 && baseW>=9){
+      fctx.fillStyle='rgba(255,255,255,0.95)';
+      fctx.font=`700 ${Math.max(9,Math.min(13,baseW*0.55))}px 'JetBrains Mono', monospace`;
+      fctx.textAlign='center';
+      fctx.textBaseline='middle';
+      fctx.fillText(String(n.finger), baseX+baseW/2, Math.max(yTop+8, yBot-9));
+      fctx.textBaseline='alphabetic';
+    }
   }
 
   // vertical guides for octaves (C notes)
