@@ -56,32 +56,25 @@
 
 ### UX inmediata
 
-- [ ] **Drag & drop de archivos** `[S]`
-  - Soltar `.mid`, `.midi`, `.xml`, `.musicxml` sobre la página
-  - Detectar tipo por extensión y enrutar a `loadMidiFile` / `loadXmlFile`
-  - Overlay visual al arrastrar (ring cyan, mensaje "Suelta el archivo")
+- [x] **Drag & drop de archivos** `[S]` — **HECHO 2026-08-09**
+  - `.mid/.midi/.xml/.musicxml/.mxl` con overlay (borde punteado cyan + "Suelta el archivo")
+  - `classifyPianoFile` enruta a `loadMidiFromFile`/`loadXmlFromFile` (loaders refactorizados a File directo)
+  - Tests de enrutado en `test/dragdrop.test.js`
 
-- [ ] **Persistencia local con IndexedDB** `[M]`
-  - Guardar: última canción cargada (notas + nombre + bpm), modo nota ES/EN, tempo de aprendizaje, vista general/real, estado del metrónomo
-  - Restaurar al cargar la página
-  - Razón: recargar el navegador no debería tirar lo que estabas haciendo
+- [x] **Persistencia local con IndexedDB** `[M]` — **HECHO 2026-08-09**
+  - Guarda: última canción (notas extraídas + nombre + bpm), transposición, filtro de manos, tempo, wait mode, modo nota, BPM metrónomo
+  - Restaura al abrir (toast "Sesión restaurada"); guarda en loadSong, cambios de transposición/filtro, pestaña oculta y pagehide
+  - Snapshot versionado (`v:1`) y aplicación defensiva (campos corruptos se ignoran) — `test/sesion.test.js`
 
-- [ ] **Atajos de teclado** `[S]`
-  - `Espacio` = play/pause de la lección
-  - `R` = reiniciar
-  - `W` = toggle wait mode
-  - `M` = toggle metrónomo
-  - `+/-` = tempo ±5%
-  - Indicar atajos en tooltips de los botones (`title=`)
+- [x] **Atajos de teclado** `[S]` — **HECHO 2026-08-09**
+  - `Espacio`=play/pausa · `R`=reiniciar · `W`=wait mode · `M`=metrónomo · `+/-`=tempo ±5%
+  - Nunca interceptan inputs/selects ni combos Ctrl/Cmd; tooltips actualizados — `test/atajos.test.js`
 
-- [ ] **Estado vacío del lesson-panel** `[S]`
-  - Hoy: cuando no hay canción, el panel está oculto
-  - Mejor: mostrar un panel placeholder con CTA "Carga un MIDI o pulsa Für Elise"
-  - Igual que principio UX en CLAUDE.md (estados vacíos con ícono + mensaje + CTA)
+- [x] **Estado vacío del lesson-panel** `[S]` — **HECHO 2026-08-09**
+  - Panel `#lesson-empty` con ícono + mensaje + CTAs (Für Elise / Cargar MIDI / Cargar partitura); se oculta al cargar lección
 
-- [ ] **Loading state en el botón Für Elise** `[S]`
-  - Mientras descarga el XML, el botón muestra spinner inline y queda `disabled`
-  - Evita que se haga clic dos veces
+- [x] **Loading state en el botón Für Elise** `[S]` — **HECHO 2026-08-09**
+  - Ambos botones (toolbar y estado vacío, `data-furelise`) quedan disabled con la estrella girando durante la descarga
 
 ### Audio / expresión
 
@@ -93,9 +86,9 @@
   - El PSR-E363 NO envía CC 66. Igual que el soft: muerto sin hardware compatible.
   - (Nota 2026-05-04: el sustain CC 64 ya implementado es el único pedal que el hardware soporta. Pedalear además es habilidad intermedia, no prioridad para principiante.)
 
-- [ ] **Volumen separado piano / metrónomo / sample-playback** `[S]`
-  - 3 sliders en un menú "Mezclador" colapsable
-  - Hoy todo va a master, lo que hace que el metrónomo en BPM alto tape el piano
+- [x] **Volumen separado piano / metrónomo / sample-playback** `[S]` — **HECHO 2026-08-09**
+  - Panel "Mezclador" en el bottom-bar: Piano (dB del sampler), Metró. (volumen del click, default 70) y Lección (escala velocity del autoplay, local y MIDI out)
+  - Persistido en localStorage (`pianopro:mix`) — `test/mezclador.test.js`
 
 - [ ] **Modo nota: ahora también italiano y francés** `[S]`
   - Toggle se vuelve cycle: EN → ES → IT → FR → EN
