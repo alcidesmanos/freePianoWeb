@@ -2232,7 +2232,13 @@ function drawFingerBadge(cx, cy, r, finger, hand){
   ctx.textBaseline='alphabetic';
 }
 
-function draw(){
+// Repintado coalescido (hallazgo de la auditoría 2026-08-09): cada noteOn/Off
+// llamaba draw() SÍNCRONO (88 teclas repintadas por evento) — en ráfagas y
+// acordes el costo se multiplicaba y hundía los fps. Ahora draw() solo marca
+// sucio y el repintado real ocurre máximo una vez por frame, en playLoop.
+let _drawDirty=true;
+function draw(){_drawDirty=true}
+function _drawNow(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   for(let midi=21;midi<=108;midi++){
     if(getNoteInfo(midi).isBlack)continue;
@@ -4622,6 +4628,8 @@ function updateStats(){
 // ----- main playback loop -----
 let rafId=null;
 function playLoop(){
+  // repintado del teclado: una sola vez por frame, solo si algo cambió
+  if(_drawDirty){_drawDirty=false;_drawNow();}
   if(songState.loaded){
     const t=getSongTime();
 
