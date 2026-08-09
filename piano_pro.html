@@ -234,7 +234,7 @@ label.btn{cursor:pointer}
 #instrument-filter:focus{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(6,182,212,0.3);width:180px}
 
 /* Selects compactos de toolbar (salida + escala) */
-#output-mode,#scale-root,#scale-type{
+#output-mode,#scale-root,#scale-type,#ear-level{
   font-family:inherit;font-size:12px;
   padding:0.4rem 0.7rem;
   background:var(--glass-2);
@@ -246,8 +246,8 @@ label.btn{cursor:pointer}
   background-repeat:no-repeat;background-position:right 0.5rem center;
   padding-right:1.7rem;
 }
-#output-mode:hover,#scale-root:hover,#scale-type:hover{border-color:var(--border-hi)}
-#output-mode option,#scale-root option,#scale-type option{background:#15101e;color:var(--text)}
+#output-mode:hover,#scale-root:hover,#scale-type:hover,#ear-level:hover{border-color:var(--border-hi)}
+#output-mode option,#scale-root option,#scale-type option,#ear-level option{background:#15101e;color:var(--text)}
 
 /* Selector de instrumento */
 #instrument-select{
@@ -610,6 +610,20 @@ label.btn{cursor:pointer}
 }
 #roman-display.show{opacity:1}
 
+/* ---------- ENTRENAMIENTO DE OÍDO ---------- */
+#ear-section{
+  background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
+  border:1px solid var(--border);border-radius:14px;
+  padding:0.7rem 1.1rem;
+  display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap;
+  animation:rise 600ms cubic-bezier(.2,.7,.2,1) both;
+}
+#ear-section.hidden{display:none}
+#ear-section .ear-head{flex:1;min-width:230px}
+#ear-section .ear-head .t{font-family:'Fraunces',serif;font-size:16px;color:var(--text)}
+#ear-section .ear-head .s{font-size:12px;color:var(--text-dim);margin-top:0.2rem}
+#ear-stats{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold)}
+
 /* ---------- CÍRCULO DE QUINTAS ---------- */
 #circle-section{
   background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
@@ -871,6 +885,7 @@ input[type=range]:focus{outline:none}
     <input type="file" id="xml-input" class="hidden-input" accept=".xml,.musicxml,.mxl" onchange="loadXmlFile(this)">
     <button class="btn" id="btn-score" onclick="toggleScore()">Ocultar partitura</button>
     <button class="btn" id="btn-circle" onclick="toggleCircle()" title="Círculo de quintas: detecta la tonalidad de lo que tocas; click en un segmento fija y suena su escala">Círculo 5ªs</button>
+    <button class="btn" id="btn-ear" onclick="toggleEarTraining()" title="Entrenamiento de oído: la app toca algo y tú lo repites en el teclado">Oído</button>
     <span class="spacer"></span>
     <button class="btn active" id="btn-full" onclick="setMode('full')">Vista general</button>
     <button class="btn" id="btn-zoom" onclick="setMode('zoom')">Vista real</button>
@@ -1080,6 +1095,23 @@ input[type=range]:focus{outline:none}
       <div id="sustain-flash"></div>
       <div class="lab">Sustain</div>
     </div>
+  </section>
+
+  <section id="ear-section" class="hidden">
+    <div class="ear-head">
+      <div class="t">🎧 Entrenamiento de oído</div>
+      <div class="s" id="ear-status">Pulsa «Nuevo» — oirás algo y lo repites en el teclado.</div>
+    </div>
+    <select id="ear-level" onchange="setEarLevel(this.value)" title="Nivel de dificultad">
+      <option value="intervals">1 · Intervalos</option>
+      <option value="triads">2 · Tríadas</option>
+      <option value="sevenths">3 · Séptimas</option>
+      <option value="scales">4 · Escalas</option>
+    </select>
+    <button class="btn cyan" onclick="newEarExercise()">▶ Nuevo</button>
+    <button class="btn" onclick="playEarExercise()">↻ Repetir</button>
+    <button class="btn" onclick="revealEarExercise()">Revelar</button>
+    <div id="ear-stats">0/0 (0%) · racha 0 · mejor 0</div>
   </section>
 
   <section id="circle-section" class="hidden">
@@ -2343,7 +2375,11 @@ function noteOn(midi, vel, source='virtual'){
   _chordSustained.delete(midi);
   updateChordDisplay(true);
   _registerKeyDetection(midi);
-  if(songState.loaded && songState.waitMode) registerUserHit(midi, true);
+  // El oído tiene prioridad: si hay ejercicio en curso, la nota es respuesta
+  // del ejercicio y no debe contar como acierto/fallo de la lección.
+  if(!_registerEarInput(midi)){
+    if(songState.loaded && songState.waitMode) registerUserHit(midi, true);
+  }
 }
 function noteOff(midi, source='virtual'){
   if(_sendMidi() && source!=='midi-in'){
@@ -2723,6 +2759,155 @@ function playScalePreview(rootPc, shapeId){
     }, i*250);
     _scalePreviewTimeouts.push(t1);
   });
+}
+
+// ============================================================
+//   ENTRENAMIENTO DE OÍDO
+// ============================================================
+// La app toca algo (SOLO audio — sin pistas visuales) y el usuario lo repite
+// en el teclado. Niveles progresivos; racha y precisión persistidas.
+const INTERVAL_NAMES={1:'2ª menor',2:'2ª mayor',3:'3ª menor',4:'3ª mayor',5:'4ª justa',6:'tritono',7:'5ª justa',8:'6ª menor',9:'6ª mayor',10:'7ª menor',11:'7ª mayor',12:'octava'};
+const EAR_LEVELS=[
+  {id:'intervals', name:'Intervalos', pool:[2,3,4,5,7,9,12]},
+  {id:'triads',    name:'Tríadas',    pool:[{suf:'',ivs:[0,4,7]},{suf:'m',ivs:[0,3,7]},{suf:'dim',ivs:[0,3,6]}]},
+  {id:'sevenths',  name:'Séptimas',   pool:[{suf:'7',ivs:[0,4,7,10]},{suf:'maj7',ivs:[0,4,7,11]},{suf:'m7',ivs:[0,3,7,10]},{suf:'dim7',ivs:[0,3,6,9]}]},
+  {id:'scales',    name:'Escalas',    pool:['major','minor','major-pent','minor-pent','blues']},
+];
+
+const earState={active:false, level:'intervals', exercise:null, awaiting:false, capture:[], attempts:0, correct:0, streak:0, best:0};
+
+function generateEarExercise(levelId){
+  const level=EAR_LEVELS.find(l=>l.id===levelId);
+  if(!level)return null;
+  const pick=level.pool[Math.floor(Math.random()*level.pool.length)];
+  const root=53+Math.floor(Math.random()*19); // F3..B4 — registro cómodo
+  const rootName=NOTE_NAMES_EN[root%12]+(Math.floor(root/12)-1);
+  if(levelId==='intervals'){
+    return {midis:[root,root+pick], mode:'melodic', label:INTERVAL_NAMES[pick]+' desde '+rootName};
+  }
+  if(levelId==='triads'||levelId==='sevenths'){
+    return {midis:pick.ivs.map(iv=>root+iv), mode:'chord', label:NOTE_NAMES_EN[root%12]+pick.suf+' ('+rootName+')'};
+  }
+  const shape=SCALE_SHAPES.find(s=>s.id===pick);
+  return {midis:[...shape.intervals.map(iv=>root+iv), root+12], mode:'melodic', label:NOTE_NAMES_EN[root%12]+' '+shape.name};
+}
+
+// Evalúa lo capturado: 'pending' | 'correct' | 'wrong'.
+// Acordes: mismas notas en cualquier orden. Melódico: la secuencia exacta.
+function earAnswerMatches(exercise, capture){
+  if(!exercise||!capture)return 'pending';
+  const target=exercise.midis;
+  if(exercise.mode==='chord'){
+    const got=[...new Set(capture)];
+    if(got.length<target.length)return 'pending';
+    const want=new Set(target);
+    return (got.length===want.size && got.every(m=>want.has(m)))?'correct':'wrong';
+  }
+  if(capture.length<target.length)return 'pending';
+  return capture.slice(0,target.length).every((m,i)=>m===target[i])?'correct':'wrong';
+}
+
+let _earTimeouts=[];
+function _cancelEarPlayback(){ _earTimeouts.forEach(t=>clearTimeout(t)); _earTimeouts=[]; }
+
+// Reproduce el ejercicio actual: melódico nota a nota, acorde en bloque.
+// A propósito NO ilumina teclas — la gracia es el oído.
+function playEarExercise(){
+  if(!earState.exercise)return;
+  _cancelEarPlayback();
+  const ex=earState.exercise;
+  const noteDur = ex.mode==='chord'?900:380;
+  ex.midis.forEach((m,i)=>{
+    const at = ex.mode==='chord'?0:i*450;
+    const t1=setTimeout(()=>{
+      if(_playLocal())audioNoteOn(m,85);
+      if(_sendMidi()){try{midiOutput.send([0x90,m,85])}catch(e){}}
+      const t2=setTimeout(()=>{
+        if(_playLocal())audioNoteOff(m);
+        if(_sendMidi()){try{midiOutput.send([0x80,m,0])}catch(e){}}
+      },noteDur);
+      _earTimeouts.push(t2);
+    },at);
+    _earTimeouts.push(t1);
+  });
+}
+
+function newEarExercise(){
+  earState.exercise=generateEarExercise(earState.level);
+  earState.capture=[];
+  earState.awaiting=true;
+  updateEarUI('Escucha… y repítelo en el teclado.');
+  playEarExercise();
+}
+
+function revealEarExercise(){
+  if(!earState.exercise)return;
+  if(earState.awaiting){ earState.attempts++; earState.streak=0; earState.awaiting=false; _persistEar(); }
+  updateEarUI('Era: '+earState.exercise.label+'. Pulsa «Nuevo» para otro.');
+  playEarExercise();
+}
+
+function setEarLevel(id){
+  if(!EAR_LEVELS.some(l=>l.id===id))return;
+  earState.level=id;
+  earState.exercise=null; earState.awaiting=false; earState.capture=[];
+  _cancelEarPlayback();
+  _persistEar();
+  updateEarUI('Nivel cambiado. Pulsa «Nuevo».');
+}
+
+// Captura la nota del usuario si hay ejercicio en curso.
+// Devuelve true si la consumió (esa nota NO debe contar en el wait mode de la lección).
+function _registerEarInput(midi){
+  if(!earState.active||!earState.awaiting||!earState.exercise)return false;
+  earState.capture.push(midi);
+  const res=earAnswerMatches(earState.exercise, earState.capture);
+  if(res==='correct'){
+    earState.awaiting=false;
+    earState.attempts++; earState.correct++;
+    earState.streak++; if(earState.streak>earState.best)earState.best=earState.streak;
+    _persistEar();
+    updateEarUI('✓ Correcto: '+earState.exercise.label);
+    showToast({type:'success',title:'🎧 ¡Bien!',body:earState.exercise.label+' · racha '+earState.streak,duration:2000});
+    const t=setTimeout(()=>{ if(earState.active)newEarExercise(); },1600);
+    _earTimeouts.push(t);
+  }else if(res==='wrong'){
+    earState.attempts++; earState.streak=0;
+    earState.capture=[];       // reintento del MISMO ejercicio
+    _persistEar();
+    updateEarUI('No exactamente — escucha otra vez…');
+    showToast({type:'warn',title:'🎧 Casi',body:'Vuelve a intentarlo, o pulsa Revelar.',duration:2000});
+    const t=setTimeout(()=>{ if(earState.active&&earState.awaiting)playEarExercise(); },700);
+    _earTimeouts.push(t);
+  }
+  return true;
+}
+
+function _persistEar(){
+  try{localStorage.setItem('pianopro:ear',JSON.stringify({level:earState.level,attempts:earState.attempts,correct:earState.correct,best:earState.best}))}catch(e){}
+  updateEarStats();
+}
+function updateEarStats(){
+  const el=document.getElementById('ear-stats');
+  if(!el)return;
+  const acc=earState.attempts?Math.round(earState.correct/earState.attempts*100):0;
+  el.textContent=earState.correct+'/'+earState.attempts+' ('+acc+'%) · racha '+earState.streak+' · mejor '+earState.best;
+}
+function updateEarUI(msg){
+  const st=document.getElementById('ear-status');
+  if(st&&msg)st.textContent=msg;
+  updateEarStats();
+}
+function toggleEarTraining(){
+  const sec=document.getElementById('ear-section');
+  if(!sec)return;
+  const show=sec.classList.contains('hidden');
+  sec.classList.toggle('hidden',!show);
+  earState.active=show;
+  const btn=document.getElementById('btn-ear');
+  if(btn)btn.classList.toggle('active',show);
+  if(!show){ _cancelEarPlayback(); earState.awaiting=false; }
+  else if(!earState.exercise) updateEarUI('Pulsa «Nuevo» — oirás algo y lo repites en el teclado.');
 }
 
 // ---------- Acumulador de acordes ----------
@@ -4777,6 +4962,16 @@ window.addEventListener('load', async ()=>{
       const st=document.getElementById('scale-type'); if(st)st.value=scaleState.shapeId;
       const ck=document.getElementById('chk-scale'); if(ck)ck.checked=scaleState.active;
       applyScaleState();
+    }
+    const savedEar=localStorage.getItem('pianopro:ear');
+    if(savedEar){
+      const e0=JSON.parse(savedEar);
+      if(e0 && EAR_LEVELS.some(l=>l.id===e0.level))earState.level=e0.level;
+      if(e0 && Number.isFinite(e0.attempts))earState.attempts=e0.attempts;
+      if(e0 && Number.isFinite(e0.correct))earState.correct=e0.correct;
+      if(e0 && Number.isFinite(e0.best))earState.best=e0.best;
+      const sel=document.getElementById('ear-level'); if(sel)sel.value=earState.level;
+      updateEarStats();
     }
   }catch(e){}
   initMIDI();

@@ -38,6 +38,9 @@ const EXPORTS = [
   // análisis armónico
   'romanNumeralFor', 'currentKeyPc',
   'markLessonWithoutScore',
+  // entrenamiento de oído
+  'EAR_LEVELS', 'earState', 'generateEarExercise', 'earAnswerMatches',
+  'setEarLevel', 'toggleEarTraining', 'revealEarExercise',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   'layout', 'getMidiFromPoint',
