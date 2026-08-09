@@ -344,6 +344,18 @@ label.btn{cursor:pointer}
 .hand-filter button.left.active{background:linear-gradient(135deg,rgba(6,182,212,0.75),rgba(45,212,191,0.6));box-shadow:0 0 14px rgba(6,182,212,0.35)}
 .hand-filter button.right.active{background:linear-gradient(135deg,rgba(236,72,153,0.75),rgba(168,85,247,0.6));box-shadow:0 0 14px rgba(236,72,153,0.35)}
 
+/* Transposición */
+.transpose-ctl{display:flex;align-items:center;gap:0.35rem}
+.transpose-ctl .lab{font-size:10px;color:var(--text-mute);letter-spacing:0.14em;text-transform:uppercase;font-weight:600}
+.transpose-ctl button{
+  font-family:inherit;font-size:12px;font-weight:700;
+  width:26px;height:26px;border-radius:8px;
+  background:var(--glass-2);color:var(--text-dim);
+  border:1px solid var(--border);cursor:pointer;transition:all 0.2s;
+}
+.transpose-ctl button:hover{color:var(--text);border-color:var(--border-hi)}
+.transpose-ctl .tval{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--gold);min-width:28px;text-align:center;font-weight:500}
+
 .tempo-control{display:flex;flex-direction:column;gap:0.3rem;min-width:180px}
 .tempo-control .head{display:flex;justify-content:space-between;font-size:11px;color:var(--text-mute);letter-spacing:0.12em;text-transform:uppercase;font-weight:600}
 .tempo-control .head .val{font-family:'JetBrains Mono',monospace;color:var(--cyan);font-size:13px;letter-spacing:0;text-transform:none}
@@ -834,6 +846,12 @@ input[type=range]:focus{outline:none}
     <div class="tempo-control">
       <div class="head"><span>Tempo</span><span class="val"><span id="tempo-val">100</span>%</span></div>
       <input type="range" id="tempo-slider" min="40" max="150" value="100" oninput="setTempo(+this.value)">
+    </div>
+    <div class="transpose-ctl" title="Transponer la pieza en semitonos — las teclas a tocar cambian de tono">
+      <span class="lab">Transp.</span>
+      <button onclick="transposeSong(-1)" title="Bajar un semitono">−1</button>
+      <span id="transpose-val" class="tval">0</span>
+      <button onclick="transposeSong(1)" title="Subir un semitono">+1</button>
     </div>
     <div class="stats">
       <div>Aciertos<span class="v good" id="stat-hits">0</span></div>
@@ -2914,6 +2932,7 @@ const songState = {
   tempo:1.0,
   waitMode:true,
   handFilter:'both',   // 'both' | 'left' | 'right' — modo manos separadas
+  transpose:0,         // semitonos aplicados a toda la pieza (origMidi + transpose)
   allNotes:[],         // todas las notas de la pieza (sin filtrar)
   notes:[],            // notas ACTIVAS según handFilter [{midi, time, duration, velocity, hand, played}]
   groups:[],           // [{time, midis:Set, played:Set, notes:[]}]
@@ -3195,8 +3214,9 @@ function loadSong(notes, name, bpmVal){
   // Limpiar loop A-B al cambiar de canción
   loopState.pointA=null;loopState.pointB=null;loopState.active=false;
   loopState.iteration=0;loopState.bestAccuracy=-1;loopState.lastAccuracy=-1;
-  songState.allNotes = notes.map(n=>({...n,played:false}));
+  songState.allNotes = notes.map(n=>({...n, origMidi:n.midi, played:false}));
   songState.handFilter='both';
+  songState.transpose=0;
   songState.notes = songState.allNotes;
   songState.groups = buildGroups(songState.notes);
   songState.nextGroup=0;
@@ -3220,6 +3240,7 @@ function loadSong(notes, name, bpmVal){
   resetOsmdCursor();
   updateLoopUI();
   updateHandFilterUI();
+  updateTransposeUI();
   // Si el toggle estaba checked de la sesión anterior, resetear visualmente
   const cp=document.getElementById('chk-loop-progressive'); if(cp)cp.checked=loopState.progressive;
   const ce=document.getElementById('chk-loop-extend'); if(ce)ce.checked=loopState.autoExtend;
@@ -3268,10 +3289,7 @@ function setHandFilter(filter){
     filter='both';
   }
   songState.handFilter=filter;
-  songState.notes = filter==='both' ? songState.allNotes
-                  : songState.allNotes.filter(n=>n.hand===filter);
-  songState.groups = buildGroups(songState.notes);
-  seekTo(getSongTime()); // recalcula nextGroup y highlight sin perder posición ni stats
+  rebuildActiveNotes();
   updateHandFilterUI();
   const msg={
     both:'Ambas manos activas.',
@@ -3286,6 +3304,48 @@ function updateHandFilterUI(){
     const b=document.getElementById('hand-'+h);
     if(b)b.classList.toggle('active', songState.handFilter===h);
   });
+}
+
+// Reconstruye songState.notes/groups desde allNotes (aplicando handFilter)
+// y re-ancla la posición actual sin perder stats. Usado por manos separadas
+// y transposición.
+function rebuildActiveNotes(){
+  songState.notes = songState.handFilter==='both' ? songState.allNotes
+                  : songState.allNotes.filter(n=>n.hand===songState.handFilter);
+  songState.groups = buildGroups(songState.notes);
+  seekTo(getSongTime());
+}
+
+// ---------- TRANSPOSICIÓN ----------
+// Desplaza toda la pieza en semitonos (acumulable, máx ±12). origMidi es la
+// fuente de verdad; midi se recalcula y todo lo demás (grupos, highlight,
+// falling, hero) lo hereda vía rebuildActiveNotes.
+function transposeSong(delta){
+  if(!songState.loaded){showToast({type:'warn',title:'Sin lección cargada'});return}
+  const target=songState.transpose+delta;
+  if(Math.abs(target)>12){
+    showToast({type:'warn',title:'Límite de transposición',body:'Máximo ±12 semitonos (una octava).',duration:2500});
+    return;
+  }
+  const fueraDeRango=songState.allNotes.some(n=>{
+    const m=n.origMidi+target;
+    return m<21||m>108;
+  });
+  if(fueraDeRango){
+    showToast({type:'warn',title:'Fuera de rango',body:'Con '+(target>0?'+':'')+target+' semitonos alguna nota saldría del piano (A0-C8).',duration:3000});
+    return;
+  }
+  songState.transpose=target;
+  songState.allNotes.forEach(n=>{n.midi=n.origMidi+target});
+  rebuildActiveNotes();
+  updateTransposeUI();
+  const label=target===0?'Tono original':(target>0?'+':'')+target+' semitono'+(Math.abs(target)===1?'':'s');
+  showToast({type:'info',title:'♫ Transposición',body:label,duration:2000});
+}
+
+function updateTransposeUI(){
+  const el=document.getElementById('transpose-val');
+  if(el)el.textContent=(songState.transpose>0?'+':'')+songState.transpose;
 }
 
 // ===== Page Visibility: pausar limpio cuando la pestaña se oculta =====

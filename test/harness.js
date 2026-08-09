@@ -24,6 +24,7 @@ const EXPORTS = [
   // motor de lección
   'buildGroups', 'registerUserHit', 'seekTo', 'getSongTime', 'setTempo',
   'updateHighlight', 'resetPlayedFlags', 'fmtTime', 'setHandFilter',
+  'transposeSong',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   // integración Yamaha
