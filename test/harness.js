@@ -49,6 +49,8 @@ const EXPORTS = [
   'switchInstrument', 'INSTRUMENT_PRESETS',
   // guía de posición de manos
   'computeHandPosition', 'updateHandPositions', 'setHandPosGuide',
+  // cuantizador
+  'quantizeNotes', 'setTakeQuantize', 'setBPM',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   'layout', 'getMidiFromPoint',

@@ -234,7 +234,7 @@ label.btn{cursor:pointer}
 #instrument-filter:focus{border-color:var(--cyan);box-shadow:0 0 0 1px rgba(6,182,212,0.3);width:180px}
 
 /* Selects compactos de toolbar (salida + escala) */
-#output-mode,#scale-root,#scale-type,#ear-level{
+#output-mode,#scale-root,#scale-type,#ear-level,#rec-quant{
   font-family:inherit;font-size:12px;
   padding:0.4rem 0.7rem;
   background:var(--glass-2);
@@ -246,8 +246,8 @@ label.btn{cursor:pointer}
   background-repeat:no-repeat;background-position:right 0.5rem center;
   padding-right:1.7rem;
 }
-#output-mode:hover,#scale-root:hover,#scale-type:hover,#ear-level:hover{border-color:var(--border-hi)}
-#output-mode option,#scale-root option,#scale-type option,#ear-level option{background:#15101e;color:var(--text)}
+#output-mode:hover,#scale-root:hover,#scale-type:hover,#ear-level:hover,#rec-quant:hover{border-color:var(--border-hi)}
+#output-mode option,#scale-root option,#scale-type option,#ear-level option,#rec-quant option{background:#15101e;color:var(--text)}
 
 /* Selector de instrumento */
 #instrument-select{
@@ -1122,6 +1122,12 @@ body.perf-mode .brand .logo{animation:none}
       <div class="s" id="rec-status">Pulsa «Grabar» y toca — el reloj arranca con tu primera nota.</div>
     </div>
     <button class="btn" id="btn-rec-toggle" onclick="toggleRecording()">● Grabar</button>
+    <select id="rec-quant" onchange="setTakeQuantize(this.value)" title="Cuantizar la toma a la grilla del metrónomo (graba con el click puesto para que la grilla coincida)">
+      <option value="off">Sin cuantizar</option>
+      <option value="8">Corchea 1/8</option>
+      <option value="16">Semicorch. 1/16</option>
+      <option value="swing">Swing</option>
+    </select>
     <button class="btn" onclick="playTake()">▶ Reproducir</button>
     <button class="btn" onclick="useTakeAsLesson()">📚 Usar como lección</button>
     <button class="btn cyan" onclick="exportTakeAsMidi()">⬇ Exportar .mid</button>
@@ -3094,9 +3100,63 @@ function stopRecording(){
     return;
   }
   const dur=Math.max(...recState.notes.map(n=>n.time+n.duration));
-  recState.take={notes:recState.notes.slice(), duration:dur, recordedAt:Date.now()};
+  recState.take={
+    notes:recState.notes.slice(),
+    raw:recState.notes.map(n=>({...n})), // copia cruda: base inmutable del cuantizador
+    quant:'off',
+    duration:dur,
+    recordedAt:Date.now(),
+  };
+  const qsel=document.getElementById('rec-quant');
+  if(qsel)qsel.value='off';
   updateRecUI();
   showToast({type:'success',title:'⏹ Toma lista',body:recState.take.notes.length+' notas · '+fmtTime(dur),duration:3000});
+}
+
+// ---------- CUANTIZADOR (Camino A: corregir/snap) ----------
+// Mueve cada nota al tick más cercano de la grilla. La grilla se define por
+// el BPM del metrónomo y arranca en t=0 de la toma (la primera nota grabada
+// define el pulso 1 — por eso el flujo natural es grabar CON el metrónomo).
+// Swing: el contratiempo de la corchea cae a los 2/3 del pulso (tresillo).
+function quantizeNotes(notes, bpmVal, grid){
+  if(grid==='off'||!Number.isFinite(bpmVal)||bpmVal<=0)return notes.map(n=>({...n}));
+  const q=60/bpmVal;
+  let offsets;
+  if(grid==='8')offsets=[0,0.5];
+  else if(grid==='16')offsets=[0,0.25,0.5,0.75];
+  else if(grid==='swing')offsets=[0,2/3];
+  else return notes.map(n=>({...n}));
+  return notes.map(n=>{
+    const beat=Math.floor(n.time/q + 1e-9);
+    const frac=(n.time - beat*q)/q;
+    let best=null;
+    offsets.forEach(o=>{
+      const d=Math.abs(frac-o);
+      if(!best||d<best.d)best={d, t:(beat+o)*q};
+    });
+    if(Math.abs(1-frac)<best.d)best={d:Math.abs(1-frac), t:(beat+1)*q};
+    return {...n, time:+best.t.toFixed(6)};
+  });
+}
+
+// Aplica una grilla a la toma actual. Siempre parte de la toma CRUDA
+// (take.raw): cambiar de grilla no acumula error y 'off' restaura el original.
+function setTakeQuantize(grid){
+  const sel=document.getElementById('rec-quant');
+  if(!recState.take){
+    if(sel)sel.value='off';
+    showToast({type:'warn',title:'Sin toma',body:'Graba algo primero.',duration:2500});
+    return;
+  }
+  recState.take.quant=grid;
+  recState.take.notes = quantizeNotes(recState.take.raw, bpm, grid);
+  recState.take.duration = Math.max(...recState.take.notes.map(n=>n.time+n.duration));
+  if(sel)sel.value=grid;
+  updateRecUI();
+  const labels={off:'Sin cuantizar (timing original)','8':'corcheas (1/8)','16':'semicorcheas (1/16)',swing:'swing (corchea a 2/3)'};
+  showToast({type:'info',title:'⏱ Cuantización: '+(labels[grid]||grid),
+    body:grid==='off'?'La toma vuelve a tu timing humano.':'Grilla a '+bpm+' bpm (el del metrónomo). Reproduce, practica o exporta ya alineada.',
+    duration:3000});
 }
 
 // Reproduce la toma tal cual se tocó (velocity y timing humanos).
@@ -3176,7 +3236,10 @@ function updateRecUI(msg){
   if(st){
     if(msg)st.textContent=msg;
     else if(recState.recording)st.textContent='Grabando… pulsa Parar al terminar.';
-    else if(recState.take)st.textContent='Toma lista: '+recState.take.notes.length+' notas · '+fmtTime(recState.take.duration)+'. Reproduce, practícala o exporta.';
+    else if(recState.take){
+      const qlbl=recState.take.quant && recState.take.quant!=='off' ? ' · cuantizada 1/'+(recState.take.quant==='swing'?'8 swing':recState.take.quant) : '';
+      st.textContent='Toma lista: '+recState.take.notes.length+' notas · '+fmtTime(recState.take.duration)+qlbl+'. Reproduce, practícala o exporta.';
+    }
   }
 }
 function toggleRecSection(){

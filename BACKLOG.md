@@ -254,12 +254,12 @@
   - [x] Grabar → captura con timestamps (overhead medido 0.9ms) · reproducir · usar como lección · exportar .mid
   - [ ] Multitrack: hasta 4 capas con loop independiente (pendiente)
 
-- [ ] **Cuantización post-grabación — "Camino A" (corregir/snap)** `[M]`
-  - 1/8, 1/16, swing, off
-  - Mueve cada nota al tick más cercano de la grilla → tu timing humano se vuelve perfecto.
-  - Aplicar a una capa concreta o al global
-  - Uso: capturar algo que improvisaste/sacaste de oído → exportar a MusicXML/MIDI limpio (componer/grabar, NO aprender).
-  - Distinto del "Camino B" en P3 (que mide sin corregir, para enseñar). Ver discusión del 2026-05-04.
+- [x] **Cuantización post-grabación — "Camino A" (corregir/snap)** `[M]` — **HECHO 2026-08-09**
+  - Selector en la grabadora: Off / 1/8 / 1/16 / Swing (contratiempo a 2/3 = tresillo)
+  - Grilla anclada al BPM del metrónomo (flujo: grabar con el click puesto); primera nota de la toma = pulso 1
+  - Siempre recalcula desde la toma CRUDA (`take.raw`): cambiar de grilla no acumula error, Off restaura el timing humano exacto
+  - Los acordes "desparramados" quedan verticales; reproduce/lección/export usan la versión cuantizada — `test/cuantizador.test.js` (8 casos)
+  - Distinto del "Camino B" en P3 (que mide sin corregir, para enseñar).
 
 - [ ] **Backing tracks** `[L]`
   - Drum loops + bajo programados en Tone.Sequence
