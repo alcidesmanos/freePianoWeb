@@ -1,0 +1,9 @@
+{
+  "name": "piano-pro",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tests unitarios de piano_pro.html (harness vm, cero dependencias, el HTML permanece como archivo único)",
+  "scripts": {
+    "test": "node --test test/"
+  }
+}
