@@ -5754,6 +5754,13 @@ window.addEventListener('load', async ()=>{
       updateEarStats();
     }
   }catch(e){}
+  // Repintado EXPLÍCITO tras restaurar flags visuales (notas en teclas, escala…).
+  // Hoy el repintado coalescido ya lo cubre, pero el arranque no debe depender
+  // de ese efecto colateral: hubo un bug real donde el teclado se pintaba antes
+  // de restaurar practiceMode y las letras no aparecían hasta tocar el toggle.
+  draw();
+  // Sello de build para identificar COPIAS VIEJAS del archivo único
+  console.info('[pianoforte] archivo modificado:', document.lastModified, '· tests: npm test · manual: ayuda.html');
   initMIDI();
   restoreSession();
 
