@@ -5651,10 +5651,11 @@ function markLessonWithoutScore(name){
   if(st)st.textContent=(name||'MIDI')+' · sin partitura';
 }
 
-// Für Elise EMBEBIDA (base64 de Fur_Elise_fingered.mxl, 219 digitaciones):
-// la URL externa original murió con 404 — el demo de un click ahora funciona
-// sin red, offline y desde file://. Se descomprime con el unzipMxl existente.
-const FUR_ELISE_MXL_B64="";/*contenido eliminado del historial por procedencia*/
+// Für Elise EMBEBIDA — tema en ARREGLO PROPIO (transcripción simplificada de
+// la obra en dominio público, digitación original nuestra, liberada con la app).
+// Reemplaza a una edición descargada de internet cuya redistribución no era
+// limpia. Se descomprime con el unzipMxl existente.
+const FUR_ELISE_MXL_B64="UEsDBBQAAAAIAAG8CV2QdiE+XQAAAHUAAAAWAAAATUVUQS1JTkYvY29udGFpbmVyLnhtbLOxr8jNUShLLSrOzM+zVTLUM1BSSM1Lzk/JzEu3VQoNcdO1ULK3s0nOzytJzMxLLbKzKcrPL0nLzEktRjAV0kpzcnQLEksybJWKk/OLUvWAhirp29noIynWR5gBAFBLAwQUAAAACAABvAldiysRUE4EAABxOAAACQAAAHNjb3JlLnhtbO1bzW7jNhC+71OwOu0ebMZ/2XRLc9H8LRZIukaRRdsjLY1tIhKpUpTd3PoQfZMeChQ9NW/SJykpybYibOK148RywIvN3+F8w9F8HBEi73+LQjQFlXAp+l6reeAhEL4MuBj3vc9X540j7z19Rb45/XRy9cvgDCW+VNCImdIzngAafD6++HiCvAbGP4LpCpgCjE+vTtFlmnD/58sL1G0eoEExHuOzHzzkTbSO32E8m82akR1mdGhKNcaBDhI8l900Nc8sXVlxoauRa7oRIjOprmn229Bch0DPb/9R6Cy0o19riNgb9N/vfyCmFIxDiWIlYy4JLk3IK5kwHoDQfMR9ps0qlPgKmJYK6ZsY+p4vo1gmoDx60URTJtAxgJ7IKQj071+LFRIexWEmI5DoBgV8zDXz+e2f4h0aKYABZ0L+BEOCC+mUKD6e6IR+Gipm7I8CGXHBja63fw9D7svvECQaFgvcoCQti0UGaciHoIxGvhQoZIjFMXp9+fHqDcGFbIIr2Cxca9aGsZSmJTsjHvS9QcujebdgEdBMZ4KXDQQvJ9CiIxM0F7uQYhpMUwQsSRUgkUZGUeNqRYfpYlorPkw1GCUDPuV2fxPaJXhZIddwQ8mIj/QkoQcEFyWCs3bNrUJDY8uEdgjOC1m9YfeNHuVteYXgfHii2dSs2DZA8hLxQxiV9SMJHwv6wQyw/yTkAuzw7N/snRldmdOezzm/M6dbmYNLgOc2CLgC324LikPmQ2R2qu+xoXEtjy47CwQRaCWFnINupIJrCnabJwXSrIXEoBrGkcxCtNU1VivVCS4JwdUFEpmKAJlnJ5Z97+2Bh8tjFjoLaQXFXPsTa06I6Zk1pvkn0rc2pT2Ci5JZPB8XpCp3v5YROS+TqeQ+2Ka8QDI1WocWT6GRZqORHZAX7NrZVLNtGvyJME4dWgcRY1Dmx9p8WTFClmNwaSrOINyP53SOh4UalF0+L+weX2cDfEPmX6dxScV2WUVcdN+1hjKBB983JQfTu4tq7odlXO0FrpJG1gWzmHBPhGh7ztNqgG8TT3v5+3VcwdPdGZ7Wdv1v5/uzHX87qQ2e9jYi9eH6kfpwZaT+NTXHNFBzYIG08x8RsDsPBezv13hgvkAyrdUk8xyPTNXIj3OddZ1434NMlQR2h2eTh/JxPl2/oLlJkHkIfXs99L1V6Ntfjb73JN7Z2Rmep/HO3eHZXrztrJl+PJrTug9x2jqHwKfmtM2Ptc/LafXhgO1w2ocVidu+c1x9Ep1dcFzVWx3H1YvjVj19jvM24LzeQ5y3TmLtOO9lcl59XuZtJyrW9+XrJh7u8rqXzXkur9sCxx26y6U6xDd3uVTvnMtdLrnLpXpcLr11l0vucmk/kix3ueSSEJeEuCRkJacducsl96JtPw6aLy2xcZdJjtPcZdIzcNy328rbvpBytr465axfRu0Ou/sTGNxhd91AkH8QRl+VvxKzn+/R/wFQSwECFAMUAAAACAABvAldkHYhPl0AAAB1AAAAFgAAAAAAAAAAAAAAgAEAAAAATUVUQS1JTkYvY29udGFpbmVyLnhtbFBLAQIUAxQAAAAIAAG8CV2LKxFQTgQAAHE4AAAJAAAAAAAAAAAAAACAAZEAAABzY29yZS54bWxQSwUGAAAAAAIAAgB7AAAABgUAAAAA";
 
 // ----- Für Elise: descarga el XML; la lección se genera automáticamente desde OSMD -----
 // Loading state en todos los botones Für Elise (toolbar + estado vacío):
@@ -5678,7 +5679,7 @@ async function loadFurEliseLesson(){
     const bytes=new Uint8Array(bin.length);
     for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
     const xml=await unzipMxl(bytes.buffer);
-    await loadScoreXml(xml,'Für Elise — Beethoven (digitada)');
+    await loadScoreXml(xml,'Für Elise (tema) — arreglo propio');
     // loadScoreXml dispara loadLessonFromOsmd automáticamente al terminar
   }catch(e){
     console.error('[fur-elise]',e);

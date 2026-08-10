@@ -103,8 +103,8 @@ test('Für Elise de un click: pieza embebida carga sin red externa', async ({ pa
     conDedo: songState.allNotes.filter(n => n.finger).length,
   }));
   expect(estado.nombre).toContain('Für Elise');
-  expect(estado.notas).toBeGreaterThan(100);
-  expect(estado.conDedo).toBeGreaterThan(150); // la versión embebida es la digitada
+  expect(estado.notas).toBeGreaterThanOrEqual(50);
+  expect(estado.conDedo).toBeGreaterThanOrEqual(50); // el arreglo propio viene 100% digitado
 });
 
 test('flag "Notas en teclas" guardado: al recargar, las letras se PINTAN (píxeles, no solo el checkbox)', async ({ page }) => {
