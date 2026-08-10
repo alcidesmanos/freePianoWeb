@@ -840,6 +840,22 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px
 
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 
+/* ---------- ANTI-SOBRECARGA (R1/R4) ----------
+   R1: con lección cargada, el hero se compacta a franja delgada y el mini
+   pentagrama se oculta (redundante con partitura/cascada) — el PIANO debe
+   quedar sobre el pliegue en 768px de alto.
+   R4: al reproducir, la partitura se oculta sola (vuelve al pausar). */
+body.lesson-loaded #info-panel{min-height:54px;padding:0.4rem 1rem}
+body.lesson-loaded #staff-block{display:none}
+body.lesson-loaded #note-stage{min-height:48px}
+body.lesson-loaded #note-name-display{font-size:clamp(1.5rem,3.4vw,2.2rem)}
+body.lesson-loaded #note-name-display.chord-2{font-size:clamp(1.5rem,3.4vw,2.2rem)}
+body.lesson-loaded #note-name-display.chord-3{font-size:clamp(1.2rem,2.8vw,1.8rem)}
+body.lesson-loaded #note-name-display.chord-many{font-size:clamp(1rem,2.4vw,1.5rem)}
+body.lesson-loaded #note-idle{font-size:1rem}
+body.lesson-loaded #metro-flash{width:20px;height:20px}
+body.playing-focus #score-section{display:none}
+
 /* ---------- ACCESIBILIDAD ---------- */
 /* Foco visible por teclado en todo control interactivo (solo :focus-visible:
    el click con ratón no pinta anillos) */
@@ -4693,6 +4709,10 @@ function loadSong(notes, name, bpmVal){
   document.getElementById('lesson-panel').classList.add('show');
   const empty=document.getElementById('lesson-empty');
   if(empty)empty.classList.add('hidden');
+  // R1: hero compacto + partitura colapsada por defecto (un click la abre);
+  // el protagonista es el piano y debe caber sobre el pliegue
+  if(document.body)document.body.classList.add('lesson-loaded');
+  if(scoreVisible)toggleScore();
   document.getElementById('lesson-name').textContent=name;
   document.getElementById('lesson-notes').textContent=songState.notes.length+' notas';
   document.getElementById('lesson-bpm').textContent=Math.round(songState.bpm)+' bpm';
@@ -4716,6 +4736,10 @@ function loadSong(notes, name, bpmVal){
 
 function fmtTime(s){const m=Math.floor(s/60);const r=Math.floor(s%60);return m+':'+(r<10?'0':'')+r}
 
+// R4: al reproducir, enfoque automático (la partitura se oculta; vuelve al pausar)
+function updateFocusMode(){
+  if(document.body)document.body.classList.toggle('playing-focus', songState.playing);
+}
 function togglePlay(){
   if(!songState.loaded)return;
   if(songState.playing){
@@ -4732,9 +4756,11 @@ function togglePlay(){
     document.getElementById('play-btn').textContent='⏸';
     if(Tone && Tone.context.state==='suspended')Tone.context.resume();
   }
+  updateFocusMode();
 }
 function restartSong(){
   songState.pausedAt=0;songState.nextGroup=0;songState.playing=false;
+  updateFocusMode();
   songState.hits=0;songState.misses=0;
   _pendingAutoTimeouts.forEach(tid=>clearTimeout(tid));
   _pendingAutoTimeouts.clear();
@@ -5082,6 +5108,7 @@ document.addEventListener('visibilitychange', ()=>{
       songState.pausedAt = getSongTime();
       songState.playing = false;
       const pb=document.getElementById('play-btn'); if(pb)pb.textContent='▶';
+      updateFocusMode();
     }
     // 2) Soltar notas activas del sampler
     if(sampler && samplerReady){
@@ -5292,6 +5319,7 @@ function playLoop(){
     if(songState.nextGroup >= songState.groups.length && songState.playing){
       songState.playing=false;
       document.getElementById('play-btn').textContent='▶';
+      updateFocusMode();
     }
 
     // progreso — si loop está activo, la barra ocupa solo el tramo A→B
