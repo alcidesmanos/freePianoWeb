@@ -1,5 +1,7 @@
 # freePianoWeb — Documentación técnica
 
+**App en vivo**: https://alcidesmanos.github.io/freePianoWeb/ · **Licencia**: [MIT](LICENSE)
+
 Piano de 88 teclas en el navegador con lecciones interactivas, integración profunda con el
 Yamaha PSR-E363, teoría musical en tiempo real, entrenamiento de oído y grabadora MIDI.
 **Manual de usuario**: `ayuda.html` (botón `?` en la app).
