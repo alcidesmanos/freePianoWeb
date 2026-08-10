@@ -8,7 +8,7 @@
 <p align="center"><strong><a href="https://alcidesmanos.github.io/freePianoWeb/">▶ Abrir la aplicación</a></strong>
 · <a href="https://alcidesmanos.github.io/freePianoWeb/ayuda.html">Manual de uso</a></p>
 
-![freePianoWeb con Für Elise cargada](assets/captura.png)
+![Práctica guiada: la app propone cada tecla con su dedo y espera a que la toques](assets/demo.gif)
 
 ## Qué hace
 
