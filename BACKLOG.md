@@ -360,9 +360,9 @@
 
 Vía `getUserMedia` + AudioWorklet. Ordenado por viabilidad/valor:
 
-- [ ] **Afinador cromático + detección de pitch monofónica** `[M-L]` — la primitiva base
-  - Autocorrelación/YIN en AudioWorklet: nota + desviación en cents en vivo
-  - Sirve como afinador clásico y habilita todo lo de abajo
+- [~] **Afinador cromático + detección de pitch monofónica** `[M-L]` — **PROTOTIPO HECHO 2026-08-09** (mic real)
+  - [x] Botón "Afinador" → sección con nota + cents + aguja en vivo; YIN + interpolación parabólica sobre AnalyserNode (4096), 15 lecturas/s, anti-parpadeo, sin echoCancellation/noiseSuppression/AGC; rango fiable A1-C8; núcleo DSP con 7 tests (`test/afinador.test.js`)
+  - [ ] Pendiente para graduarlo: validación con piano real del usuario, mover a AudioWorklet si el hilo principal molesta, y de ahí el wait mode acústico
   - Limitación honesta: SOLO monofónico (una nota a la vez); acordes requieren ML
 - [ ] **Wait mode ACÚSTICO (melodías)** `[L]` ⭐ — el premio gordo
   - Practicar con un piano acústico o teclado sin MIDI: el mic detecta la nota y alimenta `registerUserHit`
