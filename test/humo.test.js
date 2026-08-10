@@ -71,11 +71,10 @@ test('las 4 librerías CDN esperadas están declaradas', () => {
   }
 });
 
-test('inputs de archivo aceptan las extensiones que el código enruta', () => {
-  const midiAccept = html.match(/id="midi-input"[^>]*accept="([^"]+)"/) || html.match(/accept="([^"]+)"[^>]*id="midi-input"/);
-  assert.ok(midiAccept && midiAccept[1].includes('.mid'), 'midi-input debe aceptar .mid');
-  const xmlAccept = html.match(/id="xml-input"[^>]*accept="([^"]+)"/) || html.match(/accept="([^"]+)"[^>]*id="xml-input"/);
-  for (const ext of ['.xml', '.musicxml', '.mxl']) {
-    assert.ok(xmlAccept && xmlAccept[1].includes(ext), 'xml-input debe aceptar ' + ext);
+test('el input único de archivo acepta TODAS las extensiones que el código enruta', () => {
+  const m = html.match(/id="file-input"[^>]*accept="([^"]+)"/) || html.match(/accept="([^"]+)"[^>]*id="file-input"/);
+  assert.ok(m, 'file-input debe existir con accept');
+  for (const ext of ['.mid', '.midi', '.xml', '.musicxml', '.mxl']) {
+    assert.ok(m[1].includes(ext), 'file-input debe aceptar ' + ext);
   }
 });

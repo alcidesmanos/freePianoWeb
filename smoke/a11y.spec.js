@@ -71,7 +71,7 @@ test('teclado: foco visible en botones al navegar con Tab', async ({ page }) => 
 test('los inputs de archivo siguen siendo alcanzables por teclado', async ({ page }) => {
   await bootApp(page);
   const ok = await page.evaluate(() => {
-    const inp = document.getElementById('midi-input');
+    const inp = document.getElementById('file-input');
     inp.focus();
     return document.activeElement === inp;
   });

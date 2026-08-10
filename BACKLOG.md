@@ -343,16 +343,11 @@
 > panel de lección con 15, **485px de scroll — el piano queda bajo el pliegue**.
 > Captura y análisis completo en la sesión del 2026-08-09.
 
-- [ ] **R1 — Recuperar el piano sobre el pliegue** `[M]` ← LA CRÍTICA
-  - Al cargar lección: partitura colapsada por defecto (un click la abre) + hero compactado a franja delgada
-  - Objetivo: piano + cascada visibles sin scroll en 768px de alto
-- [ ] **R4 — Modo enfocado automático** `[S]` (pareja de R1)
-  - Al dar ▶: colapsar partitura+hero solos → piano y cascada protagonistas; al pausar, vuelven
-- [ ] **R2 — Toolbar 22→~12 controles** `[M]`
-  - Escala (tónica+tipo+toggle) → al panel del Círculo (la teoría junta)
-  - Instrumento+filtro+auto-instrumento+salida → panel "Sonido" colapsable (se configura una vez)
-  - Vista general/real → un solo toggle
-- [ ] **R3 — Fila del Loop A-B plegada** `[S]` tras un botón "Loop A-B"
+- [x] **R1 — Piano sobre el pliegue** `[M]` — **HECHO 2026-08-09**: con lección, hero compacto (54px, mini pentagrama oculto) + partitura colapsada por defecto. Medido @1366×768: piano y cascada COMPLETOS sin scroll (antes: 485px de scroll)
+- [x] **R4 — Modo enfocado automático** `[S]` — al dar ▶ la partitura se oculta sola y vuelve al pausar (`body.playing-focus`)
+- [x] **R2 — Toolbar 22→15 controles (130→91px, 3→2 filas)** `[M]` — escala → panel del Círculo; salida+instrumento+filtro+auto → panel "Sonido" colapsable; vista general/real → un toggle; Cargar MIDI + Cargar partitura → un solo "Cargar canción" (router por extensión)
+- [x] **R3 — Fila del Loop A-B plegada** `[S]` — botón "Loop A-B ▸" la expande; se auto-expande si el loop está activo. Panel de lección: 15→11 controles visibles
+- Garantía permanente: smoke test "R1-R4" verifica pliegue @1366×768, score-enfoque y tope de densidad de toolbar
 
 ---
 

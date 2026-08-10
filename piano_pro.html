@@ -443,6 +443,12 @@ label.btn:has(+ .hidden-input:focus-visible){outline:2px solid var(--cyan);outli
   margin-top:0.2rem;
 }
 #loop-controls .lab{font-size:9px;color:var(--text-mute);letter-spacing:0.18em;text-transform:uppercase;font-weight:600;margin-right:0.3rem}
+/* R3: la fila del loop nace plegada; el botón-etiqueta la expande */
+#loop-controls button.lab{background:none;border:none;cursor:pointer;font-family:inherit;padding:0.2rem 0}
+#loop-controls button.lab:hover{color:var(--text)}
+#loop-controls:not(.expanded) > *:not(#btn-loop-row){display:none}
+/* Escala dentro del panel del círculo (R2) */
+.circle-scale-row{display:flex;gap:0.5rem;margin-top:0.7rem;flex-wrap:wrap;align-items:center}
 #loop-controls .btn-mark{
   font-family:inherit;font-size:11px;font-weight:700;letter-spacing:0.04em;
   padding:0.3rem 0.6rem;min-width:32px;
@@ -616,17 +622,17 @@ label.btn:has(+ .hidden-input:focus-visible){outline:2px solid var(--cyan);outli
 #roman-display.show{opacity:1}
 
 /* ---------- ENTRENAMIENTO DE OÍDO + GRABADORA + AFINADOR ---------- */
-#ear-section,#rec-section,#tuner-section{
+#ear-section,#rec-section,#tuner-section,#sound-section{
   background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
   border:1px solid var(--border);border-radius:14px;
   padding:0.7rem 1.1rem;
   display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap;
   animation:rise 600ms cubic-bezier(.2,.7,.2,1) both;
 }
-#ear-section.hidden,#rec-section.hidden,#tuner-section.hidden{display:none}
-#ear-section .ear-head,#rec-section .ear-head,#tuner-section .ear-head{flex:1;min-width:230px}
-#ear-section .ear-head .t,#rec-section .ear-head .t,#tuner-section .ear-head .t{font-family:'Fraunces',serif;font-size:16px;color:var(--text)}
-#ear-section .ear-head .s,#rec-section .ear-head .s,#tuner-section .ear-head .s{font-size:12px;color:var(--text-dim);margin-top:0.2rem}
+#ear-section.hidden,#rec-section.hidden,#tuner-section.hidden,#sound-section.hidden{display:none}
+#ear-section .ear-head,#rec-section .ear-head,#tuner-section .ear-head,#sound-section .ear-head{flex:1;min-width:230px}
+#ear-section .ear-head .t,#rec-section .ear-head .t,#tuner-section .ear-head .t,#sound-section .ear-head .t{font-family:'Fraunces',serif;font-size:16px;color:var(--text)}
+#ear-section .ear-head .s,#rec-section .ear-head .s,#tuner-section .ear-head .s,#sound-section .ear-head .s{font-size:12px;color:var(--text-dim);margin-top:0.2rem}
 /* Afinador */
 #tuner-note{
   font-family:'Fraunces',serif;font-size:30px;min-width:150px;text-align:center;
@@ -955,61 +961,35 @@ body.perf-mode .brand .logo{animation:none}
 
   <div id="toolbar">
     <button class="btn featured" data-furelise onclick="loadFurEliseLesson()"><span class="icon">★</span>Für Elise (lección)</button>
-    <label class="btn cyan" for="midi-input"><span class="icon">↥</span>Cargar MIDI</label>
-    <input type="file" id="midi-input" class="hidden-input" accept=".mid,.midi" onchange="loadMidiFile(this)">
-    <label class="btn" for="xml-input"><span class="icon">↥</span>Cargar partitura</label>
-    <input type="file" id="xml-input" class="hidden-input" accept=".xml,.musicxml,.mxl" onchange="loadXmlFile(this)">
+    <label class="btn cyan" for="file-input"><span class="icon">↥</span>Cargar canción</label>
+    <input type="file" id="file-input" class="hidden-input" accept=".mid,.midi,.xml,.musicxml,.mxl" onchange="loadAnyFile(this)">
     <button class="btn" id="btn-score" onclick="toggleScore()">Ocultar partitura</button>
     <button class="btn" id="btn-circle" onclick="toggleCircle()" title="Círculo de quintas: detecta la tonalidad de lo que tocas; click en un segmento fija y suena su escala">Círculo 5ªs</button>
     <button class="btn" id="btn-ear" onclick="toggleEarTraining()" title="Entrenamiento de oído: la app toca algo y tú lo repites en el teclado">Oído</button>
     <button class="btn" id="btn-rec" onclick="toggleRecSection()" title="Grabadora MIDI: captura lo que tocas, reprodúcelo, practícalo o expórtalo a .mid">Grabadora</button>
     <button class="btn" id="btn-tuner" onclick="toggleTuner()" title="Afinador por micrófono: detecta la nota que suena (una a la vez) con su desviación en cents">Afinador</button>
+    <button class="btn" id="btn-sound" onclick="toggleSoundSection()" title="Salida de sonido, instrumento y voces Yamaha">Sonido</button>
     <a class="btn" href="ayuda.html" target="_blank" rel="noopener" title="Manual de uso completo" aria-label="Abrir el manual de uso">?</a>
     <span class="spacer"></span>
-    <button class="btn active" id="btn-full" onclick="setMode('full')">Vista general</button>
-    <button class="btn" id="btn-zoom" onclick="setMode('zoom')">Vista real</button>
+    <label class="toggle" title="Tamaño real de las teclas, con scroll horizontal"><input type="checkbox" id="chk-zoom" onchange="setMode(this.checked?'zoom':'full')"><span class="switch"></span><span>Vista real</span></label>
     <label class="toggle" title="Desactiva los efectos de cristal y la aurora animada para máxima fluidez (se activa solo si detecto fps bajos)"><input type="checkbox" id="chk-perf" onchange="setPerfMode(this.checked)" aria-label="Modo rendimiento: desactivar efectos visuales"><span class="switch"></span><span aria-hidden="true">⚡</span></label>
     <span class="spacer"></span>
     <label class="toggle"><input type="checkbox" id="chk-nota" onchange="modoNotaActivo=this.checked"><span class="switch"></span><span>Modo nota</span></label>
     <label class="toggle" title="Muestra Do Re Mi... sobre cada tecla blanca del piano"><input type="checkbox" id="chk-practice" onchange="setPracticeMode(this.checked)"><span class="switch"></span><span>Notas en teclas</span></label>
     <label class="toggle" title="Muestra dónde reposa cada mano (span de 5 dedos): con digitaciones ancla al pulgar; sin ellas estima (~)"><input type="checkbox" id="chk-handpos" onchange="setHandPosGuide(this.checked)"><span class="switch"></span><span>Posición manos</span></label>
     <label class="toggle" title="Metrónomo (M)"><input type="checkbox" id="chk-metro" onchange="toggleMetronomo(this.checked)"><span class="switch"></span><span>Metrónomo</span></label>
-    <span class="spacer"></span>
-    <select id="scale-root" onchange="setScaleRoot(this.value)" title="Tónica de la escala" aria-label="Tónica de la escala">
-      <option value="0">C · Do</option>
-      <option value="1">C# · Do#</option>
-      <option value="2">D · Re</option>
-      <option value="3">D# · Re#</option>
-      <option value="4">E · Mi</option>
-      <option value="5">F · Fa</option>
-      <option value="6">F# · Fa#</option>
-      <option value="7">G · Sol</option>
-      <option value="8">G# · Sol#</option>
-      <option value="9">A · La</option>
-      <option value="10">A# · La#</option>
-      <option value="11">B · Si</option>
-    </select>
-    <select id="scale-type" onchange="setScaleType(this.value)" title="Tipo de escala" aria-label="Tipo de escala">
-      <option value="major">Mayor (jónico)</option>
-      <option value="minor">Menor natural</option>
-      <option value="harmonic-minor">Menor armónica</option>
-      <option value="melodic-minor">Menor melódica</option>
-      <option value="dorian">Dórico</option>
-      <option value="phrygian">Frigio</option>
-      <option value="lydian">Lidio</option>
-      <option value="mixolydian">Mixolidio</option>
-      <option value="locrian">Locrio</option>
-      <option value="major-pent">Pentatónica mayor</option>
-      <option value="minor-pent">Pentatónica menor</option>
-      <option value="blues">Blues</option>
-    </select>
-    <label class="toggle" title="Resalta las teclas de la escala en el piano (tónica en dorado)"><input type="checkbox" id="chk-scale" onchange="setScaleActive(this.checked)"><span class="switch"></span><span>Escala</span></label>
+  </div>
+
+  <section id="sound-section" class="hidden">
+    <div class="ear-head">
+      <div class="t">🔊 Sonido e instrumento</div>
+      <div class="s">Por dónde suena, con qué instrumento, y sincronización con las voces del Yamaha. Se configura una vez — queda guardado.</div>
+    </div>
     <select id="output-mode" onchange="setOutputMode(this.value)" title="Por dónde sale el sonido" aria-label="Salida de sonido">
       <option value="pc">Salida: PC</option>
       <option value="yamaha">Salida: Yamaha</option>
       <option value="both">Salida: Ambas</option>
     </select>
-    <span class="spacer"></span>
     <input type="text" id="instrument-filter" placeholder="🔍 filtrar..." oninput="filterInstruments(this.value)" title="Filtra por nombre o categoría" aria-label="Filtrar instrumentos por nombre, categoría o código">
     <select id="instrument-select" onchange="onInstrumentSelect(this.value)" title="Instrumento (samples) o voz Yamaha exclusiva" aria-label="Instrumento o voz Yamaha">
       <optgroup label="🎹 Teclados">
@@ -1048,7 +1028,7 @@ body.perf-mode .brand .logo{animation:none}
       </optgroup>
     </select>
     <label class="toggle" title="Cambiar voz en el Yamaha cambia automáticamente el sampler de la app"><input type="checkbox" id="chk-autoswitch" checked onchange="autoSwitchInstrument=this.checked"><span class="switch"></span><span>Auto-instrumento</span></label>
-  </div>
+  </section>
 
   <section id="score-section">
     <div id="score-header">
@@ -1068,8 +1048,7 @@ body.perf-mode .brand .logo{animation:none}
       <div class="s">Carga un MIDI o una partitura, arrastra el archivo a la página, o empieza con Für Elise</div>
     </div>
     <button class="btn featured" data-furelise onclick="loadFurEliseLesson()"><span class="icon">★</span>Für Elise</button>
-    <label class="btn cyan" for="midi-input"><span class="icon">↥</span>Cargar MIDI</label>
-    <label class="btn" for="xml-input"><span class="icon">↥</span>Cargar partitura</label>
+    <label class="btn cyan" for="file-input"><span class="icon">↥</span>Cargar canción</label>
   </section>
 
   <section id="lesson-panel">
@@ -1111,7 +1090,7 @@ body.perf-mode .brand .logo{animation:none}
       <div id="loop-mark-b" class="loop-mark b" data-label="B" style="display:none"></div>
     </div>
     <div id="loop-controls">
-      <span class="lab">Loop A-B</span>
+      <button type="button" class="lab" id="btn-loop-row" onclick="toggleLoopRow()" aria-expanded="false">Loop A-B ▸</button>
       <button class="btn-mark set-a" onclick="markPointA()" title="Marcar A en el tiempo actual">A</button>
       <button class="btn-mark set-b" onclick="markPointB()" title="Marcar B en el tiempo actual">B</button>
       <button class="btn-mark" id="btn-loop-toggle" onclick="toggleLoopActive()" title="Activar/desactivar loop">Activar</button>
@@ -1232,6 +1211,37 @@ body.perf-mode .brand .logo{animation:none}
       <div class="t">Círculo de quintas</div>
       <div class="s">Toca en el piano y detecto la tonalidad (segmento dorado). Haz click en cualquier segmento para fijar su escala en el teclado y oírla — exterior mayores, interior relativas menores.</div>
       <div class="d" id="circle-detected">tonalidad: —</div>
+      <div class="circle-scale-row">
+        <select id="scale-root" onchange="setScaleRoot(this.value)" title="Tónica de la escala" aria-label="Tónica de la escala">
+          <option value="0">C · Do</option>
+          <option value="1">C# · Do#</option>
+          <option value="2">D · Re</option>
+          <option value="3">D# · Re#</option>
+          <option value="4">E · Mi</option>
+          <option value="5">F · Fa</option>
+          <option value="6">F# · Fa#</option>
+          <option value="7">G · Sol</option>
+          <option value="8">G# · Sol#</option>
+          <option value="9">A · La</option>
+          <option value="10">A# · La#</option>
+          <option value="11">B · Si</option>
+        </select>
+        <select id="scale-type" onchange="setScaleType(this.value)" title="Tipo de escala" aria-label="Tipo de escala">
+          <option value="major">Mayor (jónico)</option>
+          <option value="minor">Menor natural</option>
+          <option value="harmonic-minor">Menor armónica</option>
+          <option value="melodic-minor">Menor melódica</option>
+          <option value="dorian">Dórico</option>
+          <option value="phrygian">Frigio</option>
+          <option value="lydian">Lidio</option>
+          <option value="mixolydian">Mixolidio</option>
+          <option value="locrian">Locrio</option>
+          <option value="major-pent">Pentatónica mayor</option>
+          <option value="minor-pent">Pentatónica menor</option>
+          <option value="blues">Blues</option>
+        </select>
+        <label class="toggle" title="Resalta las teclas de la escala en el piano (tónica en dorado)"><input type="checkbox" id="chk-scale" onchange="setScaleActive(this.checked)"><span class="switch"></span><span>Escala</span></label>
+      </div>
     </div>
   </section>
 
@@ -3881,7 +3891,44 @@ function toggleMetronomo(on){
 }
 
 // ---------- VIEW MODE ----------
-function setMode(m){mode=m;document.getElementById('btn-full').classList.toggle('active',m==='full');document.getElementById('btn-zoom').classList.toggle('active',m==='zoom');layout();draw()}
+function setMode(m){
+  mode=(m==='zoom')?'zoom':'full';
+  const chk=document.getElementById('chk-zoom');
+  if(chk)chk.checked=(mode==='zoom');
+  layout();draw();
+}
+
+// Router único de carga: un solo input acepta .mid/.midi/.xml/.musicxml/.mxl
+// y enruta por extensión (mismo clasificador que el drag & drop).
+function loadAnyFile(input){
+  const file=input.files[0];
+  input.value='';
+  if(!file)return;
+  const kind=classifyPianoFile(file.name);
+  if(kind==='midi')loadMidiFromFile(file);
+  else if(kind==='xml')loadXmlFromFile(file);
+  else showToast({type:'error',title:'Formato no soportado',body:file.name+' — usa .mid, .midi, .xml, .musicxml o .mxl',duration:4500});
+}
+
+// Panel "Sonido" colapsable (R2): salida + instrumento se configuran una vez
+function toggleSoundSection(){
+  const sec=document.getElementById('sound-section');
+  if(!sec)return;
+  const show=sec.classList.contains('hidden');
+  sec.classList.toggle('hidden',!show);
+  const btn=document.getElementById('btn-sound');
+  if(btn)btn.classList.toggle('active',show);
+}
+
+// Fila del Loop A-B plegable (R3)
+function toggleLoopRow(){
+  const row=document.getElementById('loop-controls');
+  if(!row)return;
+  const open=!row.classList.contains('expanded');
+  row.classList.toggle('expanded',open);
+  const b=document.getElementById('btn-loop-row');
+  if(b){b.textContent='Loop A-B '+(open?'▾':'▸');b.setAttribute('aria-expanded',open?'true':'false')}
+}
 
 // ---------- SCORE (OSMD) ----------
 function initOSMD(){
@@ -4609,6 +4656,13 @@ function updateLoopUI(){
       region.style.left = (loopState.pointA / dur * 100) + '%';
       region.style.width = ((loopState.pointB - loopState.pointA) / dur * 100) + '%';
     }else region.style.display = 'none';
+  }
+  // con el loop activo la fila se auto-expande (el estado debe verse)
+  const row=document.getElementById('loop-controls');
+  if(row && loopState.active && !row.classList.contains('expanded')){
+    row.classList.add('expanded');
+    const b=document.getElementById('btn-loop-row');
+    if(b){b.textContent='Loop A-B ▾';b.setAttribute('aria-expanded','true')}
   }
   if(stats){
     stats.style.display = loopState.active ? 'flex' : 'none';

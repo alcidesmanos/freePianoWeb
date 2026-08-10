@@ -52,7 +52,7 @@ test('click en el teclado virtual muestra la nota en el hero', async ({ page }) 
 test('cargar MusicXML crea la lección con digitaciones y highlight de espera', async ({ page }) => {
   const errors = trackErrors(page);
   await bootApp(page);
-  await page.setInputFiles('#xml-input', 'library/11-personal/Atardecer_balada_pop_original.musicxml');
+  await page.setInputFiles('#file-input', 'library/11-personal/Atardecer_balada_pop_original.musicxml');
   await expect(page.locator('#lesson-panel')).toHaveClass(/show/, { timeout: 30000 });
   await expect(page.locator('#lesson-notes')).not.toHaveText('0 notas');
   await expect(page.locator('#lesson-empty')).toBeHidden();
@@ -74,7 +74,7 @@ test('cargar MusicXML crea la lección con digitaciones y highlight de espera', 
 
 test('recargar la página restaura la sesión desde IndexedDB', async ({ page }) => {
   await bootApp(page);
-  await page.setInputFiles('#xml-input', 'library/11-personal/Atardecer_balada_pop_original.musicxml');
+  await page.setInputFiles('#file-input', 'library/11-personal/Atardecer_balada_pop_original.musicxml');
   await expect(page.locator('#lesson-panel')).toHaveClass(/show/, { timeout: 30000 });
   await page.waitForTimeout(800); // margen para el idbSet asíncrono
 
@@ -132,6 +132,34 @@ test('flag "Notas en teclas" guardado: al recargar, las letras se PINTAN (píxel
   await expect(page.locator('#chk-practice')).toBeChecked();
   const trasRecarga = await ink();
   expect(trasRecarga).toBeGreaterThan(sinLetras + 500); // las letras EXISTEN en el canvas
+});
+
+test('R1-R4: el piano queda SOBRE el pliegue en un laptop (1366×768) y el score se enfoca solo', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await bootApp(page);
+  await page.click('#toolbar [data-furelise]');
+  await page.waitForFunction(() => songState.loaded, null, { timeout: 30000 });
+  await page.evaluate(() => document.querySelectorAll('.toast .close').forEach(c => c.click()));
+  await page.waitForTimeout(300);
+  const estado = await page.evaluate(() => ({
+    pianoSobrePliegue: document.getElementById('piano-canvas').getBoundingClientRect().bottom <= innerHeight,
+    cascadaVisible: document.getElementById('falling-canvas').getBoundingClientRect().top >= 0,
+    scoreColapsado: document.getElementById('score-section').classList.contains('hidden'),
+    toolbarControles: document.querySelectorAll('#toolbar button,#toolbar select,#toolbar input:not([type=checkbox]),#toolbar label.toggle,#toolbar a.btn').length,
+  }));
+  expect(estado.pianoSobrePliegue).toBe(true);   // la razón de ser de R1
+  expect(estado.cascadaVisible).toBe(true);
+  expect(estado.scoreColapsado).toBe(true);
+  expect(estado.toolbarControles).toBeLessThanOrEqual(16); // R2: sin regresión de densidad
+  // R4: al reproducir, la partitura desaparece; al pausar, vuelve
+  await page.evaluate(() => { toggleScore(); togglePlay(); }); // ábrela y dale play
+  await page.waitForTimeout(150);
+  expect(await page.evaluate(() =>
+    getComputedStyle(document.getElementById('score-section')).display)).toBe('none');
+  await page.evaluate(() => togglePlay());
+  await page.waitForTimeout(150);
+  expect(await page.evaluate(() =>
+    getComputedStyle(document.getElementById('score-section')).display)).not.toBe('none');
 });
 
 test('teoría en vivo: acorde, tonalidad y número romano aparecen', async ({ page }) => {
