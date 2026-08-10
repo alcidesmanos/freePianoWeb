@@ -51,6 +51,8 @@ const EXPORTS = [
   'computeHandPosition', 'updateHandPositions', 'setHandPosGuide',
   // cuantizador
   'quantizeNotes', 'setTakeQuantize', 'setBPM',
+  // afinador (núcleo DSP puro)
+  'detectPitchYIN', 'freqToNoteInfo',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   'layout', 'getMidiFromPoint',

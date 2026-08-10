@@ -615,18 +615,40 @@ label.btn:has(+ .hidden-input:focus-visible){outline:2px solid var(--cyan);outli
 }
 #roman-display.show{opacity:1}
 
-/* ---------- ENTRENAMIENTO DE OÍDO + GRABADORA ---------- */
-#ear-section,#rec-section{
+/* ---------- ENTRENAMIENTO DE OÍDO + GRABADORA + AFINADOR ---------- */
+#ear-section,#rec-section,#tuner-section{
   background:var(--glass);backdrop-filter:blur(40px) saturate(1.5);
   border:1px solid var(--border);border-radius:14px;
   padding:0.7rem 1.1rem;
   display:flex;align-items:center;gap:0.8rem;flex-wrap:wrap;
   animation:rise 600ms cubic-bezier(.2,.7,.2,1) both;
 }
-#ear-section.hidden,#rec-section.hidden{display:none}
-#ear-section .ear-head,#rec-section .ear-head{flex:1;min-width:230px}
-#ear-section .ear-head .t,#rec-section .ear-head .t{font-family:'Fraunces',serif;font-size:16px;color:var(--text)}
-#ear-section .ear-head .s,#rec-section .ear-head .s{font-size:12px;color:var(--text-dim);margin-top:0.2rem}
+#ear-section.hidden,#rec-section.hidden,#tuner-section.hidden{display:none}
+#ear-section .ear-head,#rec-section .ear-head,#tuner-section .ear-head{flex:1;min-width:230px}
+#ear-section .ear-head .t,#rec-section .ear-head .t,#tuner-section .ear-head .t{font-family:'Fraunces',serif;font-size:16px;color:var(--text)}
+#ear-section .ear-head .s,#rec-section .ear-head .s,#tuner-section .ear-head .s{font-size:12px;color:var(--text-dim);margin-top:0.2rem}
+/* Afinador */
+#tuner-note{
+  font-family:'Fraunces',serif;font-size:30px;min-width:150px;text-align:center;
+  background:linear-gradient(135deg,#fff,var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;
+}
+#tuner-note.in-tune{background:linear-gradient(135deg,#86efac,#22c55e);-webkit-background-clip:text;background-clip:text}
+#tuner-meter{
+  position:relative;flex:1;min-width:160px;max-width:300px;height:10px;
+  background:rgba(255,255,255,0.08);border-radius:999px;
+}
+#tuner-meter .tick{position:absolute;top:-2px;bottom:-2px;width:1px;background:rgba(255,255,255,0.25)}
+#tuner-meter .tick.t25{left:25%}
+#tuner-meter .tick.t50{left:50%;width:2px;background:rgba(255,255,255,0.5)}
+#tuner-meter .tick.t75{left:75%}
+#tuner-needle{
+  position:absolute;top:-4px;width:4px;height:18px;left:50%;
+  transform:translateX(-50%);border-radius:2px;
+  background:linear-gradient(180deg,var(--gold),#d97706);
+  box-shadow:0 0 10px rgba(251,191,36,0.6);
+  transition:left 0.1s linear;
+}
+#tuner-hz{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-mute);min-width:80px;text-align:right}
 #ear-stats{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold)}
 .btn.rec-live{
   background:linear-gradient(135deg,rgba(239,68,68,0.85),rgba(236,72,153,0.7));
@@ -925,6 +947,7 @@ body.perf-mode .brand .logo{animation:none}
     <button class="btn" id="btn-circle" onclick="toggleCircle()" title="Círculo de quintas: detecta la tonalidad de lo que tocas; click en un segmento fija y suena su escala">Círculo 5ªs</button>
     <button class="btn" id="btn-ear" onclick="toggleEarTraining()" title="Entrenamiento de oído: la app toca algo y tú lo repites en el teclado">Oído</button>
     <button class="btn" id="btn-rec" onclick="toggleRecSection()" title="Grabadora MIDI: captura lo que tocas, reprodúcelo, practícalo o expórtalo a .mid">Grabadora</button>
+    <button class="btn" id="btn-tuner" onclick="toggleTuner()" title="Afinador por micrófono: detecta la nota que suena (una a la vez) con su desviación en cents">Afinador</button>
     <a class="btn" href="ayuda.html" target="_blank" rel="noopener" title="Manual de uso completo" aria-label="Abrir el manual de uso">?</a>
     <span class="spacer"></span>
     <button class="btn active" id="btn-full" onclick="setMode('full')">Vista general</button>
@@ -1137,6 +1160,19 @@ body.perf-mode .brand .logo{animation:none}
       <div id="sustain-flash"></div>
       <div class="lab">Sustain</div>
     </div>
+  </section>
+
+  <section id="tuner-section" class="hidden">
+    <div class="ear-head">
+      <div class="t">🎤 Afinador · detector de notas</div>
+      <div class="s" id="tuner-status">Se activará el micrófono al abrir esta sección.</div>
+    </div>
+    <div id="tuner-note">—</div>
+    <div id="tuner-meter" aria-hidden="true">
+      <div class="tick t25"></div><div class="tick t50"></div><div class="tick t75"></div>
+      <div id="tuner-needle"></div>
+    </div>
+    <div id="tuner-hz">— Hz</div>
   </section>
 
   <section id="rec-section" class="hidden">
@@ -3272,6 +3308,154 @@ function toggleRecSection(){
   sec.classList.toggle('hidden',!show);
   const btn=document.getElementById('btn-rec');
   if(btn)btn.classList.toggle('active',show);
+}
+
+// ============================================================
+//   AFINADOR / DETECTOR DE NOTAS (micrófono real) — prototipo
+// ============================================================
+// Detección de pitch MONOFÓNICA con YIN (diferencia acumulada normalizada +
+// interpolación parabólica). Rango fiable: desde ~La1 (55 Hz) hasta Do8 con
+// ventana de 4096 muestras. Los acordes NO se detectan (eso requiere ML — P6).
+const TUNER_FFT=4096;
+const TUNER_RMS_GATE=0.008;   // nivel mínimo para intentar detectar
+const TUNER_YIN_THRESHOLD=0.12;
+
+// Núcleo puro (testeable sin micrófono): buffer de audio → {freq, clarity} | null
+function detectPitchYIN(buf, sampleRate){
+  const n=buf.length;
+  let rms=0;
+  for(let i=0;i<n;i++)rms+=buf[i]*buf[i];
+  rms=Math.sqrt(rms/n);
+  if(rms<TUNER_RMS_GATE)return null;
+  const half=Math.floor(n/2);
+  const minTau=Math.max(2,Math.floor(sampleRate/4300)); // ~C8
+  const tauEnd=Math.min(Math.floor(sampleRate/30), half-2);
+  const d=new Float32Array(tauEnd+2);
+  for(let tau=1;tau<=tauEnd+1;tau++){
+    let sum=0;
+    for(let i=0;i<half;i++){const del=buf[i]-buf[i+tau];sum+=del*del}
+    d[tau]=sum;
+  }
+  // diferencia acumulada normalizada (CMNDF)
+  const cm=new Float32Array(tauEnd+2);
+  cm[1]=1;
+  let run=0;
+  for(let tau=1;tau<=tauEnd+1;tau++){run+=d[tau];cm[tau]=run?d[tau]*tau/run:1}
+  // primer mínimo local bajo el umbral
+  let tau=-1;
+  for(let t=minTau;t<=tauEnd;t++){
+    if(cm[t]<TUNER_YIN_THRESHOLD){
+      while(t+1<=tauEnd && cm[t+1]<cm[t])t++;
+      tau=t;break;
+    }
+  }
+  if(tau<0)return null;
+  // interpolación parabólica alrededor del mínimo → precisión sub-muestra
+  const x0=cm[tau-1],x1=cm[tau],x2=cm[tau+1];
+  const denom=x0+x2-2*x1;
+  const betterTau=denom!==0 ? tau+(x0-x2)/(2*denom) : tau;
+  const freq=sampleRate/betterTau;
+  if(!isFinite(freq)||freq<28||freq>4300)return null;
+  return {freq, clarity:1-cm[tau], rms};
+}
+
+// Hz → {midi, cents} (cents: desviación respecto a la tecla más cercana, ±50)
+function freqToNoteInfo(freq){
+  const midiF=69+12*Math.log2(freq/440);
+  const midi=Math.round(midiF);
+  return {midi, cents:Math.round((midiF-midi)*100), freq};
+}
+
+let _tunerStream=null,_tunerSource=null,_tunerAnalyser=null,_tunerTimer=null,_tunerBuf=null;
+const _tunerStable={midi:null,count:0};
+
+async function toggleTuner(){
+  const sec=document.getElementById('tuner-section');
+  if(!sec)return;
+  const show=sec.classList.contains('hidden');
+  const btn=document.getElementById('btn-tuner');
+  if(show){
+    sec.classList.remove('hidden');
+    if(btn)btn.classList.add('active');
+    await startTuner();
+  }else{
+    stopTuner();
+    sec.classList.add('hidden');
+    if(btn)btn.classList.remove('active');
+  }
+}
+
+async function startTuner(){
+  const status=document.getElementById('tuner-status');
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    if(status)status.textContent='Este navegador no soporta captura de micrófono.';
+    return;
+  }
+  if(typeof Tone==='undefined'){
+    if(status)status.textContent='El motor de audio no cargó; recarga la página.';
+    return;
+  }
+  try{
+    if(status)status.textContent='Pidiendo permiso de micrófono…';
+    // SIN procesamiento de voz: cancelación de eco / supresión de ruido / AGC
+    // destrozan la señal musical
+    _tunerStream=await navigator.mediaDevices.getUserMedia({
+      audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}
+    });
+  }catch(e){
+    console.warn('[afinador] permiso denegado:',e&&e.message);
+    if(status)status.textContent='Permiso de micrófono denegado. Actívalo en el candado de la barra de direcciones.';
+    return;
+  }
+  if(Tone.context.state==='suspended'){try{Tone.context.resume()}catch(e){}}
+  const ctx=Tone.context.rawContext;
+  _tunerSource=ctx.createMediaStreamSource(_tunerStream);
+  _tunerAnalyser=ctx.createAnalyser();
+  _tunerAnalyser.fftSize=TUNER_FFT;
+  _tunerSource.connect(_tunerAnalyser); // NUNCA al destino (nada de eco)
+  _tunerBuf=new Float32Array(TUNER_FFT);
+  _tunerStable.midi=null;_tunerStable.count=0;
+  _tunerTimer=setInterval(()=>_tunerTick(ctx.sampleRate),66);
+  if(status)status.textContent='Escuchando… toca UNA nota (los acordes no se detectan). Consejo: auriculares o modo Yamaha para que el mic no oiga a la app.';
+}
+
+function _tunerTick(sampleRate){
+  if(!_tunerAnalyser)return;
+  _tunerAnalyser.getFloatTimeDomainData(_tunerBuf);
+  const p=detectPitchYIN(_tunerBuf, sampleRate);
+  const noteEl=document.getElementById('tuner-note');
+  const hzEl=document.getElementById('tuner-hz');
+  const needle=document.getElementById('tuner-needle');
+  if(!p){
+    _tunerStable.count=0;
+    if(noteEl){noteEl.textContent='—';noteEl.classList.remove('in-tune')}
+    if(hzEl)hzEl.textContent='— Hz';
+    if(needle)needle.style.left='50%';
+    return;
+  }
+  const info=freqToNoteInfo(p.freq);
+  // anti-parpadeo: 2 lecturas seguidas de la misma tecla antes de mostrarla
+  if(_tunerStable.midi===info.midi)_tunerStable.count++;
+  else{_tunerStable.midi=info.midi;_tunerStable.count=1}
+  if(_tunerStable.count<2)return;
+  const names=modoNotaActivo?NOTE_NAMES_ES:NOTE_NAMES_EN;
+  const oct=Math.floor(info.midi/12)-1;
+  if(noteEl){
+    noteEl.textContent=names[info.midi%12]+oct+(info.cents>0?' +':' ')+(info.cents===0?'±0':info.cents)+'¢';
+    noteEl.classList.toggle('in-tune', Math.abs(info.cents)<=5);
+  }
+  if(hzEl)hzEl.textContent=p.freq.toFixed(1)+' Hz';
+  if(needle)needle.style.left=(50+Math.max(-50,Math.min(50,info.cents)))+'%';
+}
+
+function stopTuner(){
+  if(_tunerTimer){clearInterval(_tunerTimer);_tunerTimer=null}
+  if(_tunerSource){try{_tunerSource.disconnect()}catch(e){}_tunerSource=null}
+  _tunerAnalyser=null;
+  if(_tunerStream){
+    try{_tunerStream.getTracks().forEach(t=>t.stop())}catch(e){}
+    _tunerStream=null;
+  }
 }
 
 // ---------- Acumulador de acordes ----------
