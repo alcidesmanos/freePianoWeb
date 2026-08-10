@@ -107,6 +107,33 @@ test('Für Elise de un click: pieza embebida carga sin red externa', async ({ pa
   expect(estado.conDedo).toBeGreaterThan(150); // la versión embebida es la digitada
 });
 
+test('flag "Notas en teclas" guardado: al recargar, las letras se PINTAN (píxeles, no solo el checkbox)', async ({ page }) => {
+  await bootApp(page);
+  const ink = () => page.evaluate(() => {
+    const c = document.getElementById('piano-canvas');
+    const ctx = c.getContext('2d');
+    const y0 = Math.floor(c.height * 0.70), h = Math.floor(c.height * 0.27);
+    const d = ctx.getImageData(0, y0, c.width, h).data;
+    let dark = 0;
+    for (let i = 0; i < d.length; i += 4) { if (d[i] < 120 && d[i + 3] > 200) dark++; }
+    return dark;
+  });
+  const sinLetras = await ink();
+  await page.evaluate(() => setPracticeMode(true));
+  await page.waitForTimeout(150); // el repintado es 1× por frame
+  const conLetras = await ink();
+  expect(conLetras).toBeGreaterThan(sinLetras + 500);
+
+  await page.reload();
+  await expect(page.locator('#splash button')).toBeVisible({ timeout: 90000 });
+  await page.click('#splash button');
+  await page.waitForTimeout(400);
+  expect(await page.evaluate(() => practiceMode)).toBe(true);
+  await expect(page.locator('#chk-practice')).toBeChecked();
+  const trasRecarga = await ink();
+  expect(trasRecarga).toBeGreaterThan(sinLetras + 500); // las letras EXISTEN en el canvas
+});
+
 test('teoría en vivo: acorde, tonalidad y número romano aparecen', async ({ page }) => {
   await bootApp(page);
   // Fijar C mayor desde el círculo (construcción perezosa incluida)
