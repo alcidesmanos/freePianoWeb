@@ -22,7 +22,41 @@
   --text-mute:rgba(245,245,247,0.55);
   --ok:#22c55e;
   --err:#ef4444;
+  --surface-pop:#15101e;          /* fondos de options/popups */
+  --overlay:rgba(10,8,20,0.85);   /* splash, drop-overlay */
+  --toast-bg:rgba(14,10,28,0.85);
+  --roman:#c4b5fd;
 }
+/* ---------- TEMA CLARO ----------
+   Chrome claro; el ESCENARIO (teclado + cascada, #piano-wrapper) permanece
+   oscuro a propósito: las teclas y el glow de las notas necesitan fondo
+   oscuro (mismo patrón que Flowkey/Simply Piano). El canvas no se toca. */
+html.theme-light{
+  --bg:#f3f1ec;
+  --glass:rgba(24,20,44,0.05);
+  --glass-2:rgba(24,20,44,0.09);
+  --border:rgba(24,20,44,0.16);
+  --border-hi:rgba(24,20,44,0.32);
+  --text:#1d1a2a;
+  --text-dim:rgba(29,26,42,0.78);
+  --text-mute:rgba(29,26,42,0.58);
+  --cyan:#0e7490; --magenta:#be185d; --teal:#0f766e; --violet:#6d28d9; --gold:#a16207;
+  --ok:#15803d; --err:#b91c1c;
+  --surface-pop:#ffffff;
+  --overlay:rgba(243,241,236,0.90);
+  --toast-bg:rgba(255,255,255,0.92);
+  --roman:#6d28d9;
+}
+html.theme-light body::before{
+  background:
+    radial-gradient(45% 55% at 18% 28%, rgba(139,92,246,0.20) 0%, transparent 60%),
+    radial-gradient(40% 50% at 82% 18%, rgba(6,182,212,0.16) 0%, transparent 60%),
+    radial-gradient(50% 45% at 72% 78%, rgba(236,72,153,0.14) 0%, transparent 60%),
+    radial-gradient(45% 50% at 22% 88%, rgba(45,212,191,0.12) 0%, transparent 60%);
+}
+html.theme-light .grain{opacity:0.2}
+html.theme-light #note-name-display{background:linear-gradient(135deg,#1d1a2a,#0e7490 50%,#be185d);-webkit-background-clip:text;background-clip:text}
+html.theme-light #tuner-note{background:linear-gradient(135deg,#1d1a2a,#0e7490);-webkit-background-clip:text;background-clip:text}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg);color:var(--text)}
 body{
@@ -59,7 +93,7 @@ body::after{
 /* ---------- LOADING SCREEN ---------- */
 #splash{
   position:fixed;inset:0;z-index:1000;
-  background:rgba(10,8,20,0.85);backdrop-filter:blur(20px);
+  background:var(--overlay);backdrop-filter:blur(20px);
   display:grid;place-items:center;
   transition:opacity 0.5s, visibility 0.5s;
 }
@@ -112,7 +146,7 @@ header{
 .brand .logo-mark{width:36px;height:36px;flex-shrink:0;filter:drop-shadow(0 0 14px rgba(232,86,60,0.25))}
 .brand .name{
   font-family:'Segoe UI',Roboto,system-ui,sans-serif;font-weight:600;font-size:20px;line-height:1;
-  letter-spacing:-0.01em;color:#f5f5f7;
+  letter-spacing:-0.01em;color:var(--text);
 }
 .brand .name em{font-style:normal;color:#e8563c;font-weight:700}
 .brand .tag{font-size:11px;color:var(--text-mute);letter-spacing:0.04em;margin-top:2px}
@@ -241,7 +275,7 @@ label.btn:has(+ .hidden-input:focus-visible){outline:2px solid var(--cyan);outli
   padding-right:1.7rem;
 }
 #output-mode:hover,#scale-root:hover,#scale-type:hover,#ear-level:hover,#rec-quant:hover{border-color:var(--border-hi)}
-#output-mode option,#scale-root option,#scale-type option,#ear-level option,#rec-quant option{background:#15101e;color:var(--text)}
+#output-mode option,#scale-root option,#scale-type option,#ear-level option,#rec-quant option{background:var(--surface-pop);color:var(--text)}
 
 /* Selector de instrumento */
 #instrument-select{
@@ -264,7 +298,7 @@ label.btn:has(+ .hidden-input:focus-visible){outline:2px solid var(--cyan);outli
 #instrument-select:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 1px rgba(6,182,212,0.3)}
 /* Las options abren un dropdown nativo del OS — los browsers permiten parcial styling */
 #instrument-select option{
-  background:#15101e;
+  background:var(--surface-pop);
   color:var(--text);
   padding:0.4rem 0.6rem;
 }
@@ -466,8 +500,8 @@ label.btn:has(+ .hidden-input:focus-visible){outline:2px solid var(--cyan);outli
 }
 #loop-stats .lbl{letter-spacing:0.04em;text-transform:lowercase}
 #loop-stats .v{color:var(--cyan);font-weight:500}
-#loop-stats .v.good{color:#4ade80}
-#loop-stats .v.bad{color:#fca5a5}
+#loop-stats .v.good{color:var(--ok)}
+#loop-stats .v.bad{color:var(--err)}
 
 .stats{display:flex;gap:1rem;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-mute);font-weight:600}
 .stats .v{font-family:'JetBrains Mono',monospace;color:var(--text);font-size:14px;letter-spacing:0;text-transform:none;font-weight:500;margin-left:0.4em}
@@ -511,11 +545,11 @@ label.btn:has(+ .hidden-input:focus-visible){outline:2px solid var(--cyan);outli
 }
 #staff-block .lab{font-size:10px;color:var(--text-mute);letter-spacing:0.18em;text-transform:uppercase;font-weight:600}
 #staff-svg{width:170px;height:auto;display:block}
-#staff-svg .staff-line{stroke:rgba(245,245,247,0.42);stroke-width:0.7}
-#staff-svg .barline{stroke:rgba(245,245,247,0.55);stroke-width:1.2}
+#staff-svg .staff-line{stroke:var(--text-mute);stroke-width:0.7}
+#staff-svg .barline{stroke:var(--text-dim);stroke-width:1.2}
 #staff-svg .clef{font-family:'Cambria','Bravura','Noto Music',serif;font-size:38px;fill:var(--cyan);dominant-baseline:middle}
 #staff-svg .clef-bass{font-size:30px}
-#staff-svg .ledger-line{stroke:rgba(245,245,247,0.7);stroke-width:0.9;stroke-linecap:round}
+#staff-svg .ledger-line{stroke:var(--text-dim);stroke-width:0.9;stroke-linecap:round}
 #staff-svg .note-head{
   fill:url(#note-grad);
   stroke:rgba(255,255,255,0.4);stroke-width:0.5;
@@ -601,7 +635,7 @@ label.btn:has(+ .hidden-input:focus-visible){outline:2px solid var(--cyan);outli
 #roman-display{
   position:absolute;bottom:2px;right:6px;
   font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;
-  color:#c4b5fd;letter-spacing:0.05em;
+  color:var(--roman);letter-spacing:0.05em;
   background:rgba(139,92,246,0.12);
   border:1px solid rgba(139,92,246,0.4);
   border-radius:8px;padding:0.2rem 0.55rem;
@@ -661,7 +695,7 @@ label.btn:has(+ .hidden-input:focus-visible){outline:2px solid var(--cyan);outli
 }
 #circle-section.hidden{display:none}
 #circle-svg{width:230px;height:230px;flex-shrink:0}
-#circle-svg .cf-seg{fill:rgba(255,255,255,0.06);stroke:rgba(255,255,255,0.14);stroke-width:1;cursor:pointer;transition:fill 0.2s}
+#circle-svg .cf-seg{fill:var(--glass-2);stroke:var(--border);stroke-width:1;cursor:pointer;transition:fill 0.2s}
 #circle-svg .cf-seg:hover{fill:rgba(139,92,246,0.35)}
 #circle-svg .cf-seg.detected{fill:rgba(251,191,36,0.40);stroke:rgba(251,191,36,0.8)}
 #circle-svg .cf-seg.selected{fill:rgba(6,182,212,0.42);stroke:rgba(6,182,212,0.9)}
@@ -753,7 +787,7 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px
   pointer-events:none;
 }
 .toast{
-  background:rgba(14,10,28,0.85);backdrop-filter:blur(40px) saturate(1.5);-webkit-backdrop-filter:blur(40px) saturate(1.5);
+  background:var(--toast-bg);backdrop-filter:blur(40px) saturate(1.5);-webkit-backdrop-filter:blur(40px) saturate(1.5);
   border:1px solid var(--border);border-radius:14px;
   padding:0.85rem 0.95rem 0.85rem 0.85rem;
   color:var(--text);font-size:13px;line-height:1.4;
@@ -895,7 +929,7 @@ body.perf-mode .grain{display:none}
 #drop-overlay{
   position:fixed;inset:10px;z-index:900;
   display:none;place-items:center;
-  background:rgba(10,8,20,0.72);backdrop-filter:blur(10px);
+  background:var(--overlay);backdrop-filter:blur(10px);
   border:3px dashed var(--cyan);border-radius:22px;
   pointer-events:none;
   box-shadow:0 0 60px rgba(6,182,212,0.25) inset;
@@ -985,6 +1019,7 @@ body.perf-mode .grain{display:none}
     <label class="toggle"><input type="checkbox" id="chk-nota" onchange="modoNotaActivo=this.checked"><span class="switch"></span><span>Modo nota</span></label>
     <label class="toggle" title="Muestra Do Re Mi... sobre cada tecla blanca del piano"><input type="checkbox" id="chk-practice" onchange="setPracticeMode(this.checked)"><span class="switch"></span><span>Notas en teclas</span></label>
     <label class="toggle" title="Muestra dónde reposa cada mano (span de 5 dedos): con digitaciones ancla al pulgar; sin ellas estima (~)"><input type="checkbox" id="chk-handpos" onchange="setHandPosGuide(this.checked)"><span class="switch"></span><span>Posición manos</span></label>
+    <label class="toggle" title="Tema claro u oscuro"><input type="checkbox" id="chk-theme" onchange="setTheme(this.checked?'light':'dark')" aria-label="Tema claro"><span class="switch"></span><span aria-hidden="true">☀</span></label>
     <label class="toggle" title="Metrónomo (M)"><input type="checkbox" id="chk-metro" onchange="toggleMetronomo(this.checked)"><span class="switch"></span><span>Metrónomo</span></label>
   </div>
 
@@ -3928,6 +3963,28 @@ function toggleSoundSection(){
   if(btn)btn.classList.toggle('active',show);
 }
 
+// ---------- TEMA CLARO/OSCURO ----------
+// El chrome se tematiza; el escenario (teclado+cascada) permanece oscuro a
+// propósito. Default: preferencia del sistema; la elección manual persiste.
+function setTheme(t){
+  const light = t==='light';
+  if(document.documentElement)document.documentElement.classList.toggle('theme-light', light);
+  const chk=document.getElementById('chk-theme');
+  if(chk)chk.checked=light;
+  try{localStorage.setItem('pianopro:theme', light?'light':'dark')}catch(e){}
+}
+function initTheme(){
+  let saved=null;
+  try{saved=localStorage.getItem('pianopro:theme')}catch(e){}
+  if(saved==='light'||saved==='dark'){setTheme(saved);return}
+  const prefersLight = typeof window.matchMedia==='function'
+    && window.matchMedia('(prefers-color-scheme: light)').matches;
+  // seguir el sistema SIN persistir (hasta que el usuario elija manualmente)
+  if(document.documentElement)document.documentElement.classList.toggle('theme-light', prefersLight);
+  const chk=document.getElementById('chk-theme');
+  if(chk)chk.checked=prefersLight;
+}
+
 // Modo Sencillo (por defecto) vs completo: divulgación progresiva de la UI.
 // "Más ▾" revela las herramientas avanzadas; la elección queda guardada.
 function toggleUiMode(){
@@ -5863,6 +5920,7 @@ window.addEventListener('load', async ()=>{
     if(savedHandPos==='1')setHandPosGuide(true, true);
     // Modo Sencillo por defecto; "full" solo si el usuario lo eligió antes
     setUiMode(localStorage.getItem('pianopro:ui')==='full'?'full':'simple');
+    initTheme();
     const savedEar=localStorage.getItem('pianopro:ear');
     if(savedEar){
       const e0=JSON.parse(savedEar);

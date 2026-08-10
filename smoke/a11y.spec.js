@@ -77,3 +77,18 @@ test('los inputs de archivo siguen siendo alcanzables por teclado', async ({ pag
   });
   expect(ok).toBe(true);
 });
+
+test('axe-core también en TEMA CLARO: cero violaciones serious/critical', async ({ page }) => {
+  await bootApp(page);
+  await page.evaluate(() => setTheme('light'));
+  await page.waitForTimeout(200);
+  await page.addScriptTag({ content: axeSource });
+  const results = await page.evaluate(async () =>
+    await axe.run(document, { resultTypes: ['violations'] }));
+  for (const v of results.violations) {
+    console.log(`  [claro][${v.impact}] ${v.id}: ${v.help} (${v.nodes.length} nodos)`);
+    v.nodes.slice(0, 3).forEach(n => console.log('      · ' + n.target.join(' ')));
+  }
+  const graves = results.violations.filter(v => ['serious', 'critical'].includes(v.impact));
+  expect(graves.map(v => v.id)).toEqual([]);
+});

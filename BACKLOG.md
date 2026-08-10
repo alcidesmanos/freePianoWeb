@@ -353,7 +353,11 @@
 
 ## Tema claro/oscuro (análisis 2026-08-09)
 
-- [ ] **Modo claro + toggle** `[M-L]` — para la fase de PUBLICACIÓN, no antes
+- [x] **Modo claro + toggle** `[M-L]` — **HECHO 2026-08-09** (adelantado: el usuario confirmó que publica)
+  - Chrome tematizado por tokens; **el escenario (teclado+cascada) queda oscuro a propósito** (patrón Flowkey/Simply Piano) → el canvas no se tocó
+  - Toggle ☀ visible incluso en modo Sencillo; default = `prefers-color-scheme` del sistema; elección manual persistida (`pianopro:theme`)
+  - Paleta clara con contrastes AA (cyan/gold/violeta en tonos 700) — **axe-core: cero violaciones también en claro** (test permanente en `smoke/a11y.spec.js`)
+- [ ] ~~(análisis previo)~~ — para la fase de PUBLICACIÓN, no antes
   - A favor: freeDFDWeb ya tiene toggle de tema (precedente de familia); salas con luz de día; expectativa estándar al publicar
   - El costo honesto NO es el CSS (los tokens `--glass/--border/--text` ya existen): son los **~185 colores hardcodeados, muchos dentro del CANVAS** (gradientes de teclas, falling notes, guías, afinador) que viven en JS y no se tematizan con variables CSS
   - Camino correcto si se hace: (1) tokenizar el CSS restante, (2) **objeto de paleta en JS** que `draw()`/`renderFallingFrame()`/guías lean según tema, (3) `prefers-color-scheme` + toggle persistido como freeDFD, (4) el Aurora oscuro queda como tema firma por defecto

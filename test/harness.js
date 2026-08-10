@@ -44,7 +44,7 @@ const EXPORTS = [
   // grabadora MIDI
   'recState', 'toggleRecording', 'stopRecording', 'useTakeAsLesson', 'exportTakeAsMidi',
   // modo rendimiento y modo sencillo
-  'setPerfMode', 'setUiMode', 'toggleUiMode',
+  'setPerfMode', 'setUiMode', 'toggleUiMode', 'setTheme', 'initTheme',
   // instrumentos
   'switchInstrument', 'INSTRUMENT_PRESETS',
   // guía de posición de manos
@@ -157,6 +157,7 @@ function loadPiano() {
       addEventListener() {},
       hidden: false,
       body: fakeEl(),
+      documentElement: fakeEl(),
     },
     window: { addEventListener() {}, innerWidth: 1200 },
     navigator: {},
@@ -185,6 +186,7 @@ function loadPiano() {
   api.__setNow = ms => { nowMs = ms; };
   api.__getElement = getEl; // para inspeccionar DOM falso si un test lo necesita
   api.__body = sandbox.document.body;
+  api.__root = sandbox.document.documentElement;
   api.__set = (k, v) => { sandbox[k] = v; }; // inyectar globals (p.ej. un Tone falso)
   return api;
 }

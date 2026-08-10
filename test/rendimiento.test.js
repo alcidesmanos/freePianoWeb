@@ -52,3 +52,19 @@ test('modo Sencillo apaga la captura del oído y libera el mic al simplificar', 
   assert.equal(p.earState.active, false, 'el oído no puede quedar capturando notas oculto');
   assert.equal(p.__getElement('ear-section').classList.contains('hidden'), true);
 });
+
+test('tema claro/oscuro: clase en el root, checkbox y persistencia', () => {
+  const p = loadPiano();
+  p.setTheme('light');
+  assert.equal(p.__root.classList.contains('theme-light'), true);
+  assert.equal(p.__getElement('chk-theme').checked, true);
+  p.setTheme('dark');
+  assert.equal(p.__root.classList.contains('theme-light'), false);
+  assert.equal(p.__getElement('chk-theme').checked, false);
+});
+
+test('initTheme sin preferencia guardada ni matchMedia cae a oscuro sin romper', () => {
+  const p = loadPiano();
+  p.initTheme(); // window.matchMedia no existe en el harness
+  assert.equal(p.__root.classList.contains('theme-light'), false, 'default oscuro (tema firma)');
+});
