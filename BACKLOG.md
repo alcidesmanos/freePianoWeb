@@ -417,6 +417,11 @@ o auriculares al detectar).
     - visible de nuevo → NO auto-reanudar (dejar en pausa para que el usuario decida) o reanudar re-anclando `startPerf=performance.now()` para que no haya salto
   - Comportamiento del navegador es INTENCIONAL (throttle de timers + rAF detenido en tabs ocultas). El fix es manejar la transición, no pelear con el throttle.
 
+- [x] **Clips de demo automatizados (GIF + MP4)** — **HECHO 2026-08-10**
+  - Proyecto hermano `../freePianoWeb-video-guides` (receta Playwright validada en freeDFDWeb/freeBPMN; `video-driver.ts` byte a byte idéntico).
+  - 4 escenarios con verificación real de terminado: `fur-elise-un-click`, `practica-guiada`, `teoria-en-vivo`, `tema-claro-y-guias`. Índice de revisión en `clips/index.html`.
+  - Pendiente: elegir cuáles publicar en el README de la app / redes.
+
 ---
 
 ## Roadmap sugerido
