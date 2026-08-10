@@ -1,4 +1,4 @@
-# Pianoforte Aurora Pro — Documentación técnica
+# freePianoWeb — Documentación técnica
 
 Piano de 88 teclas en el navegador con lecciones interactivas, integración profunda con el
 Yamaha PSR-E363, teoría musical en tiempo real, entrenamiento de oído y grabadora MIDI.
@@ -17,6 +17,11 @@ de un concurso de 4 maquetas la mañana del 2026-05-01 (aurora, linear, synthwav
 bento — conservadas en `backup/`): el fondo mesh-gradient animado tipo aurora boreal
 (`@keyframes aurora`). **Pro** marcó el salto funcional sobre esos prototipos:
 Salamander Grand, Web MIDI y falling notes.
+
+El 2026-08-09 la app se integró a la familia `free*` del autor (freeDFDWeb,
+freeBPMN…) como **freePianoWeb**, conservando *Pianoforte Aurora* como nombre de
+edición. Las claves internas de almacenamiento (`pianopro:*`) se mantienen por
+compatibilidad con las sesiones guardadas.
 
 ## Filosofía: un solo archivo
 

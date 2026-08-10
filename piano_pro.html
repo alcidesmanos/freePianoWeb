@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pianoforte — Aurora Pro</title>
+<title>freePianoWeb — Pianoforte Aurora</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -949,7 +949,7 @@ body.perf-mode .brand .logo{animation:none}
 <div id="splash" role="region" aria-label="Pantalla de carga">
   <div class="box">
     <div class="ring"></div>
-    <h2>Pianoforte Aurora Pro</h2>
+    <h2>freePianoWeb</h2>
     <p>Cargando samples Salamander Grand Piano…</p>
     <div class="progress"><div id="splash-progress"></div></div>
     <button onclick="startApp()">Comenzar</button>
@@ -961,8 +961,8 @@ body.perf-mode .brand .logo{animation:none}
     <div class="brand">
       <div class="logo"></div>
       <div>
-        <h1 class="name">Pianoforte<em> pro</em></h1>
-        <div class="tag">Salamander Grand · Web MIDI · Falling notes</div>
+        <h1 class="name">freePiano<em>Web</em></h1>
+        <div class="tag">Pianoforte Aurora · Salamander Grand · Web MIDI</div>
       </div>
     </div>
     <div class="status-group">
@@ -1292,7 +1292,7 @@ body.perf-mode .brand .logo{animation:none}
     </div>
   </div>
 
-  <div id="colophon">— aurora pro · salamander grand · 2026 —</div>
+  <div id="colophon">— freepianoweb · pianoforte aurora · 2026 —</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js"></script>
@@ -1301,7 +1301,7 @@ body.perf-mode .brand .logo{animation:none}
 <script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@1.9.0/build/opensheetmusicdisplay.min.js"></script>
 <script>
 /* ============================================================
-   PIANOFORTE AURORA PRO
+   FREEPIANOWEB — Pianoforte Aurora (antes "Pianoforte Aurora Pro")
    - Tone.js Sampler con Salamander Grand Piano
    - Sustain pedal real (CC 64)
    - Falling notes + wait mode + parser MIDI
@@ -3303,7 +3303,7 @@ function exportTakeAsMidi(){
   try{
     const m=new Midi();
     const track=m.addTrack();
-    track.name='Pianoforte Aurora Pro';
+    track.name='freePianoWeb';
     recState.take.notes.forEach(n=>{
       track.addNote({midi:n.midi, time:n.time, duration:n.duration, velocity:n.velocity});
     });
@@ -5886,7 +5886,7 @@ window.addEventListener('load', async ()=>{
   // de restaurar practiceMode y las letras no aparecían hasta tocar el toggle.
   draw();
   // Sello de build para identificar COPIAS VIEJAS del archivo único
-  console.info('[pianoforte] archivo modificado:', document.lastModified, '· tests: npm test · manual: ayuda.html');
+  console.info('[freePianoWeb] archivo modificado:', document.lastModified, '· tests: npm test · manual: ayuda.html');
   initMIDI();
   restoreSession();
 
