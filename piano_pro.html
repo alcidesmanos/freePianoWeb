@@ -129,6 +129,10 @@ body::after{
 }
 #splash.ready button{display:inline-block}
 #splash.ready .ring{display:none}
+#splash .credit{margin-top:1.4rem;font-size:12px;color:var(--text-mute)}
+#splash .credit a{color:var(--text-dim);text-decoration:none;border-bottom:1px solid var(--border-hi)}
+#splash .credit a:hover{color:var(--cyan);border-color:var(--cyan)}
+#splash .credit a:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 
 /* ---------- HEADER ---------- */
 header{
@@ -976,6 +980,7 @@ body.perf-mode .grain{display:none}
     <p>Cargando samples Salamander Grand Piano…</p>
     <div class="progress"><div id="splash-progress"></div></div>
     <button onclick="startApp()">Comenzar</button>
+    <div class="credit">por <a href="https://www.linkedin.com/in/alcides-sanchez-b4772a35/" target="_blank" rel="noopener noreferrer">Alcides Sanchez</a> · <a href="https://github.com/alcidesmanos/freePianoWeb" target="_blank" rel="noopener noreferrer">código en GitHub</a> · MIT</div>
   </div>
 </div>
 
