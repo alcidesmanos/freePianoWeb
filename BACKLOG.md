@@ -365,10 +365,13 @@ Vía `getUserMedia` + AudioWorklet. Ordenado por viabilidad/valor:
   - [x] **Validado con ACORDEÓN real** (2026-08-09): 11 notas C3-C6 del soundfont MusyngKite → 11/11 exactas, ≤10 cents, claridad >0.9, cero errores de octava — fixtures herméticos en `test/fixtures/acordeon/` + `test/acordeon.test.js`
   - [ ] Pendiente para graduarlo: validación con piano/acordeón físico del usuario, mover a AudioWorklet si el hilo principal molesta, y de ahí el wait mode acústico (que serviría a piano_pro Y a acordeon_coach con el mismo motor)
   - Limitación honesta: SOLO monofónico (una nota a la vez); acordes requieren ML
-- [ ] **Wait mode ACÚSTICO (melodías)** `[L]` ⭐ — el premio gordo
-  - Practicar con un piano acústico o teclado sin MIDI: el mic detecta la nota y alimenta `registerUserHit`
-  - Convierte la app en útil para CUALQUIER piano del mundo, no solo con cable USB
-  - v1 solo melodías/manos separadas (monofónico); acordes quedan para la versión ML
+- [x] **Wait mode ACÚSTICO (melodías)** `[L]` ⭐ — **HECHO 2026-08-09**
+  - Toggle "🎤 Acústico" en el panel de lección: el mic valida las notas del wait mode — piano acústico, acordeón o cualquier instrumento monofónico, SIN cable
+  - Máquina de eventos sobre el stream del afinador: 3 lecturas estables + claridad ≥0.93 → nota; re-articulación por dip (silencio o caída de energía al 35%); cooldown 250ms anti-eco; los previews de la app (oído/escala/toma) se auto-silencian para el mic (`_appSoundUntil`)
+  - También responde ejercicios de oído; avisa si la pieza tiene acordes (usar manos separadas)
+  - El mic se comparte con el afinador y solo se apaga cuando ninguno lo usa
+  - `test/acustico.test.js` (9 casos: estabilidad, re-ataque, staccato, cooldown sin pérdida, ruido, fallo con gracia)
+  - v1 solo melodías/manos separadas (monofónico); acordes quedan para la versión ML (P6)
 - [ ] **Medición de latencia física real** `[M]` — cierra la métrica #1 de la auditoría
   - La app emite un click por los altavoces y lo captura por el mic → round-trip real en ms, automatizable
 - [ ] **Grabación de AUDIO de la toma** `[S-M]` — MediaRecorder en paralelo a la grabadora MIDI (capturar el sonido real del Yamaha)

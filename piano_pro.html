@@ -1066,6 +1066,7 @@ body.perf-mode .brand .logo{animation:none}
       <button class="tbtn play" id="play-btn" onclick="togglePlay()" title="Play / Pausa (Espacio)" aria-label="Reproducir o pausar">▶</button>
       <label class="toggle" style="margin-left:0.4rem" title="Pausa hasta que toques la nota correcta (W)"><input type="checkbox" id="chk-wait" checked onchange="songState.waitMode=this.checked"><span class="switch"></span><span>Esperar</span></label>
       <label class="toggle" title="La lección avanza visualmente sin sonido. Tú tocas lo que ves."><input type="checkbox" id="chk-mute-lesson" onchange="setLessonMute(this.checked)"><span class="switch"></span><span>Silencio</span></label>
+      <label class="toggle" title="Toca en tu instrumento FÍSICO (piano o acordeón, sin cable): el micrófono valida las notas del modo Esperar. Solo melodías (una nota a la vez)."><input type="checkbox" id="chk-acoustic" onchange="setAcousticMode(this.checked)"><span class="switch"></span><span>🎤 Acústico</span></label>
       <div class="hand-filter" title="Manos separadas: practica una sola mano; la otra se atenúa en las notas que caen">
         <button id="hand-both" class="active" onclick="setHandFilter('both')">Ambas</button>
         <button id="hand-left" class="left" onclick="setHandFilter('left')">Izq</button>
@@ -2936,6 +2937,7 @@ function playScalePreview(rootPc, shapeId){
   if(!shape)return;
   const base=60+rootPc; // tónica en la octava C4-B4
   const midis=[...shape.intervals.map(iv=>base+iv), base+12];
+  _appSoundUntil=performance.now()+midis.length*250+230; // anti-eco del mic
   midis.forEach((m,i)=>{
     const t1=setTimeout(()=>{
       if(_playLocal())audioNoteOn(m,85);
@@ -3008,6 +3010,8 @@ function playEarExercise(){
   _cancelEarPlayback();
   const ex=earState.exercise;
   const noteDur = ex.mode==='chord'?900:380;
+  // el mic no debe oír el enunciado del ejercicio como si fuera la respuesta
+  _appSoundUntil=performance.now()+(ex.mode==='chord'?noteDur:ex.midis.length*450+noteDur);
   ex.midis.forEach((m,i)=>{
     const at = ex.mode==='chord'?0:i*450;
     const t1=setTimeout(()=>{
@@ -3223,6 +3227,7 @@ let _takeTimeouts=[];
 function playTake(){
   if(!recState.take){showToast({type:'warn',title:'Sin toma',body:'Graba algo primero.',duration:2500});return}
   _takeTimeouts.forEach(t=>clearTimeout(t)); _takeTimeouts=[];
+  _appSoundUntil=performance.now()+recState.take.duration*1000+300; // anti-eco del mic
   recState.take.notes.forEach(n=>{
     const v=Math.max(1,Math.round(n.velocity*127));
     const t1=setTimeout(()=>{
@@ -3379,7 +3384,8 @@ async function toggleTuner(){
     if(btn)btn.classList.add('active');
     await startTuner();
   }else{
-    stopTuner();
+    // el mic sigue vivo si el modo acústico lo está usando
+    if(!acousticState.active)stopTuner();
     sec.classList.add('hidden');
     if(btn)btn.classList.remove('active');
   }
@@ -3423,6 +3429,8 @@ function _tunerTick(sampleRate){
   if(!_tunerAnalyser)return;
   _tunerAnalyser.getFloatTimeDomainData(_tunerBuf);
   const p=detectPitchYIN(_tunerBuf, sampleRate);
+  // alimentar el wait mode acústico (tiene su propia máquina de estabilidad)
+  _acousticFeed(p ? {midi:freqToNoteInfo(p.freq).midi, clarity:p.clarity, rms:p.rms} : null);
   const noteEl=document.getElementById('tuner-note');
   const hzEl=document.getElementById('tuner-hz');
   const needle=document.getElementById('tuner-needle');
@@ -3455,6 +3463,90 @@ function stopTuner(){
   if(_tunerStream){
     try{_tunerStream.getTracks().forEach(t=>t.stop())}catch(e){}
     _tunerStream=null;
+  }
+}
+
+// ============================================================
+//   WAIT MODE ACÚSTICO (micrófono → lección, sin MIDI)
+// ============================================================
+// Convierte el stream de pitch del afinador en EVENTOS de nota y los inyecta
+// al flujo normal del usuario (wait mode, oído, teoría). Monofónico: melodías
+// y manos separadas; los acordes requieren ML (P6).
+const ACOUSTIC_STABLE_FRAMES=3;   // ~200ms de la misma tecla antes de aceptarla
+const ACOUSTIC_CLARITY_MIN=0.93;  // por debajo = ruido/transitorio, se ignora
+const ACOUSTIC_COOLDOWN_MS=250;   // tras emitir, ventana sorda (eco del sampler)
+const acousticState={active:false, stableMidi:null, stableCount:0, lastEmit:null, lastEmitAt:0, lastRms:0, dipped:true};
+let _appSoundUntil=0; // los previews de la app suenan → el mic no debe oírlos como respuesta
+
+// Alimentado por cada tick del afinador con {midi, clarity, rms} o null.
+function _acousticFeed(det){
+  if(!acousticState.active || !songState.loaded || !songState.waitMode)return;
+  const now=performance.now();
+  if(now < _appSoundUntil+150)return; // la app está sonando (preview/oído): ignorar
+  if(!det || det.clarity<ACOUSTIC_CLARITY_MIN){
+    // silencio o señal dudosa: habilita re-articular la MISMA nota
+    acousticState.dipped=true;
+    acousticState.stableMidi=null;
+    acousticState.stableCount=0;
+    return;
+  }
+  // caída fuerte de energía con la nota aún sonando = re-ataque inminente
+  if(acousticState.lastRms && det.rms < acousticState.lastRms*0.35){
+    acousticState.dipped=true;
+    acousticState.stableCount=0;
+  }
+  acousticState.lastRms=det.rms;
+  if(det.midi===acousticState.stableMidi)acousticState.stableCount++;
+  else{acousticState.stableMidi=det.midi;acousticState.stableCount=1}
+  if(acousticState.stableCount!==ACOUSTIC_STABLE_FRAMES)return; // emite EXACTAMENTE al estabilizarse
+  if(now - acousticState.lastEmitAt < ACOUSTIC_COOLDOWN_MS){
+    acousticState.stableCount--; // reintenta en el próximo tick, sin perder la nota
+    return;
+  }
+  if(det.midi!==acousticState.lastEmit || acousticState.dipped){
+    acousticState.lastEmit=det.midi;
+    acousticState.dipped=false;
+    acousticState.lastEmitAt=now;
+    _emitAcousticNote(det.midi);
+  }
+}
+
+// Una nota "tocada" por el mic: mismo flujo que una tecla real, sin re-sonarla
+// (ya suena en el instrumento físico del usuario).
+function _emitAcousticNote(midi){
+  activeKeys[midi]=true; draw();
+  showNote(midi, 90, modoNotaActivo?'es':'en');
+  _registerKeyDetection(midi);
+  if(!_registerEarInput(midi)){       // también puede responder ejercicios de oído
+    registerUserHit(midi, true);
+  }
+  setTimeout(()=>{activeKeys[midi]=false;draw();},260);
+}
+
+async function setAcousticMode(on){
+  acousticState.active=!!on;
+  const chk=document.getElementById('chk-acoustic');
+  if(chk)chk.checked=acousticState.active;
+  if(acousticState.active){
+    acousticState.dipped=true;acousticState.lastEmit=null;
+    acousticState.stableMidi=null;acousticState.stableCount=0;
+    if(!_tunerTimer)await startTuner();
+    if(!_tunerTimer){ // permiso denegado o sin soporte
+      acousticState.active=false;
+      if(chk)chk.checked=false;
+      showToast({type:'error',title:'Micrófono no disponible',body:'El modo acústico necesita permiso de micrófono.',duration:5000});
+      return;
+    }
+    const hayAcordes=songState.loaded && songState.groups.some(g=>g.midis.size>1);
+    showToast({type:'info',title:'🎤 Modo acústico',
+      body:'Toca en tu instrumento físico (piano, acordeón…): el micrófono valida las notas del modo Esperar.'
+        +(hayAcordes?' OJO: esta pieza tiene ACORDES y la detección es de una nota a la vez — usa manos separadas o una pieza melódica.':'')
+        +' Consejo: Silencio o auriculares para que el mic no oiga a la app.',
+      duration:8000});
+  }else{
+    const tunerSec=document.getElementById('tuner-section');
+    const tunerOpen=tunerSec && !tunerSec.classList.contains('hidden');
+    if(!tunerOpen)stopTuner(); // el mic solo se apaga si el afinador tampoco lo usa
   }
 }
 

@@ -53,6 +53,8 @@ const EXPORTS = [
   'quantizeNotes', 'setTakeQuantize', 'setBPM',
   // afinador (núcleo DSP puro)
   'detectPitchYIN', 'freqToNoteInfo',
+  // wait mode acústico
+  'acousticState', '_acousticFeed', 'setAcousticMode',
   // teclado / notación
   'getNoteInfo', 'whiteIndex', 'midiToToneName', 'staffYFromMidi',
   'layout', 'getMidiFromPoint',
