@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%23181b24'/%3E%3Cpath d='M30,70 L22,28 L50,58 L78,28 L70,70' fill='none' stroke='%23e8563c' stroke-width='14' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='20' y='66' width='60' height='22' rx='4' fill='%23181b24' stroke='%2352caa0' stroke-width='6'/%3E%3Cpath d='M32,66 V88 M44,66 V88 M56,66 V88 M68,66 V88' stroke='%2352caa0' stroke-width='3'/%3E%3Crect x='28.5' y='66' width='7' height='11' rx='1.5' fill='%2352caa0'/%3E%3Crect x='40.5' y='66' width='7' height='11' rx='1.5' fill='%2352caa0'/%3E%3Crect x='64.5' y='66' width='7' height='11' rx='1.5' fill='%2352caa0'/%3E%3C/svg%3E">
 <title>Auditoría técnica — freePianoWeb</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -76,7 +77,18 @@ footer{margin-top:1.6rem;text-align:center;font-family:'JetBrains Mono',ui-monos
 <div class="doc">
 
 <header>
-  <h1>Auditoría técnica de precisión y calidad<br>freePianoWeb (Pianoforte Aurora)</h1>
+  <div style="display:flex;align-items:flex-start;gap:16px">
+    <svg viewBox="0 0 100 100" aria-hidden="true" style="width:56px;height:56px;flex-shrink:0;margin-top:6px">
+      <circle cx="50" cy="50" r="48" fill="#181b24"/>
+      <path d="M30,70 L22,28 L50,58 L78,28 L70,70" fill="none" stroke="#e8563c" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="20" y="66" width="60" height="22" rx="4" fill="#181b24" stroke="#52caa0" stroke-width="6"/>
+      <path d="M32,66 V88 M44,66 V88 M56,66 V88 M68,66 V88" stroke="#52caa0" stroke-width="3"/>
+      <rect x="28.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/>
+      <rect x="40.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/>
+      <rect x="64.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/>
+    </svg>
+    <h1>Auditoría técnica de precisión y calidad<br>freePianoWeb (Pianoforte Aurora)</h1>
+  </div>
   <div class="meta">2026-08-09 · commit 73a77b0 · instrumentación en Chromium real (Playwright) · script reproducible: <code>node smoke/auditoria.js</code></div>
   <p class="lede">Evaluación estricta de la aplicación de piano en navegador frente a estándares de uso pedagógico y profesional. Incluye los criterios de calificación, las mediciones crudas, un hallazgo corregido durante la propia auditoría, y una propuesta de criterios de publicación.</p>
 </header>
