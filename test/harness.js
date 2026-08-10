@@ -43,8 +43,8 @@ const EXPORTS = [
   'setEarLevel', 'toggleEarTraining', 'revealEarExercise',
   // grabadora MIDI
   'recState', 'toggleRecording', 'stopRecording', 'useTakeAsLesson', 'exportTakeAsMidi',
-  // modo rendimiento
-  'setPerfMode',
+  // modo rendimiento y modo sencillo
+  'setPerfMode', 'setUiMode', 'toggleUiMode',
   // instrumentos
   'switchInstrument', 'INSTRUMENT_PRESETS',
   // guía de posición de manos

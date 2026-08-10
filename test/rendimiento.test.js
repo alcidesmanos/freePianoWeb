@@ -25,3 +25,30 @@ test('valores raros se normalizan a booleano', () => {
   p.setPerfMode(0, true);
   assert.equal(p.__body.classList.contains('perf-mode'), false);
 });
+
+test('modo Sencillo: alterna la clase, el botón y cierra las herramientas abiertas', () => {
+  const p = loadPiano();
+  p.setUiMode('full');
+  assert.equal(p.__body.classList.contains('ui-simple'), false);
+  assert.equal(p.__getElement('btn-ui-mode').textContent, 'Menos ▴');
+  // abre una herramienta y simplifica: debe cerrarse
+  p.__getElement('sound-section').classList.remove('hidden');
+  p.setUiMode('simple');
+  assert.equal(p.__body.classList.contains('ui-simple'), true);
+  assert.equal(p.__getElement('btn-ui-mode').textContent, 'Más ▾');
+  assert.equal(p.__getElement('sound-section').classList.contains('hidden'), true,
+    'las secciones de herramientas se pliegan al simplificar');
+  // toggle invierte
+  p.toggleUiMode();
+  assert.equal(p.__body.classList.contains('ui-simple'), false);
+});
+
+test('modo Sencillo apaga la captura del oído y libera el mic al simplificar', () => {
+  const p = loadPiano();
+  p.setUiMode('full');
+  p.__getElement('ear-section').classList.remove('hidden');
+  p.earState.active = true;
+  p.setUiMode('simple');
+  assert.equal(p.earState.active, false, 'el oído no puede quedar capturando notas oculto');
+  assert.equal(p.__getElement('ear-section').classList.contains('hidden'), true);
+});

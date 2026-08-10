@@ -846,6 +846,19 @@ input[type=range]:focus-visible{outline:2px solid var(--cyan);outline-offset:2px
 
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 
+/* ---------- MODO SENCILLO (divulgación progresiva) ----------
+   Por defecto solo lo esencial de práctica; "Más ▾" revela las herramientas
+   avanzadas (teoría, oído, grabadora, afinador, sonido, vista, ⚡, velocidad). */
+body.ui-simple #btn-circle,
+body.ui-simple #btn-ear,
+body.ui-simple #btn-rec,
+body.ui-simple #btn-tuner,
+body.ui-simple #btn-sound,
+body.ui-simple label:has(#chk-zoom),
+body.ui-simple label:has(#chk-perf),
+body.ui-simple #vel-control{display:none}
+body.ui-simple #bottom-bar{grid-template-columns:1fr 1.25fr}
+
 /* ---------- ANTI-SOBRECARGA (R1/R4) ----------
    R1: con lección cargada, el hero se compacta a franja delgada y el mini
    pentagrama se oculta (redundante con partitura/cascada) — el PIANO debe
@@ -969,6 +982,7 @@ body.perf-mode .brand .logo{animation:none}
     <button class="btn" id="btn-rec" onclick="toggleRecSection()" title="Grabadora MIDI: captura lo que tocas, reprodúcelo, practícalo o expórtalo a .mid">Grabadora</button>
     <button class="btn" id="btn-tuner" onclick="toggleTuner()" title="Afinador por micrófono: detecta la nota que suena (una a la vez) con su desviación en cents">Afinador</button>
     <button class="btn" id="btn-sound" onclick="toggleSoundSection()" title="Salida de sonido, instrumento y voces Yamaha">Sonido</button>
+    <button class="btn" id="btn-ui-mode" onclick="toggleUiMode()" title="Mostrar u ocultar las herramientas avanzadas (teoría, oído, grabadora, afinador, sonido…)">Más ▾</button>
     <a class="btn" href="ayuda.html" target="_blank" rel="noopener" title="Manual de uso completo" aria-label="Abrir el manual de uso">?</a>
     <span class="spacer"></span>
     <label class="toggle" title="Tamaño real de las teclas, con scroll horizontal"><input type="checkbox" id="chk-zoom" onchange="setMode(this.checked?'zoom':'full')"><span class="switch"></span><span>Vista real</span></label>
@@ -1256,7 +1270,7 @@ body.perf-mode .brand .logo{animation:none}
   </section>
 
   <div id="bottom-bar">
-    <div class="control">
+    <div class="control" id="vel-control">
       <div class="head">
         <span class="lab">Velocidad</span>
         <span class="val"><span id="vel-val">80</span><span class="unit">vel</span></span>
@@ -3920,6 +3934,34 @@ function toggleSoundSection(){
   if(btn)btn.classList.toggle('active',show);
 }
 
+// Modo Sencillo (por defecto) vs completo: divulgación progresiva de la UI.
+// "Más ▾" revela las herramientas avanzadas; la elección queda guardada.
+function toggleUiMode(){
+  setUiMode(document.body && document.body.classList.contains('ui-simple') ? 'full' : 'simple');
+}
+function setUiMode(modeName){
+  const simple = modeName!=='full';
+  if(document.body)document.body.classList.toggle('ui-simple', simple);
+  const btn=document.getElementById('btn-ui-mode');
+  if(btn)btn.textContent=simple?'Más ▾':'Menos ▴';
+  if(simple){
+    // al simplificar, cerrar las secciones de herramientas que estén abiertas
+    [['sound-section','btn-sound'],['circle-section','btn-circle'],
+     ['rec-section','btn-rec']].forEach(([sec,b])=>{
+      const s=document.getElementById(sec);
+      if(s && !s.classList.contains('hidden')){
+        s.classList.add('hidden');
+        const bt=document.getElementById(b); if(bt)bt.classList.remove('active');
+      }
+    });
+    const ear=document.getElementById('ear-section');
+    if(ear && !ear.classList.contains('hidden'))toggleEarTraining();   // apaga captura
+    const tun=document.getElementById('tuner-section');
+    if(tun && !tun.classList.contains('hidden'))toggleTuner();          // libera mic si nadie lo usa
+  }
+  try{localStorage.setItem('pianopro:ui', simple?'simple':'full')}catch(e){}
+}
+
 // Fila del Loop A-B plegable (R3)
 function toggleLoopRow(){
   const row=document.getElementById('loop-controls');
@@ -5825,6 +5867,8 @@ window.addEventListener('load', async ()=>{
     if(savedPerf==='1')setPerfMode(true, true);
     const savedHandPos=localStorage.getItem('pianopro:handpos');
     if(savedHandPos==='1')setHandPosGuide(true, true);
+    // Modo Sencillo por defecto; "full" solo si el usuario lo eligió antes
+    setUiMode(localStorage.getItem('pianopro:ui')==='full'?'full':'simple');
     const savedEar=localStorage.getItem('pianopro:ear');
     if(savedEar){
       const e0=JSON.parse(savedEar);

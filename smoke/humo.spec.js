@@ -145,12 +145,14 @@ test('R1-R4: el piano queda SOBRE el pliegue en un laptop (1366×768) y el score
     pianoSobrePliegue: document.getElementById('piano-canvas').getBoundingClientRect().bottom <= innerHeight,
     cascadaVisible: document.getElementById('falling-canvas').getBoundingClientRect().top >= 0,
     scoreColapsado: document.getElementById('score-section').classList.contains('hidden'),
-    toolbarControles: document.querySelectorAll('#toolbar button,#toolbar select,#toolbar input:not([type=checkbox]),#toolbar label.toggle,#toolbar a.btn').length,
+    toolbarVisibles: [...document.querySelectorAll('#toolbar button,#toolbar select,#toolbar input:not([type=checkbox]),#toolbar label.toggle,#toolbar a.btn')].filter(e => e.offsetParent !== null).length,
+    modoSencillo: document.body.classList.contains('ui-simple'),
   }));
   expect(estado.pianoSobrePliegue).toBe(true);   // la razón de ser de R1
   expect(estado.cascadaVisible).toBe(true);
   expect(estado.scoreColapsado).toBe(true);
-  expect(estado.toolbarControles).toBeLessThanOrEqual(16); // R2: sin regresión de densidad
+  expect(estado.modoSencillo).toBe(true);        // el default es Sencillo
+  expect(estado.toolbarVisibles).toBeLessThanOrEqual(10); // divulgación progresiva
   // R4: al reproducir, la partitura desaparece; al pausar, vuelve
   await page.evaluate(() => { toggleScore(); togglePlay(); }); // ábrela y dale play
   await page.waitForTimeout(150);
@@ -164,6 +166,7 @@ test('R1-R4: el piano queda SOBRE el pliegue en un laptop (1366×768) y el score
 
 test('teoría en vivo: acorde, tonalidad y número romano aparecen', async ({ page }) => {
   await bootApp(page);
+  await page.evaluate(() => setUiMode('full')); // las herramientas viven tras "Más ▾"
   // Fijar C mayor desde el círculo (construcción perezosa incluida)
   await page.click('#btn-circle');
   await expect(page.locator('#circle-section')).not.toHaveClass(/hidden/);
