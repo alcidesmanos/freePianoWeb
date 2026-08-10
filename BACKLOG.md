@@ -351,6 +351,14 @@
 
 ---
 
+## Tema claro/oscuro (análisis 2026-08-09)
+
+- [ ] **Modo claro + toggle** `[M-L]` — para la fase de PUBLICACIÓN, no antes
+  - A favor: freeDFDWeb ya tiene toggle de tema (precedente de familia); salas con luz de día; expectativa estándar al publicar
+  - El costo honesto NO es el CSS (los tokens `--glass/--border/--text` ya existen): son los **~185 colores hardcodeados, muchos dentro del CANVAS** (gradientes de teclas, falling notes, guías, afinador) que viven en JS y no se tematizan con variables CSS
+  - Camino correcto si se hace: (1) tokenizar el CSS restante, (2) **objeto de paleta en JS** que `draw()`/`renderFallingFrame()`/guías lean según tema, (3) `prefers-color-scheme` + toggle persistido como freeDFD, (4) el Aurora oscuro queda como tema firma por defecto
+  - Regla: NO hacer un tema claro "a medias" (CSS claro + canvas oscuro se ve roto)
+
 ## Micrófono — qué se puede hacer (análisis 2026-08-09)
 
 Vía `getUserMedia` + AudioWorklet. Ordenado por viabilidad/valor:
