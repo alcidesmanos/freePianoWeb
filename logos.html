@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>freePianoWeb — Logos e identidad</title>
+<style>
+:root{--dark:#181b24;--naranja:#e8563c;--verde:#52caa0;--paper:#f5f4f1;--tinta:#22252e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Roboto,system-ui,sans-serif;background:var(--paper);color:var(--tinta);padding:2.5rem 1.2rem;line-height:1.6}
+.doc{max-width:920px;margin:0 auto}
+h1{font-size:2rem;font-weight:600;letter-spacing:-0.01em}
+h1 em{font-style:normal;color:var(--naranja);font-weight:700}
+h2{font-size:1.15rem;font-weight:600;margin:2.2rem 0 0.8rem;border-bottom:2px solid var(--dark);padding-bottom:0.3rem}
+p{color:#555a66;max-width:70ch;margin-bottom:0.5rem}
+.lede{margin-top:0.4rem}
+.fila{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin:1rem 0}
+.muestra{border-radius:14px;padding:1.6rem;display:flex;flex-direction:column;align-items:center;gap:0.9rem;border:1px solid #d8d6d0}
+.muestra.oscura{background:var(--dark);border-color:var(--dark)}
+.muestra.clara{background:#fff}
+.muestra .cap{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:600;color:#9aa0ab}
+.muestra.oscura .cap{color:#6a7080}
+.wordmark{font-size:26px;font-weight:600;letter-spacing:-0.01em}
+.wordmark em{font-style:normal;color:var(--naranja);font-weight:700}
+.muestra.oscura .wordmark{color:#f5f5f7}
+.horizontal{display:flex;align-items:center;gap:12px}
+.paleta{display:flex;gap:1rem;flex-wrap:wrap;margin:0.8rem 0}
+.chip{width:150px;border-radius:12px;overflow:hidden;border:1px solid #d8d6d0}
+.chip .color{height:64px}
+.chip .datos{padding:0.5rem 0.7rem;font-size:12px;background:#fff}
+.chip .datos b{display:block;font-family:ui-monospace,monospace}
+table{width:100%;border-collapse:collapse;margin:0.6rem 0;font-size:14px}
+th,td{text-align:left;padding:0.5rem 0.7rem;border-bottom:1px solid #ddd}
+th{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#9aa0ab}
+code{font-family:ui-monospace,monospace;font-size:12.5px;background:#e9e7e2;border-radius:5px;padding:0.1rem 0.4rem}
+pre{background:var(--dark);color:#d8ffeef0;border-radius:12px;padding:1rem;overflow-x:auto;font-size:12px;line-height:1.5;margin:0.8rem 0}
+footer{margin-top:2.5rem;font-size:12px;color:#9aa0ab;font-family:ui-monospace,monospace}
+</style>
+</head>
+<body>
+<div class="doc">
+
+<h1>freePiano<em>Web</em> — Logos e identidad</h1>
+<p class="lede">Identidad de la familia <code>free*</code> (freeDFDWeb · freeBPMN · freePianoWeb): <strong>la misma M</strong>, la misma paleta y la misma tipografía de wordmark. Lo que distingue a cada producto es la iconografía bajo la M — en freePianoWeb, <strong>un teclado de piano</strong> (donde freeDFDWeb lleva sus dos nodos circulares).</p>
+
+<h2>La marca</h2>
+<div class="fila">
+  <div class="muestra oscura">
+    <span class="cap">Símbolo · fondo oscuro</span>
+    <svg width="120" height="120" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="48" fill="#181b24"/>
+      <path d="M30,70 L22,28 L50,58 L78,28 L70,70" fill="none" stroke="#e8563c" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="20" y="66" width="60" height="22" rx="4" fill="#181b24" stroke="#52caa0" stroke-width="6"/>
+      <path d="M32,66 V88 M44,66 V88 M56,66 V88 M68,66 V88" stroke="#52caa0" stroke-width="3"/>
+      <rect x="28.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/>
+      <rect x="40.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/>
+      <rect x="64.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/>
+    </svg>
+  </div>
+  <div class="muestra clara">
+    <span class="cap">Símbolo · fondo claro</span>
+    <svg width="120" height="120" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="48" fill="#181b24"/>
+      <path d="M30,70 L22,28 L50,58 L78,28 L70,70" fill="none" stroke="#e8563c" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="20" y="66" width="60" height="22" rx="4" fill="#181b24" stroke="#52caa0" stroke-width="6"/>
+      <path d="M32,66 V88 M44,66 V88 M56,66 V88 M68,66 V88" stroke="#52caa0" stroke-width="3"/>
+      <rect x="28.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/>
+      <rect x="40.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/>
+      <rect x="64.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/>
+    </svg>
+  </div>
+  <div class="muestra oscura" style="grid-column:1/-1">
+    <span class="cap">Lockup horizontal (uso en cabeceras)</span>
+    <div class="horizontal">
+      <svg width="44" height="44" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="48" fill="#181b24"/>
+        <path d="M30,70 L22,28 L50,58 L78,28 L70,70" fill="none" stroke="#e8563c" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="20" y="66" width="60" height="22" rx="4" fill="#181b24" stroke="#52caa0" stroke-width="6"/>
+        <path d="M32,66 V88 M44,66 V88 M56,66 V88 M68,66 V88" stroke="#52caa0" stroke-width="3"/>
+        <rect x="28.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/>
+        <rect x="40.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/>
+        <rect x="64.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/>
+      </svg>
+      <span class="wordmark">freePiano<em>Web</em></span>
+    </div>
+  </div>
+</div>
+
+<h2>Anatomía</h2>
+<table>
+  <tr><th>Elemento</th><th>Qué es</th><th>Herencia</th></tr>
+  <tr><td>Círculo <code>#181b24</code></td><td>El contenedor de toda la familia</td><td>Idéntico a freeDFDWeb</td></tr>
+  <tr><td>La M <code>#e8563c</code></td><td>Trazo 14, remates redondeados — <code>M30,70 L22,28 L50,58 L78,28 L70,70</code></td><td><strong>Idéntica, sin modificar</strong></td></tr>
+  <tr><td>Teclado <code>#52caa0</code></td><td>5 teclas blancas + 3 negras (patrón real de piano), marco redondeado</td><td>La iconografía propia — reemplaza los dos nodos de freeDFD</td></tr>
+</table>
+
+<h2>Paleta</h2>
+<div class="paleta">
+  <div class="chip"><div class="color" style="background:#181b24"></div><div class="datos"><b>#181b24</b>Fondo / círculo</div></div>
+  <div class="chip"><div class="color" style="background:#e8563c"></div><div class="datos"><b>#e8563c</b>Naranja · la M y el acento del wordmark</div></div>
+  <div class="chip"><div class="color" style="background:#52caa0"></div><div class="datos"><b>#52caa0</b>Verde · la iconografía del producto</div></div>
+</div>
+
+<h2>Tipografía del wordmark</h2>
+<p><code>'Segoe UI', Roboto, system-ui, sans-serif</code> — <strong>freePiano</strong> en peso 600 color del texto; <strong>Web</strong> en peso 700 naranja <code>#e8563c</code>. (La estética interna de la app — Fraunces/Jakarta, aurora — es de la <em>edición</em> Pianoforte Aurora y no compite con la marca de familia.)</p>
+
+<h2>SVG canónico</h2>
+<pre>&lt;svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"&gt;
+  &lt;circle cx="50" cy="50" r="48" fill="#181b24"/&gt;
+  &lt;path d="M30,70 L22,28 L50,58 L78,28 L70,70" fill="none"
+        stroke="#e8563c" stroke-width="14"
+        stroke-linecap="round" stroke-linejoin="round"/&gt;
+  &lt;rect x="20" y="66" width="60" height="22" rx="4"
+        fill="#181b24" stroke="#52caa0" stroke-width="6"/&gt;
+  &lt;path d="M32,66 V88 M44,66 V88 M56,66 V88 M68,66 V88"
+        stroke="#52caa0" stroke-width="3"/&gt;
+  &lt;rect x="28.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/&gt;
+  &lt;rect x="40.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/&gt;
+  &lt;rect x="64.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/&gt;
+&lt;/svg&gt;</pre>
+<p>Usos ya aplicados: header de la app (36px), favicon (data-URI en el <code>&lt;head&gt;</code>).</p>
+
+<footer>— freepianoweb · identidad de la familia free* · 2026-08-09 —</footer>
+</div>
+</body>
+</html>

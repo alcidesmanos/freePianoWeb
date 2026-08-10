@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>freePianoWeb — Pianoforte Aurora</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%23181b24'/%3E%3Cpath d='M30,70 L22,28 L50,58 L78,28 L70,70' fill='none' stroke='%23e8563c' stroke-width='14' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='20' y='66' width='60' height='22' rx='4' fill='%23181b24' stroke='%2352caa0' stroke-width='6'/%3E%3Cpath d='M32,66 V88 M44,66 V88 M56,66 V88 M68,66 V88' stroke='%2352caa0' stroke-width='3'/%3E%3Crect x='28.5' y='66' width='7' height='11' rx='1.5' fill='%2352caa0'/%3E%3Crect x='40.5' y='66' width='7' height='11' rx='1.5' fill='%2352caa0'/%3E%3Crect x='64.5' y='66' width='7' height='11' rx='1.5' fill='%2352caa0'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -107,25 +108,13 @@ header{
   flex-wrap:wrap;gap:0.7rem;
 }
 .brand{display:flex;align-items:center;gap:0.85rem}
-.brand .logo{
-  width:34px;height:34px;border-radius:11px;
-  background:conic-gradient(from 180deg at 50% 50%, var(--violet), var(--cyan), var(--magenta), var(--teal), var(--violet));
-  position:relative;
-  box-shadow:0 0 30px rgba(139,92,246,0.4), inset 0 0 0 1px rgba(255,255,255,0.2);
-  animation:rotate 12s linear infinite;
-}
-@keyframes rotate{to{transform:rotate(360deg)}}
-.brand .logo::after{
-  content:'';position:absolute;inset:6px;border-radius:8px;
-  background:rgba(10,8,20,0.85);
-}
+/* Marca de la familia free* (misma M y paleta que freeDFDWeb; teclado debajo) */
+.brand .logo-mark{width:36px;height:36px;flex-shrink:0;filter:drop-shadow(0 0 14px rgba(232,86,60,0.25))}
 .brand .name{
-  font-family:'Fraunces',serif;font-weight:400;font-size:20px;line-height:1;
-  letter-spacing:-0.02em;
-  background:linear-gradient(135deg, #fff 30%, rgba(255,255,255,0.5));
-  -webkit-background-clip:text;background-clip:text;color:transparent;
+  font-family:'Segoe UI',Roboto,system-ui,sans-serif;font-weight:600;font-size:20px;line-height:1;
+  letter-spacing:-0.01em;color:#f5f5f7;
 }
-.brand .name em{font-style:italic;color:var(--cyan);font-weight:300;-webkit-text-fill-color:var(--cyan)}
+.brand .name em{font-style:normal;color:#e8563c;font-weight:700}
 .brand .tag{font-size:11px;color:var(--text-mute);letter-spacing:0.04em;margin-top:2px}
 
 .status-group{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap}
@@ -886,7 +875,7 @@ a.btn:focus-visible,#splash button:focus-visible,
   outline:2px solid var(--cyan);outline-offset:2px;
 }
 @media (prefers-reduced-motion:reduce){
-  body::before,.brand .logo{animation:none}
+  body::before{animation:none}
   header,#toolbar,#score-section,#lesson-panel,#lesson-empty,#info-panel,
   #piano-frame,#bottom-bar,#circle-section,#ear-section,#rec-section{animation:none}
   .toast{animation-duration:0.01s}
@@ -900,7 +889,7 @@ a.btn:focus-visible,#splash button:focus-visible,
 body.perf-mode *{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 body.perf-mode::before{animation:none}
 body.perf-mode .grain{display:none}
-body.perf-mode .brand .logo{animation:none}
+
 
 /* ---------- DRAG & DROP ---------- */
 #drop-overlay{
@@ -959,7 +948,15 @@ body.perf-mode .brand .logo{animation:none}
 <div id="app" role="main">
   <header role="group" aria-label="Estado de la aplicación">
     <div class="brand">
-      <div class="logo"></div>
+      <svg class="logo-mark" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="48" fill="#181b24"/>
+        <path d="M30,70 L22,28 L50,58 L78,28 L70,70" fill="none" stroke="#e8563c" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="20" y="66" width="60" height="22" rx="4" fill="#181b24" stroke="#52caa0" stroke-width="6"/>
+        <path d="M32,66 V88 M44,66 V88 M56,66 V88 M68,66 V88" stroke="#52caa0" stroke-width="3"/>
+        <rect x="28.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/>
+        <rect x="40.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/>
+        <rect x="64.5" y="66" width="7" height="11" rx="1.5" fill="#52caa0"/>
+      </svg>
       <div>
         <h1 class="name">freePiano<em>Web</em></h1>
         <div class="tag">Pianoforte Aurora · Salamander Grand · Web MIDI</div>
