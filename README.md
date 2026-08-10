@@ -8,6 +8,16 @@ _Actualizado: 2026-08-09_
 
 ---
 
+## Origen del nombre
+
+**Pianoforte** es el nombre original italiano del piano (el *gravicembalo col piano e
+forte* de Cristofori, ~1700: el primer teclado que sonaba suave Y fuerte según el
+toque — como esta app, que responde a velocity). **Aurora** fue la estética ganadora
+de un concurso de 4 maquetas la mañana del 2026-05-01 (aurora, linear, synthwave y
+bento — conservadas en `backup/`): el fondo mesh-gradient animado tipo aurora boreal
+(`@keyframes aurora`). **Pro** marcó el salto funcional sobre esos prototipos:
+Salamander Grand, Web MIDI y falling notes.
+
 ## Filosofía: un solo archivo
 
 `piano_pro.html` es la aplicación completa (~4.400 líneas: CSS + markup + JS). Sin build,
