@@ -40,6 +40,10 @@ accesibilidad **axe-core con cero violaciones** en ambos temas. Detalles en
 freePianoWeb es parte de la familia de herramientas libres del autor:
 **freeDFDWeb** (diagramas de flujo) · **freeBPMN** (procesos) · **freePianoWeb** (música).
 
+## Autor
+
+**Alcides Sanchez** · [LinkedIn](https://www.linkedin.com/in/alcides-sanchez-b4772a35/)
+
 ## Licencia
 
 [MIT](LICENSE) © 2026 Alcides Sanchez
