@@ -150,13 +150,23 @@ footer{grid-column:1/-1;text-align:center;color:var(--text-mute);font-size:12px;
   <p>Los tres pills del encabezado te dicen el estado: <strong>MIDI</strong> (dispositivo conectado), <strong>Audio</strong> (samples listos) e <strong>Instrumento activo</strong>.</p>
 </section>
 
+<section class="card" id="interfaz">
+  <h2><span class="ico">🧭</span>La interfaz: modo Sencillo y "Más ▾"</h2>
+  <p>La app abre en <strong>modo Sencillo</strong>: solo lo esencial para practicar (cargar canción, Für Elise, partitura y las ayudas visuales). El botón <strong>Más ▾</strong> revela las herramientas avanzadas — Círculo 5ªs, Oído, Grabadora, Afinador y Sonido — y vuelve a plegarlas con <strong>Menos ▴</strong>. Tu elección se recuerda entre sesiones.</p>
+  <ul>
+    <li><strong>Tema claro / oscuro</strong> (toggle ☀): toda la interfaz cambia de tema; el <em>escenario</em> (teclado y cascada de notas) permanece oscuro a propósito — como un piano de concierto, ahí el contraste es lo que te deja leer las notas.</li>
+    <li><strong>Vista real</strong>: teclas a tamaño natural con scroll horizontal, para que la distancia entre teclas coincida con tu piano.</li>
+    <li><strong>Modo rendimiento</strong> (⚡): desactiva los efectos de cristal y la aurora animada para máxima fluidez. Se activa solo si la app detecta fps bajos (típico en laptops sin GPU dedicada).</li>
+  </ul>
+</section>
+
 <section class="card" id="cargar">
   <h2><span class="ico">📂</span>Cargar canciones</h2>
   <h3>Tres maneras</h3>
   <ul>
     <li><strong>Arrastrar y soltar</strong> cualquier archivo sobre la página (aparece el marco punteado "Suelta el archivo").</li>
     <li>Botones <strong>Cargar MIDI</strong> (<code>.mid</code>, <code>.midi</code>) y <strong>Cargar partitura</strong> (<code>.xml</code>, <code>.musicxml</code>, <code>.mxl</code>).</li>
-    <li>El botón <strong>★ Für Elise</strong> descarga la pieza de ejemplo de internet.</li>
+    <li>El botón <strong>★ Für Elise</strong> carga la lección de ejemplo (arreglo propio, digitado al 100%) — viene embebida en la app, funciona sin internet.</li>
   </ul>
   <h3>¿MIDI o MusicXML?</h3>
   <table>
@@ -343,6 +353,16 @@ footer{grid-column:1/-1;text-align:center;color:var(--text-mute);font-size:12px;
   </ul>
 </section>
 
+<section class="card" id="afinador">
+  <h2><span class="ico">🎤</span>Afinador por micrófono</h2>
+  <p>Botón <strong>Afinador</strong> (tras "Más ▾"): activa el micrófono y detecta la nota que suena — <strong>una a la vez</strong> — con su desviación en <strong>cents</strong> (aguja: verde centrada = afinado, roja = desviado). Funciona con cualquier instrumento melódico: piano acústico, acordeón, guitarra, voz.</p>
+  <ul>
+    <li>El detector (algoritmo YIN) está validado con tests contra audio real de acordeón en todo el registro C3–C6, sin errores de octava.</li>
+    <li>Es el mismo motor del modo <strong>🎤 Acústico</strong> de la lección: la app te "escucha" tocar tu instrumento físico y valida el modo Esperar sin ningún cable (ver "La lección").</li>
+    <li>El micrófono solo se usa mientras el afinador o el modo acústico están activos; el audio nunca sale de tu equipo.</li>
+  </ul>
+</section>
+
 <section class="card" id="persistencia">
   <h2><span class="ico">💾</span>Qué se guarda solo</h2>
   <p>Recargar el navegador no borra tu trabajo:</p>
@@ -350,6 +370,7 @@ footer{grid-column:1/-1;text-align:center;color:var(--text-mute);font-size:12px;
     <li><strong>La última canción completa</strong> (notas, nombre, bpm) con su transposición, filtro de manos, tempo y modo Esperar — al abrir verás "Sesión restaurada".</li>
     <li>Modo de salida, instrumento, modo nota, notas en teclas, modo silencio.</li>
     <li>Volúmenes del mezclador, escala fijada, nivel y marcador del entrenamiento de oído.</li>
+    <li>Tema claro/oscuro, modo Sencillo o completo, posición de manos y modo rendimiento.</li>
   </ul>
   <p>Todo vive en tu navegador (IndexedDB y localStorage) — nada sale de tu equipo.</p>
 </section>
