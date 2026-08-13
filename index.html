@@ -5743,7 +5743,13 @@ function initMIDI(){
   dot.className='dot searching';txt.textContent='Buscando MIDI…';
   if(!navigator.requestMIDIAccess){
     dot.className='dot';txt.textContent='Web MIDI no soportado';
-    showToast({type:'warn',title:'Sin Web MIDI',body:'Este navegador no soporta MIDI. Usa Chrome o Edge para conectar tu Yamaha.',duration:8000});
+    // Persistente (duration:null), no 8s: se dispara durante el splash y un
+    // toast temporal expira antes de que el usuario pulse Comenzar — fuga
+    // silenciosa clásica. Y aclarar que TODO lo demás funciona: sin eso, el
+    // visitante de Firefox/Safari asume que la app está rota y se va.
+    showToast({type:'warn',title:'Sin Web MIDI en este navegador',
+      body:'Para conectar un teclado por USB usa Chrome o Edge (Firefox y Safari no traen Web MIDI). Todo lo demás funciona normal: ratón, pantalla táctil y micrófono.',
+      duration:null});
     return;
   }
   navigator.requestMIDIAccess({sysex:false}).then(midi=>{
