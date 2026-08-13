@@ -49,7 +49,7 @@ test('click en el teclado virtual muestra la nota en el hero', async ({ page }) 
   expect(texto.length).toBeGreaterThan(0);
 });
 
-test('cargar MusicXML crea la lección con digitaciones y highlight de espera', async ({ page }) => {
+test('cargar MusicXML crea la lección; Esperar viene APAGADO y al activarlo propone teclas', async ({ page }) => {
   const errors = trackErrors(page);
   await bootApp(page);
   await page.setInputFiles('#file-input', 'library/11-personal/Atardecer_balada_pop_original.musicxml');
@@ -61,14 +61,27 @@ test('cargar MusicXML crea la lección con digitaciones y highlight de espera', 
     loaded: songState.loaded,
     notas: songState.allNotes.length,
     conDedo: songState.allNotes.filter(n => n.finger).length,
+    esperar: songState.waitMode,
     teclasResaltadas: Object.keys(highlightedKeys).length,
     hasScore: songState.hasScore,
   }));
   expect(estado.loaded).toBe(true);
   expect(estado.notas).toBe(37);
   expect(estado.conDedo).toBe(37); // las digitaciones del XML llegaron a las notas
-  expect(estado.teclasResaltadas).toBeGreaterThan(0); // wait mode propone teclas
+  // Decisión UX 2026-08-10: Esperar APAGADO por defecto — un usuario nuevo da
+  // Play y espera OÍR la pieza, no que la app se quede muda pidiendo teclas.
+  expect(estado.esperar).toBe(false);
+  expect(estado.teclasResaltadas).toBe(0); // sin Esperar no se propone nada
   expect(estado.hasScore).toBe(true); // el score-following quedó activo
+  // El camino del que SÍ practica: activar el toggle propone las teclas
+  await page.locator('label.toggle:has(#chk-wait)').click();
+  await page.waitForTimeout(150);
+  const conEsperar = await page.evaluate(() => ({
+    esperar: songState.waitMode,
+    teclasResaltadas: Object.keys(highlightedKeys).length,
+  }));
+  expect(conEsperar.esperar).toBe(true);
+  expect(conEsperar.teclasResaltadas).toBeGreaterThan(0); // wait mode propone teclas
   expect(errors).toEqual([]);
 });
 

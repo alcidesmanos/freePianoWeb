@@ -1107,7 +1107,7 @@ body.perf-mode .grain{display:none}
     <div class="transport">
       <button class="tbtn" onclick="restartSong()" title="Reiniciar (R)" aria-label="Reiniciar la canción">⟲</button>
       <button class="tbtn play" id="play-btn" onclick="togglePlay()" title="Play / Pausa (Espacio)" aria-label="Reproducir o pausar">▶</button>
-      <label class="toggle" style="margin-left:0.4rem" title="Pausa hasta que toques la nota correcta (W)"><input type="checkbox" id="chk-wait" checked onchange="songState.waitMode=this.checked"><span class="switch"></span><span>Esperar</span></label>
+      <label class="toggle" style="margin-left:0.4rem" title="Modo práctica: pausa hasta que toques la nota correcta (W). Desactivado por defecto: dale Play y escucha la pieza"><input type="checkbox" id="chk-wait" onchange="songState.waitMode=this.checked;updateHighlight()"><span class="switch"></span><span>Esperar</span></label>
       <label class="toggle" title="La lección avanza visualmente sin sonido. Tú tocas lo que ves."><input type="checkbox" id="chk-mute-lesson" onchange="setLessonMute(this.checked)"><span class="switch"></span><span>Silencio</span></label>
       <label class="toggle" title="Toca en tu instrumento FÍSICO (piano o acordeón, sin cable): el micrófono valida las notas del modo Esperar. Solo melodías (una nota a la vez)."><input type="checkbox" id="chk-acoustic" onchange="setAcousticMode(this.checked)"><span class="switch"></span><span>🎤 Acústico</span></label>
       <div class="hand-filter" title="Manos separadas: practica una sola mano; la otra se atenúa en las notas que caen">
@@ -4546,7 +4546,11 @@ const songState = {
   startPerf:0,         // performance.now() del último resume
   pausedAt:0,          // tiempo de canción acumulado al pausar
   tempo:1.0,
-  waitMode:true,
+  // false por defecto (decisión 2026-08-10): un usuario nuevo carga una
+  // partitura, da Play y espera OÍRLA — con Esperar activo la app se queda
+  // muda aguardando la tecla correcta y parece rota. Quien practica activa
+  // Esperar (toggle o W); la sesión restaurada conserva su elección.
+  waitMode:false,
   handFilter:'both',   // 'both' | 'left' | 'right' — modo manos separadas
   transpose:0,         // semitonos aplicados a toda la pieza (origMidi + transpose)
   allNotes:[],         // todas las notas de la pieza (sin filtrar)

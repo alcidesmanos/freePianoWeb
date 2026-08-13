@@ -164,3 +164,12 @@ test('fmtTime formatea m:ss', () => {
   assert.equal(p.fmtTime(61), '1:01');
   assert.equal(p.fmtTime(125.9), '2:05');
 });
+
+test('UX: el modo Esperar arranca DESACTIVADO (decisión 2026-08-10)', () => {
+  // Un usuario nuevo carga una partitura y da Play esperando OÍRLA; con
+  // Esperar activo por defecto la app se queda muda aguardando la tecla
+  // correcta y parece rota. Quien practica lo activa (toggle o atajo W).
+  // Si este test falla, alguien revirtió el default sin pasar por la decisión.
+  const p = loadPiano();
+  assert.equal(p.songState.waitMode, false);
+});
