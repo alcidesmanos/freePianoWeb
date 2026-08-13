@@ -11,7 +11,11 @@
 
 const { test, expect } = require('@playwright/test');
 
-test.use({ permissions: ['midi'] });
+// Desde Chrome 124 TODO Web MIDI (aun con sysex:false) exige el permiso
+// 'midi-sysex'; solo 'midi' produce NotAllowedError y los tests se saltaban
+// en silencio incluso con el teclado conectado (encontrado validando con el
+// Yamaha físico). Con ambos permisos el hardware se ve hasta en headless.
+test.use({ permissions: ['midi', 'midi-sysex'] });
 
 async function bootApp(page) {
   await page.goto('/index.html');
