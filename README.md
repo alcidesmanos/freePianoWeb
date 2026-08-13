@@ -30,7 +30,7 @@
 
 ## Calidad
 
-187 tests automatizados en 3 capas (171 unitarias e integración HTML↔JS + 16 en Chromium real: humo, accesibilidad y hardware MIDI) + auditoría
+187 tests automatizados en 3 capas — unitarias, integridad HTML↔JS y Chromium real (humo, accesibilidad y hardware MIDI) — + auditoría
 de precisión reproducible: jitter de reproducción **2.28 ms** (grado profesional),
 accesibilidad **axe-core con cero violaciones** en ambos temas. Detalles en
 [`TECNICO.md`](TECNICO.md) y el [informe de auditoría](https://alcidesmanos.github.io/freePianoWeb/informe_auditoria.html).

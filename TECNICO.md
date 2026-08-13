@@ -48,7 +48,7 @@ test/               ← unitarias + humo N1 (cero dependencias, node:test)
   *.test.js         ←   125 tests
 smoke/              ← humo N2 en Chromium real (Playwright)
   server.js         ←   estático mínimo (puerto 8123, sin dependencias)
-  humo.spec.js      ←   5 escenarios end-to-end
+  humo.spec.js      ←   8 escenarios end-to-end
   yamaha.spec.js    ←   3 escenarios CONDICIONADOS a hardware MIDI real
 library/            ← 85 partituras en 12 categorías (untracked)
 teoria/             ← apuntes de teoría musical del usuario (untracked)
@@ -106,9 +106,9 @@ noteOn(midi, vel, source)
 ## Testing (3 capas)
 
 ```
-npm test           125 unitarias + humo N1 · ~1s · cero deps · sin red
-npm run smoke      5 escenarios en Chromium headless · ~15s · necesita CDN
-                   + 3 condicionados a hardware (skip limpio sin teclado)
+npm test           171 unitarias + humo N1 · ~6s · cero deps · sin red
+npm run smoke      13 escenarios en Chromium headless (humo + a11y) · ~35s · necesita CDN
+                   + 3 condicionados a hardware MIDI (skip limpio sin teclado)
 npm run smoke:yamaha            solo los de hardware, navegador visible
 YAMAHA_LIVE=1 npm run smoke:yamaha   añade el interactivo (tocar una tecla)
 ```
