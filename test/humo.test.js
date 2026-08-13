@@ -13,7 +13,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('fs');
 const path = require('path');
 
-const html = readFileSync(path.join(__dirname, '..', 'piano_pro.html'), 'utf8');
+const html = readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const script = (html.match(/<script>([\s\S]*)<\/script>/) || [, ''])[1];
 assert.ok(script.length > 1000, 'el script inline debe existir');
 

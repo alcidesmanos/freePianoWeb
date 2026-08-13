@@ -25,9 +25,11 @@ const MIME = {
 http.createServer((req, res) => {
   try {
     const urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-    const filePath = path.normalize(path.join(ROOT, urlPath));
+    let filePath = path.normalize(path.join(ROOT, urlPath));
     if (!filePath.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }
-    const st = statSync(filePath);
+    let st = statSync(filePath);
+    // Directorio → index.html, como GitHub Pages: la URL limpia "/" también es la app aquí
+    if (st.isDirectory()) { filePath = path.join(filePath, 'index.html'); st = statSync(filePath); }
     if (!st.isFile()) { res.writeHead(404); res.end(); return; }
     res.writeHead(200, { 'Content-Type': MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream' });
     createReadStream(filePath).pipe(res);

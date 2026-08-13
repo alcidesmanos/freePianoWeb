@@ -27,7 +27,7 @@ compatibilidad con las sesiones guardadas.
 
 ## Filosofía: un solo archivo
 
-`piano_pro.html` es la aplicación completa (~4.400 líneas: CSS + markup + JS). Sin build,
+`index.html` es la aplicación completa (~4.400 líneas: CSS + markup + JS). Sin build,
 sin framework, sin dependencias de runtime instalables: **lo copias, lo pegas, lo usas**.
 Las 4 librerías (Tone.js, @tonejs/midi, JSZip, OSMD) llegan por CDN.
 
@@ -39,7 +39,7 @@ no con Angular. Ver discusión completa en la sesión del 2026-08-09.
 ## Mapa del proyecto
 
 ```
-piano_pro.html      ← LA APLICACIÓN (único archivo de producción)
+index.html      ← LA APLICACIÓN (único archivo de producción)
 ayuda.html          ← manual de usuario (compañero opcional)
 BACKLOG.md          ← roadmap y estado por prioridades (P0…P6)
 package.json        ← solo scripts de test y devDependency de Playwright

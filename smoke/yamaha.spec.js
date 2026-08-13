@@ -14,7 +14,7 @@ const { test, expect } = require('@playwright/test');
 test.use({ permissions: ['midi'] });
 
 async function bootApp(page) {
-  await page.goto('/piano_pro.html');
+  await page.goto('/index.html');
   await expect(page.locator('#splash button')).toBeVisible({ timeout: 90000 });
   await page.click('#splash button');
 }

@@ -23,7 +23,7 @@ function trackErrors(page) {
 }
 
 async function bootApp(page) {
-  await page.goto('/piano_pro.html');
+  await page.goto('/index.html');
   // El splash llega a "ready" cuando los samples Salamander terminaron de bajar del CDN
   await expect(page.locator('#splash button')).toBeVisible({ timeout: 90000 });
   await page.click('#splash button'); // gesto de usuario → desbloquea AudioContext

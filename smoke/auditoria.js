@@ -1,6 +1,6 @@
 /**
  * Auditoría de precisión y calidad — ejecuta las métricas del README contra
- * la app real en Chromium. No modifica piano_pro.html: instrumenta envolviendo
+ * la app real en Chromium. No modifica index.html: instrumenta envolviendo
  * funciones globales vía page.evaluate.
  *
  *   node smoke/auditoria.js
@@ -38,7 +38,7 @@ const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : n
   page.on('console', m => { if (m.type() === 'error' && !/favicon/i.test(m.text())) consoleErrors.push(m.text()); });
 
   console.log('· booting app (descarga de samples del CDN)…');
-  await page.goto('http://localhost:8123/piano_pro.html');
+  await page.goto('http://localhost:8123/index.html');
   await page.waitForSelector('#splash button', { state: 'visible', timeout: 90000 });
   await page.click('#splash button');
   await page.waitForFunction(() => samplerReady === true, null, { timeout: 90000 });

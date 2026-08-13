@@ -24,7 +24,7 @@
 ## Cómo usarla
 
 1. **Online**: abre [la app](https://alcidesmanos.github.io/freePianoWeb/) en **Chrome o Edge** y pulsa *Comenzar*.
-2. **Local**: descarga [`piano_pro.html`](piano_pro.html) — es **un solo archivo**: cópialo donde quieras y ábrelo con doble click.
+2. **Local**: descarga [`index.html`](index.html) — es **un solo archivo**: cópialo donde quieras y ábrelo con doble click.
 3. Pulsa **★ Für Elise** (viene incluida, con digitaciones) o carga tu propia partitura.
 4. ¿Teclado MIDI? Conéctalo por USB antes de abrir — se detecta solo. ¿Sin teclado? Activa **🎤 Acústico** y toca tu instrumento real frente al micrófono.
 

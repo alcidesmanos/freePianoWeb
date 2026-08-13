@@ -1,5 +1,5 @@
 /**
- * Harness de pruebas para piano_pro.html SIN modificar el archivo.
+ * Harness de pruebas para index.html SIN modificar el archivo.
  *
  * Estrategia: lee el HTML, extrae el <script> inline (el motor completo)
  * y lo evalúa en un contexto vm de Node con stubs de DOM/Web APIs.
@@ -15,7 +15,7 @@ const { readFileSync } = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const HTML_PATH = path.join(__dirname, '..', 'piano_pro.html');
+const HTML_PATH = path.join(__dirname, '..', 'index.html');
 
 // Símbolos internos del <script> que los tests necesitan alcanzar.
 const EXPORTS = [
@@ -126,7 +126,7 @@ function fakeEl() {
 }
 
 /**
- * Carga el motor de piano_pro.html en un contexto aislado.
+ * Carga el motor de index.html en un contexto aislado.
  * @returns {object} { ...símbolos exportados, __setNow(ms) para controlar performance.now() }
  */
 function loadPiano() {
@@ -134,7 +134,7 @@ function loadPiano() {
   // El único tag exactamente "<script>" (sin src) es el motor inline;
   // greedy hasta el último </script> captura su cuerpo completo.
   const m = html.match(/<script>([\s\S]*)<\/script>/);
-  if (!m) throw new Error('No se encontró el <script> inline en piano_pro.html');
+  if (!m) throw new Error('No se encontró el <script> inline en index.html');
   const script = m[1];
 
   // Reloj controlable para tests de getSongTime/tempo
@@ -180,7 +180,7 @@ function loadPiano() {
     ',get __samplerPreset(){return samplerPreset}' +
     ',get __handPos(){return _handPos}' +
     '};';
-  vm.runInNewContext(script + epilogue, sandbox, { filename: 'piano_pro.html#inline-script' });
+  vm.runInNewContext(script + epilogue, sandbox, { filename: 'index.html#inline-script' });
 
   const api = sandbox.__exports;
   api.__setNow = ms => { nowMs = ms; };
